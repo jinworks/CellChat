@@ -102,7 +102,7 @@ Suoqin Jin et al., Inference and analysis of cell-cell communication using CellC
 </p>
 <p align="center">
   <a href="#">
-     <img src="https://api.visitorbadge.io/api/visitors?path=https%3A%2F%2Fgithub.com%2Fsqjin%2FCellChat&labelColor=%233499cc&countColor=%2370c168" />
+     <img src="https://api.visitorbadge.io/api/visitors?path=https%3A%2F%2Fgithub.com%2Fjinworks%2FCellChat&labelColor=%233499cc&countColor=%2370c168" />
    </a>
 </p>
 
