@@ -1,15 +1,12 @@
-# CellChat: Inference and analysis of cell-cell communication
-
 <p align="center">
   <img width="200"  src="https://github.com/jinworks/CellChat/blob/main/CellChat_Logo.png">
 </p>
 
-## Update
-Nov 1, 2023 (Version 2.0.0)
+# CellChat v2
 
 CellChat v2 is an updated version that includes
 - inference of spatially proximal cell-cell communication between interacting cell groups from spatially resolved transcriptomics
-- expanded database CellChatDB v2 by including more than 1000 protein and non-protein interactions such as metabolic and synaptic signaling, and by adding rich annotations to each ligand-receptor pair. A function named `updateCellChatDB` is also provided for easily updating CellChatDB. 
+- expanded database CellChatDB v2 by including more than 1000 protein and non-protein interactions (e.g. metabolic and synaptic signaling) with rich annotations. A function named `updateCellChatDB` is also provided for easily updating CellChatDB. 
 - new functionalities enabling easily interface with other computational tools for single-cell data analysis and cell-cell communication analysis
 - interactive web browser function to allow exploration CellChat outputs of spatially proximal cell-cell communication
 
@@ -24,7 +21,7 @@ In addition to infer the intercellular communication from any given scRNA-seq da
 - It provides an easy-to-use tool for extracting and visualizing high-order information of the inferred networks. For example, it allows ready prediction of major signaling inputs and outputs for all cell populations and how these populations and signals coordinate together for functions.
 - It provides several visualization outputs to facilitate intuitive user-guided data interpretation.
 
-Check out [our paper (Jin et al., Nature Communications, 2021)](https://www.nature.com/articles/s41467-021-21246-9) for the detailed methods and applications.
+Check out [our original paper (Jin et al., Nature Communications, 2021)](https://www.nature.com/articles/s41467-021-21246-9) and [CellChat v2 paper](https://biorxiv.org/cgi/content/short/2023.11.05.565674v1) for the detailed methods and applications.
 
 ## Installation
 
@@ -91,8 +88,12 @@ We use GitHub's [Pull Request](https://github.com/jinworks/CellChat/pulls) mecha
 
 - Software requirements: This package is supported for macOS, Windows and Linux. The package has been tested on macOS: Mojave (10.14.5) and Windows 10. Dependencies of CellChat package are indicated in the Description file, and can be automatically installed when installing CellChat pacakge. CellChat can be installed on a normal computer within few mins.
 
-## How to cite?
-Suoqin Jin et al., Inference and analysis of cell-cell communication using CellChat. Nature Communications, 12:1088 (2021). https://www.nature.com/articles/s41467-021-21246-9 
+## About CellChat
+CellChat is an R package designed for inference, analysis, and visualization of cell-cell communication from single-cell and spatially resolved transcriptomics. CellChat aims to enable users to identify and interpret cell-cell communication within an easily interpretable framework, with the emphasis of clear, attractive, and interpretable visualizations.  
+
+If you use CellChat in your research, please considering citing: 
+- [Suoqin Jin et al., bioRxiv 2023](https://biorxiv.org/cgi/content/short/2023.11.05.565674v1) [CellChat v2]
+- [Suoqin Jin et al., Nature Communications 2021](https://www.nature.com/articles/s41467-021-21246-9) [CellChat v1]
 
 
 <p align="center">
