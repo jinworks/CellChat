@@ -1,0 +1,168 @@
+
+---
+title: "Update CellChatDB by integrating new ligand-receptor pairs from other resources or utilizing a custom ligand-receptor interaction database"
+author: "Suoqin Jin"
+date: "01 November, 2023"
+output:
+  html_document:
+    toc: true
+    theme: united
+mainfont: Arial
+vignette: >
+  %\VignetteIndexEntry{Update CellChatDB by integrating new ligand-receptor pairs from other resources or utilizing a custom ligand-receptor interaction database}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  root.dir = './'
+)
+knitr::opts_chunk$set(eval = FALSE)
+```
+
+# Part I: update CellChatDB using the function `updateCellChatDB`
+
+CellChat v2 provides the function `updateCellChatDB` to allow users to update CellChatDB by integrating new ligand-receptor pairs from other resources or utilizing a custom ligand-receptor interaction database. This function can be used as follows: 
+```{r eval=FALSE}
+updateCellChatDB(
+  db,
+  gene_info = NULL,
+  other_info = NULL,
+  merged = FALSE,
+  species_target = NULL
+)
+```
+The minimum input of this function is a data frame with two columns named as `ligand` and `receptor`, and other inputs include classified pathway, complex, cofactor and gene information. Users can check the documentation of this function for more details of the required input data by typing `help(updateCellChatDB)` in RStudio.
+
+Here we describe how to integrate other resources by taking another database CellTalkDB as an example. After downloading the CellTalkDB from https://github.com/ZJUFanLab/CellTalkDB, follow the four steps as follows. 
+
+## Load the required libraries
+```{r message=FALSE,warning=FALSE}
+library(CellChat)
+options(stringsAsFactors = FALSE)
+```
+
+## Step 1: Load the customized ligand-receptor pairs and the gene information
+The first input `db` is a data frame with as least two columns named as `ligand` and `receptor`. We highly suggest users to provide a column of pathway information named 'pathway_name' associated with each L-R pair. Other optional columns include 'interaction_name' and 'interaction_name_2'. The default columns of CellChatDB can be checked via 'colnames(CellChatDB.human$interaction)'.
+
+The second input `gene_info` is a data frame with at least one column named as 'Symbol'. "When setting gene_info = NULL, the input 'species_target' should be provided: either 'human' or 'mouse'. 
+
+The third input `other_info` is a list consisting of other information including a dataframe named as 'complex' and a dataframe named as 'cofactor'. This additional information is not necessary. If other_info is provided, the 'complex' and 'cofactor' are dataframes with defined rownames. 
+
+```{r eval = FALSE}
+# Load the dataframe consisting of customized ligand-receptor pairs
+db.user <- readRDS("./CellTalkDB-master/database/human_lr_pair.rds")
+# Load the dataframe consisting of gene information (optional)
+gene_info <- readRDS("./CellTalkDB-master/data/human_gene_info.rds")
+```
+
+## Step 2: Formulate the input files to be compatible with CellChatDB
+Please check above for the basic requirement of the input files. In addition, users can check the detailed database information in CellChatDB. 
+
+* The main ligand-receptor interaction information is stored in `CellChatDB$interaction`. Columns of this dataframe includes information of ligands, receptors and co-factors. 
+
+* ` CellChatDB$geneInfo` contains all gene information in mouse or other species and it should have a column named ‘Symbol’, which is not necessary to be changed when updating CellChatDB. 
+
+* Optional information is stored in `CellChatDB$complex` and `CellChatDB$cofactor`, which include any ligand complex, receptor complex and cofactors. Users need to make sure that user-defined complex/cofactor names are the same in `CellChatDB$interaction`. 
+
+```{r}
+# Modify the colnames because of incompatible with `colnames(CellChatDB.human$interaction)`
+colnames(db.user) <- plyr::mapvalues(colnames(db.user), from = c("ligand_gene_symbol","receptor_gene_symbol","lr_pair"), to = c("ligand","receptor","interaction_name"), warn_missing = TRUE)
+```
+
+## Step 3: Update CellChatDB by running the function `updateCellChatDB`
+```{r}
+# Create a new database by typing one of the following commands
+# Use user-provided gene information
+db.new <- updateCellChatDB(db = db.user, gene_info = gene_info)
+# Use built-in gene information of CellChatDB
+db.new <- updateCellChatDB(db = db.user, gene_info = NULL, species_target = "human")
+
+# Alternatively, users can integrate the customized L-R pairs into the built-in CellChatDB 
+db.new <- updateCellChatDB(db = db.user, merged = TRUE, species_target = "human")
+
+```
+## Step 4: Use the new database in CellChat analysis or re-build CellChat package
+Re-build CellChat package by updating the database as follows
+```{r eval=FALSE}
+# Users can now use this new database in CellChat analysis 
+cellchat@DB <- db.new
+
+# Users can save the new database for future use
+save(db.new, file = "CellChatDB.human_user.rda")
+
+# Users can also re-build CellChatDB in CellChat package
+setwd("/Users/$USERS/Downloads/CellChat-master") # This is the folder of CellChat package downloaded from Github
+CellChatDB.mouse <- CellChatDB
+usethis::use_data(CellChatDB.mouse, overwrite = TRUE)
+
+# If working on a human dataset, do following:
+# CellChatDB.human <- CellChatDB
+# usethis::use_data(CellChatDB.human, overwrite = TRUE)
+```
+
+# Part II: update CellChatDB by manually modifying the required files
+Here we outline the steps to update CellChatDB by manually adding user-defined ligand-receptor pairs. To do so, the format of the users’ lists must be compatible with the input files of CellChatDB. 
+
+## Load the required libraries
+```{r message=FALSE,warning=FALSE}
+library(CellChat)
+options(stringsAsFactors = FALSE)
+```
+
+## Step 1: Access the ligand-receptor interaction information in CellChatDB
+Extract the database information in CellChatDB and then save them in a local computer, including four files: 'geneInfo.csv', 'interaction_input_CellChat.csv', 'complex_input_CellChat.csv', 'and cofactor_input_CellChat.csv'. Users can do it by running the following codes in Rstudio:
+
+```{r}
+CellChatDB <- CellChatDB.mouse # set CellChatDB <- CellChatDB.human if working on the human dataset
+interaction_input <- CellChatDB$interaction
+complex_input <- CellChatDB$complex
+cofactor_input <- CellChatDB$cofactor
+geneInfo <- CellChatDB$geneInfo
+write.csv(interaction_input, file = "interaction_input_CellChatDB.csv")
+write.csv(complex_input, file = "complex_input_CellChatDB.csv")
+write.csv(cofactor_input, file = "cofactor_input_CellChatDB.csv")
+write.csv(geneInfo, file = "geneInfo_input_CellChatDB.csv")
+
+```
+
+## Step 2: Update the required files by adding users’ curated ligand-receptor pairs
+Update the above four .csv files by adding users’ curated ligand-receptor pairs. 
+
+* The main file is 'interaction_input_CellChatDB.csv'. Users can first update the ligands, receptors and co-factors in the corresponding columns in 'interaction_input_CellChatDB.csv'. 
+
+* Users can then update "complex_input_CellChatDB.csv" and "cofactor_input_CellChatDB.csv" if any ligand complex, receptor complex and cofactors are updated. Users need to make sure that user-defined complex/cofactor names are the same in 'interaction_input_CellChatDB.csv' and "complex_input_CellChatDB.csv", 'interaction_input_CellChatDB.csv' and " cofactor_input_CellChatDB.csv".
+
+* "geneInfo_input_CellChatDB.csv" contains all gene information in mouse and it should have a column named ‘Symbol’, which does not need to be changed when updating CellChatDB. 
+
+
+## Step 3: Update CellChatDB
+Update CellChatDB once updating the four .csv files. Users can do it by running the following codes in Rstudio:
+```{r}
+options(stringsAsFactors = FALSE)
+interaction_input <- read.csv(file = 'interaction_input_CellChatDB.csv', row.names = 1)
+complex_input <- read.csv(file = 'complex_input_CellChatDB.csv', row.names = 1)
+cofactor_input <- read.csv(file = 'cofactor_input_CellChatDB.csv', row.names = 1)
+geneInfo <- read.csv(file = ' geneInfo_input_CellChatDB.csv', row.names = 1)
+CellChatDB <- list()
+CellChatDB$interaction <- interaction_input
+CellChatDB$complex <- complex_input
+CellChatDB$cofactor <- cofactor_input
+CellChatDB$geneInfo <- geneInfo
+
+```
+
+## Step 4: Re-build CellChat package (optional)
+Re-build CellChat package by updating the database as follows
+```{r}
+setwd("/Users/$USERS/Downloads/CellChat-master") # This is the folder of CellChat package downloaded from Github
+CellChatDB.mouse <- CellChatDB
+usethis::use_data(CellChatDB.mouse, overwrite = TRUE)
+
+# If working on a human dataset, do following:
+# CellChatDB.human <- CellChatDB
+# usethis::use_data(CellChatDB.human, overwrite = TRUE)
+```
