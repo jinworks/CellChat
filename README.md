@@ -1,7 +1,7 @@
 # CellChat: Inference and analysis of cell-cell communication
 
 <p align="center">
-  <img width="200"  src="https://github.com/jinworks/CellChat/main/CellChat_Logo.png">
+  <img width="200"  src="https://github.com/jinworks/CellChat/blob/main/CellChat_Logo.png">
 </p>
 
 ## Update
@@ -59,7 +59,7 @@ Please check the tutorial directory of the repo.
 - [Tutorial for updating ligand-receptor database CellChatDB](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/Update-CellChatDB.html)
 
 <p align="center">
-  <img width="700"  src="https://github.com/jinworks/CellChat/main/overview_CellChat.png">
+  <img width="700"  src="https://github.com/jinworks/CellChat/blob/main/overview_CellChat.png">
 </p>
 
 
