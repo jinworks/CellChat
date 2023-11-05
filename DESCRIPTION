@@ -1,0 +1,50 @@
+Package: CellChat
+Type: Package
+Title: Inference and analysis of cell-cell communication from single-cell and spatially resolved transcriptomics data 
+Version: 2.0.0
+Author: Suoqin Jin
+Maintainer: Suoqin Jin <sqjin@whu.edu.cn>
+Description: an open source R tool that infers, visualizes and analyzes the cell-cell communication networks from scRNA-seq and spatially resolved transcriptomics data.
+Depends: R (>= 3.6.0),dplyr,igraph,ggplot2
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+Imports:
+    future,
+    future.apply,
+    pbapply,
+    irlba,
+    NMF (>= 0.23.0),
+    ggalluvial,
+    stringr,
+    svglite,
+    Matrix,
+    ggrepel, 
+    circlize (>= 0.4.12),
+    RColorBrewer,
+    cowplot,
+    methods,
+    ComplexHeatmap,
+    RSpectra,
+    Rcpp,
+    reticulate,
+    scales,
+    sna,
+    forcats,
+    reshape2,
+    FNN,
+    shape,
+    BiocGenerics,
+    magrittr,
+    patchwork,
+    colorspace,
+    plyr,
+    ggpubr,
+    ggnetwork, 
+    BiocNeighbors,
+    plotly,shiny,bslib,presto,tidyverse
+LinkingTo: Rcpp, RcppEigen
+Suggests:
+    rmarkdown, knitr, roxygen2, Seurat (>= 4.0.0), SingleCellExperiment, SummarizedExperiment, purrr,uwot,gg.gap,wordcloud,bsicons
+RoxygenNote: 7.2.3
+VignetteBuilder: knitr
