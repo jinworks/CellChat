@@ -1,4 +1,4 @@
-![image](https://github.com/jinworks/CellChat/assets/32399212/51501af8-c6e4-4016-b1e3-08991daa6f9a)<p align="center">
+<p align="center">
   <img width="200"  src="https://github.com/jinworks/CellChat/blob/main/CellChat_Logo.png">
 </p>
 
