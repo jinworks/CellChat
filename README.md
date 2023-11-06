@@ -1,4 +1,4 @@
-<p align="center">
+![image](https://github.com/jinworks/CellChat/assets/32399212/51501af8-c6e4-4016-b1e3-08991daa6f9a)<p align="center">
   <img width="200"  src="https://github.com/jinworks/CellChat/blob/main/CellChat_Logo.png">
 </p>
 
@@ -8,20 +8,19 @@ CellChat v2 is an updated version that includes
 - inference of spatially proximal cell-cell communication between interacting cell groups from spatially resolved transcriptomics
 - expanded database CellChatDB v2 by including more than 1000 protein and non-protein interactions (e.g. metabolic and synaptic signaling) with rich annotations. A function named `updateCellChatDB` is also provided for easily updating CellChatDB. 
 - new functionalities enabling easily interface with other computational tools for single-cell data analysis and cell-cell communication analysis
-- interactive web browser function to allow exploration CellChat outputs of spatially proximal cell-cell communication
+- interactive web browser function to allow exploration of CellChat outputs of spatially proximal cell-cell communication
 
 For the version history and detailed important changes, please see the [NEWS file](https://github.com/jinworks/CellChat/blob/master/NEWS.md).
 
+Please check the [CellChat v2 paper](https://biorxiv.org/cgi/content/short/2023.11.05.565674v1) for a comprehensive protocol of CellChat v2 that is used for both single-cell and spatially resolved transcriptomic data. 
 
 ## Capabilities
 In addition to infer the intercellular communication from any given scRNA-seq data and spatially resolved transcriptomics data, CellChat provides functionality for further data exploration, analysis, and visualization. 
 
-- It is able to analyze cell-cell communication for continuous states along cellular development trajectories.
 - It can quantitatively characterize and compare the inferred cell-cell communication networks using an integrated approach by combining social network analysis, pattern recognition, and manifold learning approaches.
 - It provides an easy-to-use tool for extracting and visualizing high-order information of the inferred networks. For example, it allows ready prediction of major signaling inputs and outputs for all cell populations and how these populations and signals coordinate together for functions.
+- It enables comparative analysis of cell-cell communication across different conditions and identification of altered signaling and cell populations.
 - It provides several visualization outputs to facilitate intuitive user-guided data interpretation.
-
-Check out [our original paper (Jin et al., Nature Communications, 2021)](https://www.nature.com/articles/s41467-021-21246-9) and [CellChat v2 paper](https://biorxiv.org/cgi/content/short/2023.11.05.565674v1) for the detailed methods and applications.
 
 ## Installation
 
@@ -49,7 +48,7 @@ Some users might have issues when installing CellChat pacakge due to different o
 Please check the tutorial directory of the repo.
 
 - [Full tutorial for CellChat analysis of a single dataset with detailed explanation of each function](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/CellChat-vignette.html)
-- [Brief tutorial for CellChat analysis of a single spatial imaging dataset](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/CellChat_analysis_of_spatial_imaging_data.html)
+- [Brief tutorial for CellChat analysis of a single spatial resolved transcriptomic dataset](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/CellChat_analysis_of_spatial_imaging_data.html)
 - [Full tutorial for comparison analysis of multiple datasets](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/Comparison_analysis_of_multiple_datasets.html)
 - [Comparison analysis of multiple datasets with different cellular compositions](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/Comparison_analysis_of_multiple_datasets_with_different_cellular_compositions.html)
 - [Interface with other single-cell analysis toolkits (e.g., Seurat, SingleCellExperiment, Scanpy)](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/Interface_with_other_single-cell_analysis_toolkits.html)
@@ -63,10 +62,10 @@ Please check the tutorial directory of the repo.
 ## Web-based “CellChat Explorer” 
 
 We build a user-friendly web-based “[CellChat Explorer](http://www.cellchat.org/)” that contains two major components:
-- **Ligand-Receptor Interaction Explorer** that allows easy exploration of our novel ligand-receptor interaction database, a comprehensive recapitulation of known molecular compositions including multimeric complexes and co-factors. *Our database CellChatDB is a manually curated database of literature-supported ligand-receptor interactions in both **human and mouse***.
-- **Cell-Cell Communication Atlas Explorer** that allows easy exploration of the cell-cell communication for any given scRNA-seq dataset that has been processed by our R toolkit CellChat.  
+- **Ligand-Receptor Interaction Explorer** that allows easy exploration of our novel ligand-receptor interaction database, a comprehensive recapitulation of known molecular compositions including multimeric complexes and co-factors. *Our database CellChatDB is a manually curated database of literature-supported ligand-receptor interactions in both **human and mouse***. Of note, this Explorer currently only shows the original CellChatDB, but did not include the new interactions in CellChatDB v2. 
+- **Cell-Cell Communication Atlas Explorer** that allows easy exploration of the cell-cell communication for any given scRNA-seq dataset that has been processed by our R toolkit CellChat.
 
-We also developed a [standalone CellChat Shiny App](https://github.com/sqjin/CellChatShiny) for our Cell-Cell Communication Atlas Explorer. 
+We also developed an Interactive Web Browser that allows exploration of CellChat outputs of spatially proximal cell-cell communication using a built-in function `runCellChatApp`, and a [standalone CellChat Shiny App](https://github.com/sqjin/CellChatShiny) for the above Cell-Cell Communication Atlas Explorer. 
 
 
 ## Help, Suggestion and Contribution
@@ -86,14 +85,17 @@ We use GitHub's [Pull Request](https://github.com/jinworks/CellChat/pulls) mecha
 ## System Requirements
 - Hardware requirements: CellChat package requires only a standard computer with enough RAM to support the in-memory operations.
 
-- Software requirements: This package is supported for macOS, Windows and Linux. The package has been tested on macOS: Mojave (10.14.5) and Windows 10. Dependencies of CellChat package are indicated in the Description file, and can be automatically installed when installing CellChat pacakge. CellChat can be installed on a normal computer within few mins.
+- Software requirements: This package is supported for macOS, Windows and Linux. The package has been tested on macOS: Ventura (version 13.5) and Windows 10. Dependencies of CellChat package are indicated in the Description file, and can be automatically installed when installing CellChat pacakge. CellChat can be installed on a normal computer within few mins.
 
-## About CellChat
+
+# About CellChat and CellChatDB
 CellChat is an R package designed for inference, analysis, and visualization of cell-cell communication from single-cell and spatially resolved transcriptomics. CellChat aims to enable users to identify and interpret cell-cell communication within an easily interpretable framework, with the emphasis of clear, attractive, and interpretable visualizations.  
 
-If you use CellChat in your research, please considering citing: 
-- [Suoqin Jin et al., bioRxiv 2023](https://biorxiv.org/cgi/content/short/2023.11.05.565674v1) [CellChat v2]
-- [Suoqin Jin et al., Nature Communications 2021](https://www.nature.com/articles/s41467-021-21246-9) [CellChat v1]
+CellChatDB is a manually curated database of literature-supported ligand-receptor interactions in mutiple species, leading to a comprehensive recapitulation of known molecular interaction mechanisms including multi-subunit structure of ligand-receptor complexes and co-factors.
+
+If you use CellChat or CellChatDB in your research, please considering citing our papers: 
+- [Suoqin Jin et al., CellChat for systematic analysis of cell-cell communication from single-cell and spatially resolved transcriptomics, bioRxiv 2023](https://biorxiv.org/cgi/content/short/2023.11.05.565674v1) [CellChat v2]
+- [Suoqin Jin et al., Inference and analysis of cell-cell communication using CellChat, Nature Communications 2021](https://www.nature.com/articles/s41467-021-21246-9) [CellChat v1]
 
 
 <p align="center">
