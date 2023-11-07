@@ -686,7 +686,7 @@ subsetCellChat <- function(object, cells.use = NULL, idents.use = NULL, group.by
     }
     level.use0 <- levels(labels)
     level.use <- levels(labels)[levels(labels) %in% unique(labels)]
-
+    
     if (invert) {
       level.use <- level.use[!(level.use %in% idents.use)]
     } else {
@@ -707,7 +707,7 @@ subsetCellChat <- function(object, cells.use = NULL, idents.use = NULL, group.by
     stop("USER should define either `cells.use` or `idents.use`!")
   }
   cat("The subset of cell groups used for CellChat analysis are ", level.use, '\n')
-
+  
   if (nrow(object@data) > 0) {
     data.subset <- object@data[, cells.use.index]
   } else {
@@ -719,10 +719,10 @@ subsetCellChat <- function(object, cells.use = NULL, idents.use = NULL, group.by
     data.project.subset <- matrix(0, nrow = 0, ncol = 0)
   }
   data.signaling.subset <- object@data.signaling[, cells.use.index]
-
+  
   meta.subset <- object@meta[cells.use.index, , drop = FALSE]
-
-
+  
+  
   if (object@options$mode == "merged") {
     idents <- object@idents[1:(length(object@idents)-1)]
     group.existing <- level.use0[level.use0 %in% level.use]
@@ -735,7 +735,7 @@ subsetCellChat <- function(object, cells.use = NULL, idents.use = NULL, group.by
     names(idents.subset) <- names(object@idents[1:(length(object@idents)-1)])
     images.subset <- vector("list", length = length(idents))
     names(images.subset) <- names(object@idents[1:(length(object@idents)-1)])
-
+    
     for (i in 1:length(idents)) {
       cat("Update slots object@images, object@net, object@netP, object@idents in dataset ", names(object@idents)[i],'\n')
       images <- object@images[[i]]
@@ -751,23 +751,23 @@ subsetCellChat <- function(object, cells.use = NULL, idents.use = NULL, group.by
         }
       }
       images.subset[[i]] <- images
-
+      
       # cat("Update slot object@net...", '\n')
       net <- object@net[[i]]
       for (net.j in names(net)) {
         values <- net[[net.j]]
         if (net.j %in% c("prob","pval")) {
-          values.new <- values[group.existing.index, group.existing.index, ]
+          values.new <- values[group.existing.index, group.existing.index, , drop = FALSE]
           net[[net.j]] <- values.new
         }
         if (net.j %in% c("count","sum","weight")) {
-          values.new <- values[group.existing.index, group.existing.index]
+          values.new <- values[group.existing.index, group.existing.index, drop = FALSE]
           net[[net.j]] <- values.new
         }
-       # net[[net.j]] <- values.new
+        # net[[net.j]] <- values.new
       }
       net.subset[[i]] <- net
-
+      
       # cat("Update slot object@netP...", '\n')
       # netP <- object@netP[[i]]
       # for (netP.j in names(netP)) {
@@ -803,13 +803,13 @@ subsetCellChat <- function(object, cells.use = NULL, idents.use = NULL, group.by
       idents.subset[[i]] <- factor(idents.subset[[i]], levels = levels(idents[[i]])[levels(idents[[i]]) %in% level.use])
     }
     idents.subset$joint <- factor(object@idents$joint[cells.use.index], levels = level.use)
-
+    
   } else {
     cat("Update slots object@images, object@net, object@netP in a single dataset...", '\n')
-
+    
     group.existing <- level.use0[level.use0 %in% level.use]
     group.existing.index <- which(level.use0 %in% level.use)
-
+    
     images <- object@images
     for (images.j in names(images)) {
       values <- images[[images.j]]
@@ -823,14 +823,14 @@ subsetCellChat <- function(object, cells.use = NULL, idents.use = NULL, group.by
       }
     }
     images.subset <- images
-
-
+    
+    
     # cat("Update slot object@net...", '\n')
     net <- object@net
     for (net.j in names(net)) {
       values <- net[[net.j]]
       if (net.j %in% c("prob","pval")) {
-        values.new <- values[group.existing.index, group.existing.index, drop = FALSE]
+        values.new <- values[group.existing.index, group.existing.index, , drop = FALSE]
         net[[net.j]] <- values.new
       }
       if (net.j %in% c("count","sum","weight")) {
@@ -839,7 +839,7 @@ subsetCellChat <- function(object, cells.use = NULL, idents.use = NULL, group.by
       }
     }
     net.subset <- net
-
+    
     # cat("Update slot object@netP...", '\n')
     # netP <- object@netP
     # for (netP.j in names(netP)) {
@@ -874,8 +874,8 @@ subsetCellChat <- function(object, cells.use = NULL, idents.use = NULL, group.by
     idents.subset <- object@idents[cells.use.index]
     idents.subset <- factor(idents.subset, levels = level.use)
   }
-
-
+  
+  
   object.subset <- methods::new(
     Class = "CellChat",
     data = data.subset,
