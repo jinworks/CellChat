@@ -504,7 +504,7 @@ computeExpr_complex <- function(complex_input, data.use, complex) {
     FUN = function(x) {
       RsubunitsV <- unlist(Rsubunits[x,], use.names = F)
       RsubunitsV <- RsubunitsV[RsubunitsV != ""]
-      return(geometricMean(data.use[RsubunitsV,]))
+      return(geometricMean(data.use[RsubunitsV, , drop = FALSE]))
     }
   )
   data.complex <- t(data.complex)
@@ -537,7 +537,7 @@ computeExpr_complex <- function(complex_input, data.use, complex) {
       RsubunitsV <- RsubunitsV[RsubunitsV != ""]
       RsubunitsV <- intersect(RsubunitsV, rownames(data.use))
       if (length(RsubunitsV) > 1) {
-        data.avg <- aggregate(t(data.use[RsubunitsV,]), list(group), FUN = FunMean)
+        data.avg <- aggregate(t(data.use[RsubunitsV,, drop = FALSE]), list(group), FUN = FunMean)
         data.avg <- t(data.avg[,-1])
       } else if (length(RsubunitsV) == 1) {
         data.avg <- aggregate(matrix(data.use[RsubunitsV,], ncol = 1), list(group), FUN = FunMean)
