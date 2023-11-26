@@ -1,0 +1,102 @@
+
+---
+title: "FAQ on applying CellChat to spatially resolved transcriptomics data"
+author: "Suoqin Jin"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    toc: true
+    theme: united
+mainfont: Arial
+vignette: >
+  %\VignetteIndexEntry{FAQ on applying CellChat to spatially resolved transcriptomics data}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(eval = FALSE)
+```
+
+This vignette outlines Frequently Asked Questions (FAQ) when applying CellChat to spatially resolved transcriptomics data, particularly on **how to set the `scale.factors` for different types of spatial transcriptomics data**.
+
+When inferring spatially-proximal cell-cell communication from spatially resolved transcriptomic data, user also should provide spatial coordinates/locations of spot/cell centroids. In addition, to filter out cell-cell communication beyond the maximum diffusion range of molecules (e.g., ~250μm), CellChat needs to compute the cell centroid-to-centroid distance in the unit of micrometers. Therefore, for spatial technologies that only provide spatial coordinates in pixels, CellChat converts spatial coordinates from pixels to micrometers by requiring users to input the conversion factor. 
+
+To infer spatially proximal cell-cell communication, in addition to the gene expression data matrix and the cell group information, CellChat requires additional two user inputs:
+
+* **(1) Spatial coordinates of spots/cells**: a data frame in which each row gives the spatial coordinates/locations of each cell/spot centroid. 
+
+* **(2) Scale factors of spatial coordinates**: a data frame containing two distance factors `ratio` and `tol`, which is dependent on spatial transcriptomics technologies (and specific datasets) and detailed as follows: 
+
+- (i) `ratio`: the conversion factor when converting spatial coordinates from Pixels or other units to Micrometers (i.e.,Microns). For example, setting `ratio = 0.18` indicates that 1 pixel equals 0.18um in the coordinates. 
+
+- (ii) `tol`: the tolerance factor to increase the robustness when comparing the center-to-center distance against the `interaction.range`. This can be the half value of cell/spot size in the unit of um. If the cell/spot size is not known, we provide a function `computeCellDistance` to compute the cell center-to-center distance. `tol` can be the the half value of the minimum center-to-center distance. Of note, CellChat does not need an accurate tolerance factor, which is used for determining whether considering the cell-pair as spatially proximal if their distance is greater than `interaction.range` but smaller than "`interaction.range` + `tol`".    
+
+Below we provides suggestions on how to set the `scale.factors` for different types of spatial transcriptomics data, including 10X Visium, Slide-seq, CosMx, Stereo-seq, and seqFISH/merFISH/STARmap. 
+
+# 10X Visium
+
+First, the spatial coordinates of spots from the full (NOT high/low) resolution image should be used. For 10X Visium, this information is in `tissue_positions.csv`. Given a Seurat object `seu` of the spatial transcriptomics data, and spatial coordinates can be obtained by 
+```{r}
+spatial.locs = GetTissueCoordinates(seu, scale = NULL, cols = c("imagerow", "imagecol"))
+```
+
+Second, the conversion factor of converting spatial coordinates from Pixels to Micrometers can be computed as the ratio of the theoretical spot size (i.e., 65um) over the number of pixels that span the diameter of a theoretical spot size in the full-resolution image (i.e., 'spot_diameter_fullres' in pixels in the 'scalefactors_json.json' file). Specifically, CellChat sets the `scale.factors` as follows: 
+```{r}
+scalefactors = jsonlite::fromJSON(txt = file.path("./tutorial/spatial_imaging_data_visium-brain", 'scalefactors_json.json'))
+
+spot.size = 65 # the theoretical spot size (um) in 10X Visium
+conversion.factor = spot.size/scalefactors$spot_diameter_fullres
+scale.factors = data.frame(ratio = conversion.factor, tol = spot.size/2)
+```
+
+Finally, users can create a new CellChat object by taking spatial coordinates and scale.factors as inputs: 
+```{r}
+cellchat <- createCellChat(object = data.input, meta = meta, group.by = "labels",
+                           datatype = "spatial", coordinates = spatial.locs, scale.factors = scale.factors)
+```
+
+# Slide-seq
+For Slide-seq data, the spatial coordinates are in pixels and the conversion factor of converting spatial coordinates from Pixels to Micrometers is 0.73. The beads used in the current protocol have a diameter of 10um. Thus, we directly set the `scale.factors` as follows:
+```{r}
+conversion.factor = 0.73; spot.size = 10
+scale.factors = data.frame(ratio = conversion.factor, tol = spot.size/2)
+```
+
+# CosMx
+For CosMx data, the spatial coordinates are in pixels and the conversion factor of converting spatial coordinates from Pixels to Micrometers is 0.18. Because CosMx does not include the uniform cell size like 10X Visium and Slide-seq, users can compute the minimum cell centroid-to-centroid distance via `computeCellDistance` and use its half value as the tolerance factor. Of note, CellChat does not need an accurate tolerance factor, which is used for determining whether considering the cell-pair as spatially proximal if their distance is greater than `interaction.range` but smaller than "`interaction.range` + `tol`".  
+
+Thus, we set the `scale.factors` as follows:
+```{r}
+conversion.factor = 0.18
+d = computeCellDistance(spatial.locs)
+spot.size = min(d)*conversion.factor # converting the distance in Pixels to Micrometers
+scale.factors = data.frame(ratio = conversion.factor, tol = spot.size/2)
+```
+# Stereo-seq
+For Stereo-seq data, please check the the post https://github.com/jinworks/CellChat/issues/6
+
+# seqFISH/merFISH/STARmap
+For single-cell resolution spatial technologies like seqFISH/merFISH/STARmap data, the spatial coordinates are already in micrometers and thus the conversion factor is 1. The spot.size can be the typical human cell size (i.e., 10um). 
+```{r}
+conversion.factor = 1
+spot.size = 10 # use the typical human cell size
+scale.factors = data.frame(ratio = conversion.factor, tol = spot.size/2)
+```
+
+# Application to a dataset with a small panel of genes
+If there are only a few number of L-R pairs from the gene panel of the spatial dataset that can be found in the CellChat database, users can modify the step on the identification of over-expressed genes without performing DE. This can be done as follows
+```{r}
+cellchat <- identifyOverExpressedGenes(cellchat, do.DE = FALSE, min.cells = 10)
+```
+
+# Application to multiple spatial transcriptomics datasets
+Please check the key steps of [applying CellChat to multiple spatial transcriptomics datasets](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/CellChat_analysis_of_multiple_spatial_transcriptomics_datasets.html) for detailed descriptions. 
+
+For comparison analysis of multiple spatial transcriptomics datasets across different biological conditions (e.g., health vs. diseased), users still need to create a CellChat object seperately for each condition. Please check the key steps of [applying CellChat to multiple non-spatial transcriptomics datasets](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/Comparison_analysis_of_multiple_datasets.html) for detailed descriptions. 
+
+The CellChat version used in this vignette:
+```{r eval=TRUE}
+packageVersion("CellChat")
+```
+
