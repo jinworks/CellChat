@@ -122,6 +122,7 @@ runCellChatApp <- function(object,...) {
   plotly_spatialDimPlot <- function (object,
                               color.use = NULL,
                               group.by = NULL,
+                              slice.use = NULL,
                               sources.use = NULL,
                               targets.use = NULL,
                               idents.use = NULL,
@@ -129,23 +130,36 @@ runCellChatApp <- function(object,...) {
                               title.name = NULL,
                               point.size = 1)
   {
-    coordinates <- object@images$coordinates
-    if (ncol(coordinates) == 2) {
-      colnames(coordinates) <- c("x_cent", "y_cent")
-      temp_coordinates = coordinates
-      coordinates[, 1] = temp_coordinates[, 2]
-      coordinates[, 2] = temp_coordinates[, 1]
-    }
-    else {
-      stop("Please check the input 'coordinates' and make sure it is a two column matrix.")
-    }
     if (is.null(group.by)) {
       labels <- object@idents
-    }
-    else {
+    } else {
       labels = object@meta[, group.by]
       labels <- factor(labels)
     }
+
+    coordinates <- object@images$coordinates
+    slices <- object@meta$slices
+    if (ncol(coordinates) == 2) {
+      colnames(coordinates) <- c("x_cent","y_cent")
+      if (length(unique(slices)) > 1) {
+        if (is.null(slice.use)) {
+          stop("`slice.use` should be provided for visualizing signaling on each individual slice.")
+        } else if (slice.use %in% unique(slices)) {
+          coordinates = coordinates[slices == slice.use, ]
+          labels = labels[slices == slice.use]
+        } else {
+          stop("Please check the input `slice.use`, which should be the element in `meta$slices`.")
+        }
+      }
+      temp_coordinates = coordinates
+      coordinates[,1] = temp_coordinates[,2]
+      coordinates[,2] = temp_coordinates[,1]
+    } else {
+      stop("Please check the input 'coordinates' and make sure it is a two column matrix.")
+    }
+
+
+
     cells.level <- levels(labels)
     if (!is.null(idents.use)) {
       if (is.numeric(idents.use)) {
@@ -219,6 +233,7 @@ runCellChatApp <- function(object,...) {
                                   features = NULL,
                                   signaling = NULL,
                                   pairLR.use = NULL,
+                                  slice.use = NULL,
                                   enriched.only = TRUE,
                                   thresh = 0.05,
                                   do.group = TRUE,
@@ -237,21 +252,33 @@ runCellChatApp <- function(object,...) {
                                   show.legend = TRUE,
                                   show.legend.combined = FALSE){
     coords <- object@images$coordinates
+    slices <- object@meta$slices
+    spot_labels <- object@idents
+    data <- as.matrix(object@data)
+    meta <- object@meta
+
     if (ncol(coords) == 2) {
-      colnames(coords) <- c("x_cent", "y_cent")
-      temp_coord = coords
-      coords[, 1] = temp_coord[, 2]
-      coords[, 2] = temp_coord[, 1]
-    }
-    else {
+      colnames(coords) <- c("x_cent","y_cent")
+      if (length(unique(slices)) > 1) {
+        if (is.null(slice.use)) {
+          stop("`slice.use` should be provided for visualizing signaling on each individual slice.")
+        } else if (slice.use %in% unique(slices)) {
+          coords = coords[slices == slice.use, ]
+          meta = meta[slices == slice.use, ]
+          data = data[, slices == slice.use]
+        } else {
+          stop("Please check the input `slice.use`, which should be the element in `meta$slices`.")
+        }
+      }
+      temp_coords = coords
+      coords[,1] = temp_coords[,2]
+      coords[,2] = temp_coords[,1]
+    } else {
       stop("Please check the input 'coordinates' and make sure it is a two column matrix.")
     }
 
     # add idents info
-    spot_labels <- object@idents
 
-    data <- as.matrix(object@data)
-    meta <- object@meta
     if (length(color.heatmap) == 1) {
       colormap <- tryCatch({
         RColorBrewer::brewer.pal(n = n.colors, name = color.heatmap)
