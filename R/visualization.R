@@ -4336,8 +4336,10 @@ spatialFeaturePlot <- function(object, features = NULL, signaling = NULL, pairLR
                                do.binary = FALSE, cutoff = NULL, color.use = NULL, alpha = 1,
                                point.size = 0.8, legend.size = 3, legend.text.size = 8, shape.by = 16, ncol = NULL,
                                show.legend = TRUE, show.legend.combined = FALSE){
+  data <- as.matrix(object@data)
+  meta <- object@meta
   coords <- object@images$coordinates
-  slices <- object@meta$slices
+  slices <- meta$slices
   if (ncol(coords) == 2) {
     colnames(coords) <- c("x_cent","y_cent")
     if (length(unique(slices)) > 1) {
@@ -4345,6 +4347,8 @@ spatialFeaturePlot <- function(object, features = NULL, signaling = NULL, pairLR
         stop("`slice.use` should be provided for visualizing signaling on each individual slice.")
       } else if (slice.use %in% unique(slices)) {
         coords = coords[slices == slice.use, ]
+        meta = meta[slices == slice.use, ]
+        data = data[, slices == slice.use]
       } else {
         stop("Please check the input `slice.use`, which should be the element in `meta$slices`.")
       }
@@ -4356,10 +4360,6 @@ spatialFeaturePlot <- function(object, features = NULL, signaling = NULL, pairLR
     stop("Please check the input 'coordinates' and make sure it is a two column matrix.")
   }
 
-
-
-  data <- as.matrix(object@data)
-  meta <- object@meta
   if (length(color.heatmap) == 1) {
     colormap <- tryCatch({
       RColorBrewer::brewer.pal(n = n.colors, name = color.heatmap)
