@@ -1,6 +1,6 @@
 
 ---
-title: "CellChat inference and analysis of spatial-informed cell-cell communication from spatial imaging data"
+title: "CellChat inference and analysis of spatially proximal cell-cell communication from spatially resolved transcriptomics data"
 author: "Suoqin Jin"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
@@ -9,7 +9,7 @@ output:
     theme: united
 mainfont: Arial
 vignette: >
-  %\VignetteIndexEntry{CellChat inference and analysis of cell-cell communication from spatial imaging data}
+  %\VignetteIndexEntry{CellChat inference and analysis of spatially proximal cell-cell communication from spatially resolved transcriptomics data}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -24,7 +24,7 @@ knitr::opts_chunk$set(
 ```
 
 
-This vignette outlines the steps of inference, analysis and visualization of cell-cell communication network for **a single spatial imaging dataset using CellChat**. We showcase CellChat’s application to spatial imaging data by applying it to a mouse brain 10X visium dataset (https://www.10xgenomics.com/resources/datasets/mouse-brain-serial-section-1-sagittal-anterior-1-standard-1-0-0). Biological annotations of spots (i.e., cell group information) are predicted using Seurat (https://satijalab.org/seurat/articles/spatial_vignette.html).  
+This vignette outlines the steps of inference, analysis and visualization of cell-cell communication network for **a single spatial transcriptomics dataset using CellChat**. We showcase CellChat’s application to spatial transcriptomics data by applying it to a mouse brain 10X visium dataset (https://www.10xgenomics.com/resources/datasets/mouse-brain-serial-section-1-sagittal-anterior-1-standard-1-0-0). Biological annotations of spots (i.e., cell group information) are predicted using Seurat (https://satijalab.org/seurat/articles/spatial_vignette.html).  
 
 CellChat requires gene expression and spatial location data of spots/cells as the user input and models the probability of cell-cell communication by integrating gene expression with spatial distance as well as prior knowledge of the interactions between signaling ligands, receptors and their cofactors. 
 
@@ -41,16 +41,18 @@ options(stringsAsFactors = FALSE)
 ```
 
 # Part I: Data input & processing and initialization of CellChat object
+
+When inferring spatially-proximal cell-cell communication from spatially resolved transcriptomic data, user also should provide spatial coordinates/locations of spot/cell centroids. In addition, to filter out cell-cell communication beyond the maximum diffusion range of molecules (e.g., ~250μm), CellChat needs to compute the cell centroid-to-centroid distance in the unit of micrometers. Therefore, for spatial technologies that only provide spatial coordinates in pixels, CellChat converts spatial coordinates from pixels to micrometers by requiring users to input the conversion factor. 
+
 CellChat requires four user inputs: 
 
 * **Gene expression data of spots/cells**: genes should be in rows with rownames and cells in columns with colnames. Normalized data (e.g., library-size normalization and then log-transformed with a pseudocount of 1) is required as input for CellChat analysis. If user provides count data, we provide a `normalizeData` function to account for library size and then do log-transformed.
 
-* **User assigned cell labels**: a data frame (rows are cells with rownames) consisting of cell information, which will be used for defining cell groups. 
+* **User assigned cell labels and slices labels**: a data frame (rows are cells with rownames) consisting of cell information, which will be used for defining cell groups.  A column named `slices` should be provided for spatial transcriptomics analysis, which is useful for analyzing cell-cell communication by aggregating multiple slices/replicates. Of note, for comparison analysis across different conditions, users still need to create a CellChat object seperately for each condition. 
 
-* **Spatial locations of spots/cells**: a data matrix in which each row gives the spatial locations/coordinates of each cell/spot. For 10X Visium, this information is in `tissue_positions.csv`.
+* **Spatial coordinates of spots/cells**: a data frame in which each row gives the spatial coordinates/locations of each cell/spot centroid. 
 
-* **Scale factors and spot diameters of the full resolution images**: a list containing the scale factors and spot diameter for the full resolution images. scale.factors must contain an element named `spot.diameter`, which is the theoretical spot size (e.g., 10x Visium (spot.size = 65 microns)); and another element named `spot`, which is the number of pixels that span the diameter of a theoretical spot size in the original, full-resolution image. 
-For 10X Visium, scale.factors are in the file `scalefactors_json.json`. `spot` is the `spot.size.fullres`. 
+* **Scale factors of spatial coordinates**: a data frame containing two distance factors `ratio` and `tol`, which is dependent on spatial transcriptomics technologies (and specific datasets).  (i) `ratio`: the conversion factor when converting spatial coordinates from Pixels or other units to Micrometers (i.e.,Microns). For example, setting `ratio = 0.18` indicates that 1 pixel equals 0.18um in the coordinates. (ii) `tol`: the tolerance factor to increase the robustness when comparing the center-to-center distance against the `interaction.range`. This can be the half value of cell/spot size in the unit of um. Please check the [vignette of FAQ on applying CellChat to spatially resolved transcriptomics data](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/FAQ_on_applying_CellChat_to_spatial_transcriptomics_data.html) for detailed explanations and setting of different types of spatial transcriptomics data.  
 
 
 ## Load data
@@ -63,27 +65,32 @@ Seurat::SpatialDimPlot(visium.brain, label = T, label.size = 3, cols = color.use
 
 # Prepare input data for CelChat analysis
 data.input = Seurat::GetAssayData(visium.brain, slot = "data", assay = "SCT") # normalized data matrix
-meta = data.frame(labels = Idents(visium.brain), row.names = names(Idents(visium.brain))) # manually create a dataframe consisting of the cell labels
+
+# define the meta data: 
+# a column named `slices` should be provided for spatial transcriptomics analysis, which is useful for analyzing cell-cell communication by aggregating multiple slices/replicates. Of note, for comparison analysis across different conditions, users still need to create a CellChat object seperately for each condition.  
+meta = data.frame(labels = Idents(visium.brain), slices = "slice1", row.names = names(Idents(visium.brain))) # manually create a dataframe consisting of the cell labels
+meta$slices <- factor(meta$slices)
 unique(meta$labels) # check the cell labels
+unique(meta$slices) # check the slice labels
 
-# load spatial imaging information
-# Spatial locations of spots from full (NOT high/low) resolution images are required
+# load spatial transcriptomics information
+# Spatial locations of spots from full (NOT high/low) resolution images are required. For 10X Visium, this information is in `tissue_positions.csv`. 
 spatial.locs = Seurat::GetTissueCoordinates(visium.brain, scale = NULL, cols = c("imagerow", "imagecol")) 
-# Scale factors and spot diameters of the full resolution images 
-scale.factors = jsonlite::fromJSON(txt = file.path("/Users/suoqinjin/Library/CloudStorage/OneDrive-Personal/works/CellChat/tutorial/spatial_imaging_data_visium-brain", 'scalefactors_json.json'))
-scale.factors = list(spot.diameter = 65, spot = scale.factors$spot_diameter_fullres, # these two information are required
-                     fiducial = scale.factors$fiducial_diameter_fullres, hires = scale.factors$tissue_hires_scalef, lowres = scale.factors$tissue_lowres_scalef # these three information are not required
-)
-# USER can also extract scale factors from a Seurat object, but the `spot` value here is different from the one in Seurat. Thus, USER still needs to get the `spot` value from the json file. 
 
-###### Applying to different types of spatial imaging data ######
-# `spot.diameter` is dependent on spatial imaging technologies and `spot` is dependent on specific datasets
+# Scale factors of spatial coordinates
+# For 10X Visium, the conversion factor of converting spatial coordinates from Pixels to Micrometers can be computed as the ratio of the theoretical spot size (i.e., 65um) over the number of pixels that span the diameter of a theoretical spot size in the full-resolution image (i.e., 'spot_diameter_fullres' in pixels in the 'scalefactors_json.json' file). 
+# Of note, the 'spot_diameter_fullres' factor is different from the `spot` in Seurat object and thus users still need to get the value from the original json file. 
+scalefactors = jsonlite::fromJSON(txt = file.path("/Users/suoqinjin/Library/CloudStorage/OneDrive-Personal/works/CellChat/tutorial/spatial_imaging_data_visium-brain", 'scalefactors_json.json'))
+spot.size = 65 # the theoretical spot size (um) in 10X Visium
+conversion.factor = spot.size/scalefactors$spot_diameter_fullres
+scale.factors = data.frame(ratio = conversion.factor, tol = spot.size/2)
+
 ```
 
 ## Create a CellChat object
 **USERS can create a new CellChat object from a data matrix or Seurat.** If input is a Seurat object, the meta data in the object will be used by default and USER must provide `group.by` to define the cell groups. e.g, group.by = "ident" for the default cell identities in Seurat object. 
 
-**NB: If USERS load previously calculated CellChat object (version < 1.6.0), please update the object via `updateCellChat`** 
+**NB: If USERS load previously calculated CellChat object (version < 2.1.0), please update the object via `updateCellChat`** 
 ```{r}
 cellchat <- createCellChat(object = data.input, meta = meta, group.by = "labels",
                            datatype = "spatial", coordinates = spatial.locs, scale.factors = scale.factors)
@@ -101,8 +108,12 @@ CellChatDB <- CellChatDB.mouse # use CellChatDB.human if running on human data
 
 # use a subset of CellChatDB for cell-cell communication analysis
 CellChatDB.use <- subsetDB(CellChatDB, search = "Secreted Signaling", key = "annotation") # use Secreted Signaling
+
+# use all CellChatDB except for "Non-protein Signaling" for cell-cell communication analysis
+# CellChatDB.use <- subsetDB(CellChatDB, search = NULL, key = "annotation")
+
 # use all CellChatDB for cell-cell communication analysis
-# CellChatDB.use <- CellChatDB # simply use the default CellChatDB
+# CellChatDB.use <- CellChatDB # simply use the default CellChatDB. We do not suggest to use it in this way because CellChatDB v2 includes synaptic signaling interactions can only be used when inferring neuron-neuron communication. 
 
 # set the used database in the object
 cellchat@DB <- CellChatDB.use
@@ -129,7 +140,7 @@ print(as.numeric(execution.time, units = "secs"))
 # Part II: Inference of cell-cell communication network
 CellChat infers the biologically significant cell-cell communication by assigning each interaction with a probability value and peforming a permutation test. CellChat models the probability of cell-cell communication by integrating gene expression with spatial locations as well as prior known knowledge of the interactions between signaling ligands, receptors and their cofactors using the law of mass action. 
 
-The number of inferred ligand-receptor pairs clearly depends on the **method for calculating the average gene expression per cell group**. Due to the low sensitivity of current spatial imaging technologies, we suggest to use 10% `truncated mean` for calculating the average gene expression. The default 'trimean' method produces fewer interactions and will likely miss the signaling with low expression. In `computeCommunProb`, we provide an option for using different methods to calculate the average gene expression. Of note, 'trimean' approximates 25% truncated mean, implying that the average gene expression is zero if the percent of expressed cells in one group is less than 25%. To use 10% truncated mean, USER can set `type = "truncatedMean"` and `trim = 0.1`. The function `computeAveExpr` can help to check the average expression of signaling genes of interest, e.g, `computeAveExpr(cellchat, features = c("CXCL12","CXCR4"), type =  "truncatedMean", trim = 0.1)`. 
+The number of inferred ligand-receptor pairs clearly depends on the **method for calculating the average gene expression per cell group**. Due to the low sensitivity of current spatial transcriptomics technologies, we suggest to use 10% `truncated mean` for calculating the average gene expression. The default 'trimean' method produces fewer interactions and will likely miss the signaling with low expression. In `computeCommunProb`, we provide an option for using different methods to calculate the average gene expression. Of note, 'trimean' approximates 25% truncated mean, implying that the average gene expression is zero if the percent of expressed cells in one group is less than 25%. To use 10% truncated mean, USER can set `type = "truncatedMean"` and `trim = 0.1`. The function `computeAveExpr` can help to check the average expression of signaling genes of interest, e.g, `computeAveExpr(cellchat, features = c("CXCL12","CXCR4"), type =  "truncatedMean", trim = 0.1)`. 
 
 
 ## Compute the communication probability and infer cellular communication network
@@ -137,13 +148,14 @@ To quickly examine the inference results, USER can set `nboot = 20` in `computeC
 
 If well-known signaling pathways in the studied biological process are not predicted, USER can try `truncatedMean` with lower values of `trim` to change the method for calculating the average gene expression per cell group. 
 
-USERS may need to adjust the parameter `scale.distance` when working on data from other spatial imaging technologies. Please check the documentation in detail via `?computeCommunProb`.
+USERS may need to adjust the parameter `scale.distance` when working on data from other spatial transcriptomics technologies. Please check the documentation in detail via `?computeCommunProb`.
 
 ```{r}
 ptm = Sys.time()
 
 cellchat <- computeCommunProb(cellchat, type = "truncatedMean", trim = 0.1, 
-                               distance.use = TRUE, interaction.range = 250, scale.distance = 0.01)
+                              distance.use = TRUE, interaction.range = 250, scale.distance = 0.01,
+                              contact.knn = TRUE, contact.knn.k = 6)
 
 # Filter out the cell-cell communication if there are only few number of cells in certain cell groups
 cellchat <- filterCommunication(cellchat, min.cells = 10)
@@ -209,7 +221,7 @@ cellchat <- netAnalysis_computeCentrality(cellchat, slot.name = "netP") # the sl
 par(mfrow=c(1,1))
 netAnalysis_signalingRole_network(cellchat, signaling = pathways.show, width = 8, height = 2.5, font.size = 10)
 
-# USER can show this information on the spatial imaging when visualizing a signaling network, e.g., bigger circle indicates larger incoming signaling
+# USER can show this information on the spatial transcriptomics when visualizing a signaling network, e.g., bigger circle indicates larger incoming signaling
 par(mfrow=c(1,1))
 netVisual_aggregate(cellchat, signaling = pathways.show, layout = "spatial", edge.width.max = 2, alpha.image = 0.2, vertex.weight = "incoming", vertex.size.max = 4, vertex.label.cex = 3.5)
 
@@ -224,11 +236,11 @@ spatialFeaturePlot(cellchat, features = c("Igf1","Igf1r"), point.size = 0.8, col
 spatialFeaturePlot(cellchat, pairLR.use = "IGF1_IGF1R", point.size = 0.5, do.binary = FALSE, cutoff = 0.05, enriched.only = F, color.heatmap = "Reds", direction = 1)
 
 # Take an input of a ligand-receptor pair and show expression in binary
-spatialFeaturePlot(cellchat, pairLR.use = "IGF1_IGF1R", point.size = 0.5, do.binary = TRUE, cutoff = 0.05, enriched.only = F, color.heatmap = "Reds", direction = 1)
+spatialFeaturePlot(cellchat, pairLR.use = "IGF1_IGF1R", point.size = 1, do.binary = TRUE, cutoff = 0.05, enriched.only = F, color.heatmap = "Reds", direction = 1)
 
 ```
 
-**NB: Upon infering the intercellular communication network from spatial imaging data, CellChat's various functionality can be used for further data exploration, analysis, and visualization. Please check other functionality in the basic tutorial named `CellChat-vignette.html`**
+**NB: Upon infering the intercellular communication network from spatial transcriptomics data, CellChat's various functionality can be used for further data exploration, analysis, and visualization. Please check other functionality in the basic tutorial named `CellChat-vignette.html`**
 
 # Part V: Save the CellChat object
 ```{r eval=TRUE}
