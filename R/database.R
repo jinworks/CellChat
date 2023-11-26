@@ -125,7 +125,9 @@ searchPair <- function(signaling = c(), pairLR.use, key = c("pathway_name","liga
 #' Subset CellChatDB databse by only including interactions of interest
 #'
 #' @param CellChatDB CellChatDB databse
-#' @param search a character vector, which is a subset of c("Secreted Signaling","ECM-Receptor","Cell-Cell Contact","Non-protein Signaling"); When `key` is a vector, the `search` should be a list with the size being `length(key)`, where each element is a character vector.
+#' @param search a character vector, which is a subset of c("Secreted Signaling","ECM-Receptor","Cell-Cell Contact","Non-protein Signaling"); Setting search = NULL & non_protein = FALSE will return all signaling except for "Non-protein Signaling".
+#'
+#' When `key` is a vector, the `search` should be a list with the size being `length(key)`, where each element is a character vector.
 #' @param key a character vector and each element should be one of the column names of the interaction_input from CellChatDB.
 #' @param non_protein whether to use the non-protein signaling for CellChat analysis. By default, non_protein = FALSE because most of non-protein signaling are the special synaptic signaling interactions that can only be used when inferring neuron-neuron communication.
 #'
@@ -134,6 +136,12 @@ searchPair <- function(signaling = c(), pairLR.use, key = c("pathway_name","liga
 #'
 subsetDB <- function(CellChatDB, search = c(), key = "annotation", non_protein = FALSE) {
   interaction_input <- CellChatDB$interaction
+  if (is.null(search) & non_protein == FALSE & key == "annotation") {
+    search <- c("Secreted Signaling","ECM-Receptor","Cell-Cell Contact")
+  } else if (is.null(search) & non_protein == TRUE & key == "annotation") {
+    search <- c("Secreted Signaling","ECM-Receptor","Cell-Cell Contact","Non-protein Signaling")
+  }
+
   if ("Non-protein Signaling" %in% unlist(search)) {
     non_protein = TRUE
     message("The non-protein signaling is now included for CellChat analysis, which is usually used for neuron-neuron communication!")
