@@ -1,0 +1,265 @@
+
+---
+title: "CellChat analysis of multiple spatial transcriptomics datasets"
+author: "Suoqin Jin" 
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    toc: true
+    theme: united
+mainfont: Arial
+vignette: >
+  %\VignetteIndexEntry{CellChat analysis of multiple spatial transcriptomics datasets}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  root.dir = './'
+)
+#knitr::opts_chunk$set(eval = FALSE)
+```
+
+
+This vignette outlines the steps of inference, analysis and visualization of cell-cell communication network for **multiple spatial transcriptomics datasets using CellChat**. We showcase CellChat’s application to multiple spatial transcriptomics datasets by applying it to two replicates from human spatial intestine datasets, which were downloaded from https://simmonslab.shinyapps.io/FetalAtlasDataPortal/.
+
+
+Below we briefly describe the key steps of applying CellChat to multiple spatial transcriptomics datasets. Please check the [vignette of applying CellChat to an individual spatially resolved transcriptomics dataset](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/CellChat_analysis_of_spatial_transcriptomics_data.html) for detailed descriptions of the methods and steps, and 
+check the [vignette of FAQ on applying CellChat to spatially resolved transcriptomics data](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/FAQ_on_applying_CellChat_to_spatial_transcriptomics_data.html) for detailed descriptions of applying CellChat to different types of spatial transcriptomics data.  
+
+## Load the required libraries
+```{r message=FALSE,warning=FALSE}
+ptm = Sys.time()
+library(CellChat)
+library(patchwork)
+```
+
+# Part I: Data input & processing and initialization of CellChat object
+## Load data
+```{r, fig.width=14,fig.height = 7, fig.wide = TRUE, fig.align = "center"}
+# Here we load two Seurat objects of two replicates from 10X Visium human intestine dataset
+library(Seurat)
+seu1 <- readRDS("/Users/suoqinjin/Library/CloudStorage/OneDrive-Personal/works/CellChat/tutorial/Spatial_A1_adult_with_predictions.RDS")
+seu1
+seu2 <- readRDS("/Users/suoqinjin/Library/CloudStorage/OneDrive-Personal/works/CellChat/tutorial/Spatial_A2_adult_with_predictions.RDS")
+seu2
+
+# assign label to each spot based on the maximum predicted probabilities
+assignLabels <- function(object, prediction = "predictions") {
+  pred <- object[[prediction]]@data
+  pred <- pred[1:(nrow(pred)-1), ]
+  # label each spot based on the maximum prediction probability
+  labels = rownames(pred)[apply(pred, 2, which.max)]
+  names(labels) <- colnames(pred)
+  object$labels <- factor(labels)
+  Idents(object) <- "labels"
+  return(object)
+}
+seu1 <- assignLabels(seu1, prediction = "adult.predictions")
+seu2 <- assignLabels(seu2, prediction = "adult.predictions")
+
+# show the image and annotated spots
+color.use <- scPalette(nlevels(seu1)); names(color.use) <- levels(seu1)
+p1 <- Seurat::SpatialDimPlot(seu1, label = F, label.size = 3, cols = color.use)
+color.use <- scPalette(nlevels(seu2)); names(color.use) <- levels(seu2)
+p2 <- Seurat::SpatialDimPlot(seu2, label = F, label.size = 3, cols = color.use) + NoLegend()
+p1 + p2
+
+
+# Prepare input data for CelChat analysis
+data.input1 = Seurat::GetAssayData(seu1, slot = "data", assay = "SCT") # normalized data matrix
+data.input2 = Seurat::GetAssayData(seu2, slot = "data", assay = "SCT") 
+
+genes.common <- intersect(rownames(data.input1), rownames(data.input2))
+colnames(data.input1) <- paste0("A1_", colnames(data.input1))
+colnames(data.input2) <- paste0("A2_", colnames(data.input2))
+data.input <- cbind(data.input1[genes.common, ], data.input2[genes.common, ])
+
+# define the meta data
+# a column named `slices` should be provided for spatial transcriptomics analysis, which is useful for analyzing cell-cell communication by aggregating multiple slices/replicates. Of note, for comparison analysis across different conditions, users still need to create a CellChat object seperately for each condition.  
+meta1 = data.frame(labels = Idents(seu1), slices = "A1") # manually create a dataframe consisting of the cell labels
+meta2 = data.frame(labels = Idents(seu2), slices = "A2") 
+
+meta <- rbind(meta1, meta2)
+rownames(meta) <- colnames(data.input)
+# a factor level should be defined for the `meta$labels` and `meta$slices`
+meta$labels <- factor(meta$labels, levels = levels(Idents(seu1)))
+meta$slices <- factor(meta$slices, levels = c("A1", "A2"))
+unique(meta$labels) # check the cell labels
+unique(meta$slices) # check the slice labels
+
+# load spatial transcriptomics information
+# Spatial locations of spots from full (NOT high/low) resolution images are required. For 10X Visium, this information is in `tissue_positions.csv`. 
+spatial.locs1 = Seurat::GetTissueCoordinates(seu1, scale = NULL, cols = c("imagerow", "imagecol")) 
+spatial.locs2 = Seurat::GetTissueCoordinates(seu2, scale = NULL, cols = c("imagerow", "imagecol")) 
+spatial.locs <- rbind(spatial.locs1, spatial.locs2)
+rownames(spatial.locs) <- colnames(data.input)
+
+# Scale factors of spatial coordinates
+# For 10X Visium, the conversion factor of converting spatial coordinates from Pixels to Micrometers can be computed as the ratio of the theoretical spot size (i.e., 65um) over the number of pixels that span the diameter of a theoretical spot size in the full-resolution image (i.e., 'spot_diameter_fullres' in pixels in the 'scalefactors_json.json' file). 
+# Of note, the 'spot_diameter_fullres' factor is different from the `spot` in Seurat object and thus users still need to get the value from the original json file. 
+scalefactors1 = jsonlite::fromJSON(txt = file.path("/Users/suoqinjin/Library/CloudStorage/OneDrive-Personal/works/CellChat/tutorial/spatial_imaging_data-intestinalA1", 'scalefactors_json.json'))
+spot.size = 65 # the theoretical spot size (um) in 10X Visium
+conversion.factor1 = spot.size/scalefactors1$spot_diameter_fullres
+scale.factors1 = data.frame(ratio = conversion.factor1, tol = spot.size/2)
+
+scalefactors2 = jsonlite::fromJSON(txt = file.path("/Users/suoqinjin/Library/CloudStorage/OneDrive-Personal/works/CellChat/tutorial/spatial_imaging_data-intestinalA2", 'scalefactors_json.json'))
+conversion.factor2 = spot.size/scalefactors2$spot_diameter_fullres
+scale.factors2 = data.frame(ratio = conversion.factor2, tol = spot.size/2)
+
+scale.factors <- rbind(scale.factors1, scale.factors2)
+rownames(scale.factors) <- c("A1", "A2")
+
+```
+
+## Create a CellChat object
+**NB: If USERS load previously calculated CellChat object (version < 2.1.0), please update the object via `updateCellChat`** 
+```{r}
+cellchat <- createCellChat(object = data.input, meta = meta, group.by = "labels",
+                           datatype = "spatial", coordinates = spatial.locs, scale.factors = scale.factors)
+cellchat
+```
+
+## Set the ligand-receptor interaction database
+```{r, fig.width=6,fig.height = 2.5, fig.wide = TRUE, fig.align = "center"}
+CellChatDB <- CellChatDB.human # use CellChatDB.human if running on human data
+
+# use a subset of CellChatDB for cell-cell communication analysis
+CellChatDB.use <- subsetDB(CellChatDB, search = "Secreted Signaling", key = "annotation") # use Secreted Signaling
+# set the used database in the object
+cellchat@DB <- CellChatDB.use
+```
+
+## Preprocessing the expression data for cell-cell communication analysis
+To infer the cell state-specific communications, we identify over-expressed ligands or receptors in one cell group and then identify over-expressed ligand-receptor interactions if either ligand or receptor is over-expressed. 
+
+```{r}
+# subset the expression data of signaling genes for saving computation cost
+cellchat <- subsetData(cellchat) # This step is necessary even if using the whole database
+future::plan("multisession", workers = 4) 
+cellchat <- identifyOverExpressedGenes(cellchat)
+cellchat <- identifyOverExpressedInteractions(cellchat)
+ 
+execution.time = Sys.time() - ptm
+print(as.numeric(execution.time, units = "secs"))
+```
+
+# Part II: Inference of cell-cell communication network
+
+## Compute the communication probability and infer cellular communication network
+
+```{r }
+ptm = Sys.time()
+cellchat <- computeCommunProb(cellchat, type = "truncatedMean", trim = 0.1, 
+                              distance.use = FALSE, interaction.range = 250, scale.distance = NULL,
+                              contact.knn = TRUE, contact.knn.k = 6)
+
+# Filter out the cell-cell communication if there are only few number of cells in certain cell groups
+cellchat <- filterCommunication(cellchat, min.cells = 10)
+```
+
+## Infer the cell-cell communication at a signaling pathway level
+CellChat computes the communication probability on signaling pathway level by summarizing the communication probabilities of all ligands-receptors interactions associated with each signaling pathway.  
+
+NB: The inferred intercellular communication network of each ligand-receptor pair and each signaling pathway is stored in the slot 'net' and 'netP', respectively.
+
+```{r}
+cellchat <- computeCommunProbPathway(cellchat)
+```
+
+## Calculate the aggregated cell-cell communication network 
+We can calculate the aggregated cell-cell communication network by counting the number of links or summarizing the communication probability. 
+```{r}
+cellchat <- aggregateNet(cellchat)
+
+execution.time = Sys.time() - ptm
+print(as.numeric(execution.time, units = "secs"))
+```
+
+We can also visualize the aggregated cell-cell communication network. For example, showing the number of interactions or the total interaction strength (weights) between any two cell groups using circle plot or heatmap plot.
+```{r, fig.width=14, fig.height= 7,fig.wide = TRUE, fig.align = "center"}
+
+ptm = Sys.time()
+
+groupSize <- as.numeric(table(cellchat@idents))
+par(mfrow = c(1,2), xpd=TRUE)
+netVisual_circle(cellchat@net$count, vertex.weight = rowSums(cellchat@net$count), weight.scale = T, label.edge= F, title.name = "Number of interactions")
+netVisual_circle(cellchat@net$weight, vertex.weight = rowSums(cellchat@net$weight), weight.scale = T, label.edge= F, title.name = "Interaction weights/strength")
+```
+```{r, fig.width= 6.5,fig.height= 6, fig.wide = TRUE, fig.align = "center"}
+netVisual_heatmap(cellchat, measure = "count", color.heatmap = "Blues")
+#netVisual_heatmap(cellchat, measure = "weight", color.heatmap = "Blues")
+```
+
+# Part III: Visualization of cell-cell communication network
+Upon infering the cell-cell communication network, CellChat provides various functionality for further data exploration, analysis, and visualization. Here we only showcase the `circle plot` and the new `spatial plot`.
+
+**Visualization of cell-cell communication at different levels**: One can visualize the inferred communication network of signaling pathways using `netVisual_aggregate`, and visualize the inferred communication networks of individual L-R pairs associated with that signaling pathway using `netVisual_individual`.
+
+Here we take input of one signaling pathway as an example. All the signaling pathways showing significant communications can be accessed by `cellchat@netP$pathways`.
+```{r, fig.height = 6, fig.wide = TRUE, fig.align = "center"}
+pathways.show <- c("EGF") 
+# Circle plot
+par(mfrow=c(1,1))
+netVisual_aggregate(cellchat, signaling = pathways.show, layout = "circle")
+```
+```{r, fig.width= 14, fig.height = 10, fig.wide = TRUE, fig.align = "center"}
+# Spatial plot
+par(mfrow=c(1,1))
+netVisual_aggregate(cellchat, signaling = pathways.show, slice.use = "A1", layout = "spatial", edge.width.max = 2, vertex.size.max = 1, alpha.image = 0.2, vertex.label.cex = 0)
+# Setting `vertex.label.cex = 0` to hide the labels on the spatial plot
+execution.time = Sys.time() - ptm
+print(as.numeric(execution.time, units = "secs"))
+```
+
+Compute and visualize the network centrality scores: 
+```{r, fig.height = 5, fig.wide = TRUE, fig.align = "center"}
+# Compute the network centrality scores
+cellchat <- netAnalysis_computeCentrality(cellchat, slot.name = "netP") # the slot 'netP' means the inferred intercellular communication network of signaling pathways
+# Visualize the computed centrality scores using heatmap, allowing ready identification of major signaling roles of cell groups
+par(mfrow=c(1,1))
+netAnalysis_signalingRole_network(cellchat, signaling = pathways.show, width = 8, height = 2.5, font.size = 10)
+
+```
+
+```{r, fig.width= 14, fig.height = 10, fig.wide = TRUE, fig.align = "center"}
+# USER can show this information on the spatial transcriptomics when visualizing a signaling network, e.g., bigger circle indicates larger incoming signaling
+par(mfrow=c(1,1))
+netVisual_aggregate(cellchat, signaling = pathways.show, slice.use = "A1", layout = "spatial", edge.width.max = 2, alpha.image = 0.2, vertex.weight = "incoming", vertex.size.max = 6, vertex.label.cex = 0)
+
+```
+
+### Compute the contribution of each ligand-receptor pair to the overall signaling pathway
+```{r, fig.width=4,fig.height = 4, fig.wide = TRUE, fig.align = "center"}
+netAnalysis_contribution(cellchat, signaling = pathways.show)
+```
+
+When visualizing gene expression distribution on tissue using `spatialFeaturePlot`, users also need to provide the `slice.use` as an input. 
+
+```{r, fig.width= 8, fig.wide = TRUE, fig.align = "center"}
+# Take an input of a few genes
+spatialFeaturePlot(cellchat, features = c("AREG","EGFR"), slice.use = "A1", point.size = 0.8, color.heatmap = "Reds", direction = 1)
+spatialFeaturePlot(cellchat, features = c("AREG","EGFR"), slice.use = "A2",point.size = 0.8, color.heatmap = "Reds", direction = 1)
+
+# Take an input of a ligand-receptor pair
+spatialFeaturePlot(cellchat, pairLR.use = "AREG_EGFR", slice.use = "A1", point.size = 0.5, do.binary = FALSE, cutoff = 0.05, enriched.only = F, color.heatmap = "Reds", direction = 1)
+
+# Take an input of a ligand-receptor pair and show expression in binary
+spatialFeaturePlot(cellchat, pairLR.use = "AREG_EGFR", slice.use = "A1", point.size = 1.5, do.binary = TRUE, cutoff = 0.05, enriched.only = F, color.heatmap = "Reds", direction = 1)
+
+```
+
+**NB: Upon infering the intercellular communication network from spatial transcriptomics data, CellChat's various functionality can be used for further data exploration, analysis, and visualization. Please check other functionality in the basic tutorial named `CellChat-vignette.html`**
+
+# Part V: Save the CellChat object
+```{r eval=FALSE}
+saveRDS(cellchat, file = "cellchat_human_intestine_ReplicatesA1A2.rds")
+```
+
+```{r}
+sessionInfo()
+```
+
