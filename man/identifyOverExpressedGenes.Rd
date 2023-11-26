@@ -19,7 +19,9 @@ identifyOverExpressedGenes(
   thresh.pc = 0,
   thresh.fc = 0,
   thresh.p = 0.05,
-  do.fast = TRUE
+  do.DE = TRUE,
+  do.fast = TRUE,
+  min.cells = 10
 )
 }
 \arguments{
@@ -51,7 +53,11 @@ identifyOverExpressedGenes(
 
 \item{thresh.p}{Threshold of p-values}
 
+\item{do.DE}{Whether perform differential expression analysis. By default do.DE = TRUE; When do.DE = FALSE, selecting over-expressed genes that are expressed in more than `min.cells` cells.}
+
 \item{do.fast}{If do.fast = TRUE, then perform a ultra-fast Wilcoxon test using presto package; otherwise using stats package. These two methods produce different logFC values, and the presto::wilcoxauc method gives smaller values.}
+
+\item{min.cells}{the minmum number of expressed cells required for the genes that are considered for cell-cell communication analysis}
 }
 \value{
 A CellChat object or a data frame. If returning a CellChat object, two new elements named 'features.name' and paste0(features.name, ".info") will be added into the list `object@var.features`

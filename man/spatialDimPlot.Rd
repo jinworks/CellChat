@@ -8,6 +8,7 @@ spatialDimPlot(
   object,
   color.use = NULL,
   group.by = NULL,
+  slice.use = NULL,
   sources.use = NULL,
   targets.use = NULL,
   idents.use = NULL,
@@ -28,6 +29,8 @@ spatialDimPlot(
 \item{color.use}{defining the color for each cell group}
 
 \item{group.by}{Name of one metadata columns to group (color) cells. Default is the defined cell groups in CellChat object}
+
+\item{slice.use}{the slice name used for visualization, which should be the element in `object@meta$slices`.}
 
 \item{sources.use}{a vector giving the index or the name of source cell groups}
 

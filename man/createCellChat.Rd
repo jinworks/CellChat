@@ -29,11 +29,11 @@ If input is a Seurat or SingleCellExperiment object, USER must provide `group.by
 
 \item{coordinates}{a data matrix in which each row gives the spatial locations/coordinates of each cell/spot}
 
-\item{scale.factors}{a list containing the scale factors and spot diameter for the full/high/low resolution images.
+\item{scale.factors}{a data frame containing two distance factors `ratio` and `tol`, which is dependent on spatial transcriptomics technologies (and specific datasets).
 
-USER must input this list when datatype = "spatial". scale.factors must contain an element named `spot.diameter`, which is the theoretical spot size; e.g., 10x Visium (spot.size = 65 microns), and another element named `spot`, which is the number of pixels that span the diameter of a theoretical spot size in the original, full-resolution image.
+USER must input this data frame when datatype = "spatial". scale.factors must contain an element named `ratio`, which is the conversion factor when converting spatial coordinates from Pixels or other units to Micrometers (i.e.,Microns). For example, setting `ratio = 0.18` indicates that 1 pixel equals 0.18um in the coordinates,
 
-For 10X visium, scale.factors are in the `scalefactors_json.json`. scale.factors$spot is the `spot.size.fullres `}
+and another element named `tol`, which is the tolerance factor to increase the robustness when comparing the center-to-center distance against the `interaction.range`. This can be the half value of cell/spot size in the unit of um. If the cell/spot size is not known, we provide a function `computeCellDistance` to compute the cell center-to-center distance. `tol` can be the the half value of the minimum center-to-center distance. Of note, CellChat does not need an accurate tolerance factor, which is used for determining whether considering the cell-pair as spatially proximal if their distance is greater than `interaction.range` but smaller than "`interaction.range` + `tol`".}
 
 \item{assay}{Assay to use when the input is a Seurat object. NB: The data in the `integrated` assay is not suitable for CellChat analysis because it contains negative values.}
 
@@ -59,7 +59,17 @@ cellChat <- createCellChat(object = seurat.obj, group.by = "seurat.clusters")
 # input is a SingleCellExperiment object
 cellChat <- createCellChat(object = sce.obj, group.by = "sce.clusters")
 
-Create a CellChat object from spatial imaging data
+# input is a AnnData object
+sce <- zellkonverter::readH5AD(file = "adata.h5ad")
+assayNames(sce) # retrieve all the available assays within sce object
+counts <- assay(sce, "X") # add a new assay entry "logcounts" if not available and make sure this is the original count data matrix
+library.size <- Matrix::colSums(counts)
+logcounts(sce) <- log1p(Matrix::t(Matrix::t(counts)/library.size) * 10000)
+meta <- as.data.frame(SingleCellExperiment::colData(sce))
+cellChat <- createCellChat(object = sce, group.by = "sce.clusters")
+
+
+Create a CellChat object from spatial transcriptomics data
 # Input is a data matrix
 cellChat <- createCellChat(object = data.input, meta = meta, group.by = "labels",
                            datatype = "spatial", coordinates = coordinates, scale.factors = scale.factors)

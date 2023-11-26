@@ -6,11 +6,11 @@
 \usage{
 computeRegionDistance(
   coordinates,
-  group,
+  meta,
   trim = 0.1,
   interaction.range = NULL,
-  spot.size = NULL,
-  spot.size.fullres = NULL,
+  ratio = NULL,
+  tol = NULL,
   k.min = 10,
   contact.knn = TRUE,
   contact.knn.k = 6
@@ -19,15 +19,21 @@ computeRegionDistance(
 \arguments{
 \item{coordinates}{a data matrix in which each row gives the spatial locations/coordinates of each cell/spot}
 
-\item{group}{a factor vector defining the regions/labels of each cell/spot}
+\item{meta}{a data frame including at least two columns named `group` and `slices`. `meta$group` is a factor vector defining the regions/labels of each cell/spot. `meta$slices` is a factor vector defining the slice labels of each dataset.}
 
 \item{trim}{the fraction (0 to 0.25) of observations to be trimmed from each end of x before computing the average distance per cell group.}
 
-\item{interaction.range}{The maximum interaction/diffusion length of ligands. This hard threshold is used to filter out the connections between spatially distant regions}
+\item{interaction.range}{The maximum interaction/diffusion range of ligands. This hard threshold is used to filter out the connections between spatially distant regions}
 
-\item{spot.size}{theoretical spot size; e.g., 10x Visium (spot.size = 65 microns)}
+\item{ratio}{a numerical vector giving the conversion factor when converting spatial coordinates from Pixels or other units to Micrometers (i.e.,Microns).
 
-\item{spot.size.fullres}{The number of pixels that span the diameter of a theoretical spot size in the original,full-resolution image.}
+For example, setting `ratio = 0.18` indicates that 1 pixel equals 0.18um in the coordinates.
+For 10X visium, it is the ratio of the theoretical spot size (i.e., 65um) over the number of pixels that span the diameter of a theoretical spot size in the full-resolution image (i.e., 'spot.size.fullres' in the 'scalefactors_json.json' file).}
+
+\item{tol}{a numerical vector giving the tolerance factor to increase the robustness when comparing the center-to-center distance against the `interaction.range`. This can be the half value of cell/spot size in the unit of um.
+
+For example, for 10X visium, `tol` can be set as `65/2`; for slide-seq, `tol` can be set as `10/2`.
+If the cell/spot size is not known, we provide a function `computeCellDistance` to compute the center-to-center distance. `tol` can be the the half value of the minimum center-to-center distance.}
 
 \item{k.min}{the minimum number of interacting cell pairs required for defining adjacent cell groups}
 

@@ -7,7 +7,8 @@
 netVisual_spatial(
   net,
   coordinates,
-  labels,
+  meta,
+  slice.use = NULL,
   color.use = NULL,
   title.name = NULL,
   sources.use = NULL,
@@ -38,7 +39,10 @@ netVisual_spatial(
 
 \item{coordinates}{a data matrix in which each row gives the spatial locations/coordinates of each cell/spot}
 
-\item{labels}{a vector giving the group label of each cell/spot. The length should be the same as the number of rows in `coordinates`}
+\item{meta}{a data frame with at least two columns named `labels` and `slices`.
+`meta$labels` is a vector giving the group label of each cell/spot. `meta$slices` is a factor vector defining the slice labels of each dataset. The length should be the same as the number of rows in `coordinates`.}
+
+\item{slice.use}{the slice used for visualization, which should be the element in `meta$slices`.}
 
 \item{color.use}{Colors represent different cell groups}
 

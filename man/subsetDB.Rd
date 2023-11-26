@@ -9,7 +9,9 @@ subsetDB(CellChatDB, search = c(), key = "annotation", non_protein = FALSE)
 \arguments{
 \item{CellChatDB}{CellChatDB databse}
 
-\item{search}{a character vector; When `key` is a vector, the `search` should be a list with the size being `length(key)`, where each element is a character vector}
+\item{search}{a character vector, which is a subset of c("Secreted Signaling","ECM-Receptor","Cell-Cell Contact","Non-protein Signaling"); Setting search = NULL & non_protein = FALSE will return all signaling except for "Non-protein Signaling".
+
+When `key` is a vector, the `search` should be a list with the size being `length(key)`, where each element is a character vector.}
 
 \item{key}{a character vector and each element should be one of the column names of the interaction_input from CellChatDB.}
 

@@ -21,7 +21,7 @@ The key slots used in the CellChat object are described below.
 
 \item{\code{data.project}}{projected data}
 
-\item{\code{images}}{a list of spatial image objects}
+\item{\code{images}}{a list of information of spatial transcriptomics data}
 
 \item{\code{net}}{a three-dimensional array P (K×K×N), where K is the number of cell groups and N is the number of ligand-receptor pairs. Each row of P indicates the communication probability originating from the sender cell group to other cell groups.}
 

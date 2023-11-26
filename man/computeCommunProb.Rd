@@ -27,46 +27,47 @@ computeCommunProb(
 \arguments{
 \item{object}{CellChat object}
 
-\item{type}{methods for computing the average gene expression per cell group. By default = "triMean", producing fewer but stronger interactions;
+\item{type}{Methods for computing the average gene expression per cell group. By default = "triMean", producing fewer but stronger interactions;
 When setting `type = "truncatedMean"`, a value should be assigned to 'trim',  producing more interactions.}
 
 \item{trim}{the fraction (0 to 0.25) of observations to be trimmed from each end of x before the mean is computed}
 
-\item{LR.use}{a subset of ligand-receptor interactions used in inferring communication network}
+\item{LR.use}{A subset of ligand-receptor interactions used in inferring communication network}
 
-\item{raw.use}{whether use the raw data (i.e., `object@data.signaling`) or the projected data (i.e., `object@data.project`).
+\item{raw.use}{Whether use the raw data (i.e., `object@data.signaling`) or the projected data (i.e., `object@data.project`).
 Set raw.use = FALSE to use the projected data when analyzing single-cell data with shallow sequencing depth because the projected data could help to reduce the dropout effects of signaling genes, in particular for possible zero expression of subunits of ligands/receptors.}
 
-\item{population.size}{whether consider the proportion of cells in each group across all sequenced cells.
+\item{population.size}{Whether consider the proportion of cells in each group across all sequenced cells.
 Set population.size = FALSE if analyzing sorting-enriched single cells, to remove the potential artifact of population size.
 Set population.size = TRUE if analyzing unsorted single-cell transcriptomes, with the reason that abundant cell populations tend to send collectively stronger signals than the rare cell populations.
 
 Parameters for spatial data analysis}
 
-\item{distance.use}{whether use distance constraints to compute communication probability.
-distance.use = FALSE will only filter out interactions between spatially distant regions, but not add distance constraints.}
+\item{distance.use}{Whether to use distance constraints to compute communication probability. Setting `distance.use = TRUE` indicates that the cell-cell communication probability is inversely proportional to the computed distance.
+Setting `distance.use = FALSE` will only filter out interactions between spatially distant regions, but not add distance constraints.}
 
 \item{interaction.range}{The maximum interaction/diffusion length of ligands (Unit: microns). This hard threshold is used to filter out the connections between spatially distant regions}
 
-\item{scale.distance}{A scale or normalization factor for the spatial distances. This values can be 1, 0.1, 0.01, 0.001. We choose this values such that the minimum value of the scaled distances is in [1,2].
+\item{scale.distance}{A scale or normalization factor for the spatial distances when setting `distance.use = TRUE`. For example, scale.distance equals 1, 0.1, 0.01, 0.001, 0.11, or 0.011. We choose this values such that the minimum value of the scaled distances is in [1,2]. This value is not necessary when setting `distance.use = FALSE`.
 
 When comparing communication across different CellChat objects, the same scale factor should be used. For a single CellChat analysis, different scale factors will not affect the ranking of the signaling based on their interaction strength.}
 
-\item{k.min}{the minimum number of interacting cell pairs required for defining adjacent cell groups}
+\item{k.min}{The minimum number of interacting cell pairs required for defining adjacent cell groups}
 
-\item{contact.knn}{whether determining spatially proximal cell regions based on the k-nearest neighbors (knn). Users can set `contact.knn = TRUE` if inferring contact-dependent signaling (including ECM-Receptor and Cell-Cell Contact signaling classified in CellChatDB$interaction$annotation) or preferring interactions within spatial neighbors.}
+\item{contact.knn}{Whether determining spatially proximal cell regions based on the k-nearest neighbors (knn). By default `contact.knn = TRUE` when inferring contact-dependent signaling (including ECM-Receptor and Cell-Cell Contact signaling classified in CellChatDB$interaction$annotation).
+If only focusing on `Secreted Signaling`, `contact.knn` will be automatically set as FALSE except for `contact.knn.forced = TRUE`.}
 
 \item{contact.knn.k}{Number of neighbors in a knn graph, which is used to restrict the contact-dependent signaling within the neatest neighbors. For 10X visium, contact.knn.k = 6.}
 
-\item{contact.knn.forced}{whether forcing to determine spatially proximal cell regions based on knn. Users can set `contact.knn.forced = TRUE` if preferring interactions within spatial neighbors for `Secreted Signaling`.}
+\item{contact.knn.forced}{Whether forcing to determine spatially proximal cell regions based on knn. Users can set `contact.knn.forced = TRUE` if also preferring interactions within spatial neighbors for `Secreted Signaling`.}
 
-\item{nboot}{threshold of p-values}
+\item{nboot}{Threshold of p-values}
 
-\item{seed.use}{set a random seed. By default, set the seed to 1.}
+\item{seed.use}{Set a random seed. By default, set the seed to 1.}
 
-\item{Kh}{parameter in Hill function}
+\item{Kh}{Parameter in Hill function}
 
-\item{n}{parameter in Hill function}
+\item{n}{Parameter in Hill function}
 }
 \value{
 A CellChat object with updated slot 'net':
