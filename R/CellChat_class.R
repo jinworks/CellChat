@@ -19,7 +19,7 @@ setClassUnion(name = 'AnyFactor', members = c("factor", "list"))
 #' @slot data.signaling a subset of normalized matrix only containing signaling genes
 #' @slot data.scale scaled data matrix
 #' @slot data.project projected data
-#' @slot images a list of spatial image objects
+#' @slot images a list of information of spatial transcriptomics data
 #' @slot net a three-dimensional array P (K×K×N), where K is the number of cell groups and N is the number of ligand-receptor pairs. Each row of P indicates the communication probability originating from the sender cell group to other cell groups.
 #' @slot netP a three-dimensional array representing cel-cell communication networks on a signaling pathway level
 #' @slot DB ligand-receptor interaction database used in the analysis (a subset of CellChatDB)
@@ -88,11 +88,12 @@ setMethod(f = "show", signature = "CellChat", definition = function(object) {
 #' @param datatype By default datatype = "RNA"; when running CellChat on spatial imaging data, set datatype = "spatial" and input `scale.factors`
 #'
 #' @param coordinates a data matrix in which each row gives the spatial locations/coordinates of each cell/spot
-#' @param scale.factors a list containing the scale factors and spot diameter for the full/high/low resolution images.
+#' @param scale.factors a data frame containing two distance factors `ratio` and `tol`, which is dependent on spatial transcriptomics technologies (and specific datasets).
 #'
-#' USER must input this list when datatype = "spatial". scale.factors must contain an element named `spot.diameter`, which is the theoretical spot size; e.g., 10x Visium (spot.size = 65 microns), and another element named `spot`, which is the number of pixels that span the diameter of a theoretical spot size in the original, full-resolution image.
+#' USER must input this data frame when datatype = "spatial". scale.factors must contain an element named `ratio`, which is the conversion factor when converting spatial coordinates from Pixels or other units to Micrometers (i.e.,Microns). For example, setting `ratio = 0.18` indicates that 1 pixel equals 0.18um in the coordinates,
 #'
-#' For 10X visium, scale.factors are in the `scalefactors_json.json`. scale.factors$spot is the `spot.size.fullres `
+#' and another element named `tol`, which is the tolerance factor to increase the robustness when comparing the center-to-center distance against the `interaction.range`. This can be the half value of cell/spot size in the unit of um. If the cell/spot size is not known, we provide a function `computeCellDistance` to compute the cell center-to-center distance. `tol` can be the the half value of the minimum center-to-center distance. Of note, CellChat does not need an accurate tolerance factor, which is used for determining whether considering the cell-pair as spatially proximal if their distance is greater than `interaction.range` but smaller than "`interaction.range` + `tol`".
+#'
 #'
 #' @param assay Assay to use when the input is a Seurat object. NB: The data in the `integrated` assay is not suitable for CellChat analysis because it contains negative values.
 #' @param do.sparse whether use sparse format
@@ -117,7 +118,17 @@ setMethod(f = "show", signature = "CellChat", definition = function(object) {
 #' # input is a SingleCellExperiment object
 #' cellChat <- createCellChat(object = sce.obj, group.by = "sce.clusters")
 #'
-#' Create a CellChat object from spatial imaging data
+#' # input is a AnnData object
+#' sce <- zellkonverter::readH5AD(file = "adata.h5ad")
+#' assayNames(sce) # retrieve all the available assays within sce object
+#' counts <- assay(sce, "X") # add a new assay entry "logcounts" if not available and make sure this is the original count data matrix
+#' library.size <- Matrix::colSums(counts)
+#' logcounts(sce) <- log1p(Matrix::t(Matrix::t(counts)/library.size) * 10000)
+#' meta <- as.data.frame(SingleCellExperiment::colData(sce))
+#' cellChat <- createCellChat(object = sce, group.by = "sce.clusters")
+#'
+#'
+#' Create a CellChat object from spatial transcriptomics data
 #' # Input is a data matrix
 #' cellChat <- createCellChat(object = data.input, meta = meta, group.by = "labels",
 #'                            datatype = "spatial", coordinates = coordinates, scale.factors = scale.factors)
@@ -216,13 +227,13 @@ createCellChat <- function(object, meta = NULL, group.by = NULL,
     } else {
       stop("Please check the input 'coordinates' and make sure it is a two column matrix.")
     }
-    if (is.null(scale.factors) | !("spot.diameter" %in% names(scale.factors)) | !("spot" %in% names(scale.factors))) {
-      stop("scale.factors with elements named `spot.diameter` and `spot` should be provided!")
+    if (is.null(scale.factors) | !("ratio" %in% names(scale.factors)) | !("tol" %in% names(scale.factors))) {
+      stop("scale.factors with colnames `ratio` and `tol` should be provided!")
     } else {
       images = list("coordinates" = coordinates,
                     "scale.factors" = scale.factors)
     }
-    cat("Create a CellChat object from spatial imaging data...",'\n')
+    cat("Create a CellChat object from spatial transcriptomics data...",'\n')
   } else {
     images <- list()
   }
@@ -239,7 +250,17 @@ createCellChat <- function(object, meta = NULL, group.by = NULL,
     }
     object <- setIdent(object, ident.use = group.by) # set "labels" as default cell identity
     cat("The cell groups used for CellChat analysis are ", levels(object@idents), '\n')
+
+    if (datatype %in% c("spatial")) {
+      if (!("slices" %in% colnames(meta))) {
+        warning("The 'meta' data does not have a column named `slices` for spatial transcriptomics data analysis.
+              We now add this column and all cells are assigned as `slice1`!")
+        meta$slices <- "slice1"
+        meta$slices <- factor(meta$slices)
+      }
+    }
   }
+
   object@options$mode <- "single"
   object@options$datatype <- datatype
   return(object)
@@ -378,11 +399,15 @@ mergeCellChat <- function(object.list, add.names = NULL, merge.data = FALSE, cel
 
 #' Update a single CellChat object
 #'
+#' Update a single previously calculated CellChat object for spatial transcriptomics data analysis (version < 2.1.0)
+#'
 #' Update a single previously calculated CellChat object (version < 1.6.0)
 #'
 #' version < 0.5.0: `object@var.features` is now `object@var.features$features`; `object@net$sum` is now `object@net$weight` if `aggregateNet` has been run.
 #'
 #' version 1.6.0: a `object@images` slot is added and `datatype` is added in `object@options$datatype`
+#'
+#' version 2.1.0: a column named `slices` is added in `meta` data for spatial transcriptomics data analysis.
 #'
 #' @param object CellChat object
 #'
@@ -418,6 +443,18 @@ updateCellChat <- function(object) {
   } else {
     images = object@images
   }
+  if (object@options$datatype %in% c("spatial")) {
+    meta = object@meta
+    if (!("slices" %in% colnames(meta))) {
+      warning("The 'meta' data does not have a column named `slices` for spatial transcriptomics data analysis.
+              We now add this column and all cells are assigned as `slice1`!")
+      meta$slices <- "slice1"
+      meta$slices <- factor(meta$slices)
+    }
+    if (is.null(ncol(images$scale.factors))) {
+      images$scale.factors <- as.data.frame(images$scale.factors)
+    }
+  }
   object.new <- methods::new(
     Class = "CellChat",
     data.raw = object@data.raw,
@@ -428,7 +465,7 @@ updateCellChat <- function(object) {
     images = images,
     net = net,
     netP = object@netP,
-    meta = object@meta,
+    meta = meta,
     idents = object@idents,
     DB = DB,
     LR = object@LR,
@@ -686,7 +723,7 @@ subsetCellChat <- function(object, cells.use = NULL, idents.use = NULL, group.by
     }
     level.use0 <- levels(labels)
     level.use <- levels(labels)[levels(labels) %in% unique(labels)]
-    
+
     if (invert) {
       level.use <- level.use[!(level.use %in% idents.use)]
     } else {
@@ -707,7 +744,7 @@ subsetCellChat <- function(object, cells.use = NULL, idents.use = NULL, group.by
     stop("USER should define either `cells.use` or `idents.use`!")
   }
   cat("The subset of cell groups used for CellChat analysis are ", level.use, '\n')
-  
+
   if (nrow(object@data) > 0) {
     data.subset <- object@data[, cells.use.index]
   } else {
@@ -719,10 +756,10 @@ subsetCellChat <- function(object, cells.use = NULL, idents.use = NULL, group.by
     data.project.subset <- matrix(0, nrow = 0, ncol = 0)
   }
   data.signaling.subset <- object@data.signaling[, cells.use.index]
-  
+
   meta.subset <- object@meta[cells.use.index, , drop = FALSE]
-  
-  
+
+
   if (object@options$mode == "merged") {
     idents <- object@idents[1:(length(object@idents)-1)]
     group.existing <- level.use0[level.use0 %in% level.use]
@@ -735,7 +772,7 @@ subsetCellChat <- function(object, cells.use = NULL, idents.use = NULL, group.by
     names(idents.subset) <- names(object@idents[1:(length(object@idents)-1)])
     images.subset <- vector("list", length = length(idents))
     names(images.subset) <- names(object@idents[1:(length(object@idents)-1)])
-    
+
     for (i in 1:length(idents)) {
       cat("Update slots object@images, object@net, object@netP, object@idents in dataset ", names(object@idents)[i],'\n')
       images <- object@images[[i]]
@@ -751,23 +788,23 @@ subsetCellChat <- function(object, cells.use = NULL, idents.use = NULL, group.by
         }
       }
       images.subset[[i]] <- images
-      
+
       # cat("Update slot object@net...", '\n')
       net <- object@net[[i]]
       for (net.j in names(net)) {
         values <- net[[net.j]]
         if (net.j %in% c("prob","pval")) {
-          values.new <- values[group.existing.index, group.existing.index, , drop = FALSE]
+          values.new <- values[group.existing.index, group.existing.index, ]
           net[[net.j]] <- values.new
         }
         if (net.j %in% c("count","sum","weight")) {
-          values.new <- values[group.existing.index, group.existing.index, drop = FALSE]
+          values.new <- values[group.existing.index, group.existing.index]
           net[[net.j]] <- values.new
         }
-        # net[[net.j]] <- values.new
+       # net[[net.j]] <- values.new
       }
       net.subset[[i]] <- net
-      
+
       # cat("Update slot object@netP...", '\n')
       # netP <- object@netP[[i]]
       # for (netP.j in names(netP)) {
@@ -803,13 +840,13 @@ subsetCellChat <- function(object, cells.use = NULL, idents.use = NULL, group.by
       idents.subset[[i]] <- factor(idents.subset[[i]], levels = levels(idents[[i]])[levels(idents[[i]]) %in% level.use])
     }
     idents.subset$joint <- factor(object@idents$joint[cells.use.index], levels = level.use)
-    
+
   } else {
     cat("Update slots object@images, object@net, object@netP in a single dataset...", '\n')
-    
+
     group.existing <- level.use0[level.use0 %in% level.use]
     group.existing.index <- which(level.use0 %in% level.use)
-    
+
     images <- object@images
     for (images.j in names(images)) {
       values <- images[[images.j]]
@@ -823,14 +860,14 @@ subsetCellChat <- function(object, cells.use = NULL, idents.use = NULL, group.by
       }
     }
     images.subset <- images
-    
-    
+
+
     # cat("Update slot object@net...", '\n')
     net <- object@net
     for (net.j in names(net)) {
       values <- net[[net.j]]
       if (net.j %in% c("prob","pval")) {
-        values.new <- values[group.existing.index, group.existing.index, , drop = FALSE]
+        values.new <- values[group.existing.index, group.existing.index, drop = FALSE]
         net[[net.j]] <- values.new
       }
       if (net.j %in% c("count","sum","weight")) {
@@ -839,7 +876,7 @@ subsetCellChat <- function(object, cells.use = NULL, idents.use = NULL, group.by
       }
     }
     net.subset <- net
-    
+
     # cat("Update slot object@netP...", '\n')
     # netP <- object@netP
     # for (netP.j in names(netP)) {
@@ -874,8 +911,8 @@ subsetCellChat <- function(object, cells.use = NULL, idents.use = NULL, group.by
     idents.subset <- object@idents[cells.use.index]
     idents.subset <- factor(idents.subset, levels = level.use)
   }
-  
-  
+
+
   object.subset <- methods::new(
     Class = "CellChat",
     data = data.subset,
