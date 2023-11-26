@@ -3,6 +3,9 @@
 </p>
 
 # CellChat v2
+## Version 2.1.0 (Nov 26, 2023)
+- CellChat v2 now enables the [inferrence of cell-cell communication from multiple spatially resolved transcriptomics datasets](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/CellChat_analysis_of_multiple_spatial_transcriptomics_datasets.html). Users should update the previously calculated individual CellChat object for spatial transcriptomics data analysis via `updateCellChat` function.
+- We add [Frequently Asked Questions (FAQ) when analyzing spatially resolved transcriptomics datasets](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/FAQ_on_applying_CellChat_to_spatial_transcriptomics_data.html), particularly on how to apply CellChat to different technologies of spatial transcriptomics data, including sequencing-based and in-situ imaging-based readouts. In addition, we redefine the `scale.factors` for easier interpretation when applying other spatial technologies. 
 
 CellChat v2 is an updated version that includes
 - inference of spatially proximal cell-cell communication between interacting cell groups from spatially resolved transcriptomics
@@ -47,10 +50,17 @@ Some users might have issues when installing CellChat pacakge due to different o
 ## Tutorials
 Please check the tutorial directory of the repo.
 
+### Analysis of single-cell transcriptomics data
 - [Full tutorial for CellChat analysis of a single dataset with detailed explanation of each function](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/CellChat-vignette.html)
-- [Brief tutorial for CellChat analysis of a single spatial resolved transcriptomic dataset](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/CellChat_analysis_of_spatial_imaging_data.html)
 - [Full tutorial for comparison analysis of multiple datasets](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/Comparison_analysis_of_multiple_datasets.html)
 - [Comparison analysis of multiple datasets with different cellular compositions](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/Comparison_analysis_of_multiple_datasets_with_different_cellular_compositions.html)
+
+### Analysis of spatially resolved transcriptomics data
+- [Brief tutorial for CellChat analysis of a single spatially resolved transcriptomic dataset](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/CellChat_analysis_of_spatial_transcriptomics_data.html)
+- [Brief tutorial for CellChat analysis of multiple spatially resolved transcriptomic datasets](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/CellChat_analysis_of_multiple_spatial_transcriptomics_datasets.html)
+- [Frequently Asked Questions when analyzing spatially resolved transcriptomics datasets](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/FAQ_on_applying_CellChat_to_spatial_transcriptomics_data.html)
+
+### Additional utilities
 - [Interface with other single-cell analysis toolkits (e.g., Seurat, SingleCellExperiment, Scanpy)](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/Interface_with_other_single-cell_analysis_toolkits.html)
 - [Tutorial for updating ligand-receptor database CellChatDB](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/Update-CellChatDB.html)
 
