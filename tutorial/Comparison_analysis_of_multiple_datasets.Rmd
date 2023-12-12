@@ -262,22 +262,27 @@ gg1 + gg2
 NB: The ligand-receptor pairs shown in the bubble plot can be accessed via `signaling.LSIncreased = gg1$data`. 
 
 ## Identify dysfunctional signaling by using differential expression analysis
-The above method for identifying the upgulated and down-regulated signaling is perfomed by comparing the communication probability between two datasets for each L-R pair and each pair of cell groups. Alternative, we can identify the upgulated and down-regulated signaling ligand-receptor pairs based on the differential gene expression analysis. Specifically, we perform differential expression analysis between two biological conditions (i.e., NL and LS) for each cell group, and then obtain the upgulated and down-regulated signaling based on the fold change of ligands in the sender cells and receptors in the receiver cells. Such analysis can be done as follows.
+The above method for identifying the upgulated and down-regulated signaling is perfomed by comparing the communication probability between two datasets for each L-R pair and each pair of cell groups. Alternative, we can identify the upgulated and down-regulated signaling ligand-receptor pairs based on the differential expression analysis (DEA). Specifically, we perform differential expression analysis between two biological conditions (i.e., NL and LS) for each cell group, and then obtain the upgulated and down-regulated signaling based on the fold change of ligands in the sender cells and receptors in the receiver cells. 
+
+Of note, users may observe the same LR pairs appearing in both the up-regulated and down-regulated results due to the fact that DEA between conditions is performed for each cell group.  To perform DEA between conditions by ignoring cell group information, users can set `group.DE.combined = TRUE` in `identifyOverExpressedGenes` for CellChat v2.1.1. 
+
 ```{r}
 # define a positive dataset, i.e., the dataset with positive fold change against the other dataset
 pos.dataset = "LS"
 # define a char name used for storing the results of differential expression analysis
-features.name = pos.dataset
+features.name = paste0(pos.dataset, ".merged")
+
 # perform differential expression analysis 
-# Of note, compared to CellChat version < v2, CellChat v2 now performs an ultra-fast Wilcoxon test using the presto package, which gives smaller values of logFC. Thus we here set a smaller value of thresh.fc compared to the original one (thresh.fc = 0.1). Users can also provide a vector and dataframe of customized DEGs by modifying the cellchat@var.features$LS and cellchat@var.features$LS.info. 
-cellchat <- identifyOverExpressedGenes(cellchat, group.dataset = "datasets", pos.dataset = pos.dataset, features.name = features.name, only.pos = FALSE, thresh.pc = 0.1, thresh.fc = 0.05, thresh.p = 1) 
+# Of note, compared to CellChat version < v2, CellChat v2 now performs an ultra-fast Wilcoxon test using the presto package, which gives smaller values of logFC. Thus we here set a smaller value of thresh.fc compared to the original one (thresh.fc = 0.1). Users can also provide a vector and dataframe of customized DEGs by modifying the cellchat@var.features$LS.merged and cellchat@var.features$LS.merged.info. 
+
+cellchat <- identifyOverExpressedGenes(cellchat, group.dataset = "datasets", pos.dataset = pos.dataset, features.name = features.name, only.pos = FALSE, thresh.pc = 0.1, thresh.fc = 0.05,thresh.p = 0.05, group.DE.combined = FALSE) 
 
 # map the results of differential expression analysis onto the inferred cell-cell communications to easily manage/subset the ligand-receptor pairs of interest
-net <- netMappingDEG(cellchat, features.name = features.name)
+net <- netMappingDEG(cellchat, features.name = features.name, variable.all = TRUE)
 # extract the ligand-receptor pairs with upregulated ligands in LS
-net.up <- subsetCommunication(cellchat, net = net, datasets = "LS",ligand.logFC = 0.1, receptor.logFC = NULL)
-# extract the ligand-receptor pairs with upregulated ligands and upregulated recetptors in NL, i.e.,downregulated in LS
-net.down <- subsetCommunication(cellchat, net = net, datasets = "NL",ligand.logFC = -0.05, receptor.logFC = -0.05)
+net.up <- subsetCommunication(cellchat, net = net, datasets = "LS",ligand.logFC = 0.05, receptor.logFC = NULL)
+# extract the ligand-receptor pairs with upregulated ligands and upregulated receptors in NL, i.e.,downregulated in LS
+net.down <- subsetCommunication(cellchat, net = net, datasets = "NL",ligand.logFC = -0.05, receptor.logFC = NULL)
 ```
 
 Since the signaling genes in the `net.up` and `net.down` might be complex with multi-subunits, we can do further deconvolution to obtain the individual signaling genes.
@@ -306,10 +311,10 @@ netVisual_chord_gene(object.list[[1]], sources.use = 4, targets.use = c(5:11), s
 Visualize the enriched ligands, signaling,or ligand-receptor pairs in one condition compared to another condition using wordcloud
 ```{r, fig.width= 4,fig.height = 4, fig.wide = TRUE, fig.align = "center"}
 # visualize the enriched ligands in the first condition
-computeEnrichmentScore(net.down, species = 'human')
+computeEnrichmentScore(net.down, species = 'human', variable.both = TRUE)
 
 # visualize the enriched ligands in the second condition
-computeEnrichmentScore(net.up, species = 'human')
+computeEnrichmentScore(net.up, species = 'human', variable.both = TRUE)
 ```
 
 # Part IV: Visually compare cell-cell communication using Hierarchy plot, Circle plot or Chord diagram

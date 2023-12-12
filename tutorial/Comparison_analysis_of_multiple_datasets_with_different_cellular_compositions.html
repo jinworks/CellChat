@@ -358,7 +358,7 @@ display: none;
 <h1 class="title toc-ignore">Comparison analysis of multiple datasets
 with different cell type compositions</h1>
 <h4 class="author">Suoqin Jin</h4>
-<h4 class="date">03 November, 2023</h4>
+<h4 class="date">11 December, 2023</h4>
 
 </div>
 
@@ -426,11 +426,13 @@ pericytes) specific to E14.5 compared to E13.5, we lift up
 <code>cellchat.E13</code> by lifting up the cell groups to the same cell
 labels as E14.5. <code>liftCellChat</code> will only update the slot
 related to the cell-cell communication network, including slots <a href="mailto:object@net" class="email">object@net</a>, <a href="mailto:object@netP" class="email">object@netP</a> and <a href="mailto:object@idents" class="email">object@idents</a>.</p>
-<pre class="r"><code># Define the cell labels to lift up
+<pre class="r"><code># Define the cell labels to lift up by combining both cell labels from the conditions
+# Please note that the order of cell groups in `group.new` will affect the appearance order when visualizing the cell-cell communication. If there are unique cell groups in both the conditions, you should define `group.new = union(levels(cellchat.E14@idents), levels(cellchat.E13@idents))`
 group.new = levels(cellchat.E14@idents)
 cellchat.E13 &lt;- liftCellChat(cellchat.E13, group.new)
 #&gt; The CellChat object will be lifted up using the cell labels FIB-A, FIB-B, FIB-P, DC, Pericyte, MYL, Immune, ENDO, Muscle, MELA, Basal-P, Basal, Spinious
 #&gt; Update slots object@net, object@netP, object@idents in a single dataset...
+# Of note, we did not apply `liftCellChat` to cellchat.E14 here because it contains all cell groups. 
 object.list &lt;- list(E13 = cellchat.E13, E14 = cellchat.E14)
 cellchat &lt;- mergeCellChat(object.list, add.names = names(object.list), cell.prefix = TRUE)
 #&gt; Warning in mergeCellChat(object.list, add.names = names(object.list),
@@ -463,7 +465,7 @@ for (i in 1:length(object.list)) {
 <pre class="r"><code>
 execution.time = Sys.time() - ptm
 print(as.numeric(execution.time, units = &quot;secs&quot;))
-#&gt; [1] 4.849669</code></pre>
+#&gt; [1] 4.891514</code></pre>
 <pre class="r"><code># Chord diagram
 pathways.show &lt;- c(&quot;WNT&quot;) 
 par(mfrow = c(1,2), xpd=TRUE)
@@ -534,7 +536,7 @@ adult day 12 wound skin.</p>
 #&gt; [1] stats     graphics  grDevices utils     datasets  methods   base     
 #&gt; 
 #&gt; other attached packages:
-#&gt; [1] patchwork_1.1.3     CellChat_2.0.0      Biobase_2.60.0     
+#&gt; [1] patchwork_1.1.3     CellChat_2.1.1      Biobase_2.60.0     
 #&gt; [4] BiocGenerics_0.46.0 ggplot2_3.4.3       igraph_1.5.1       
 #&gt; [7] dplyr_1.1.3        
 #&gt; 

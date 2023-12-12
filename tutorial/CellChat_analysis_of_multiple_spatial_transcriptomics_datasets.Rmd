@@ -104,14 +104,14 @@ rownames(spatial.locs) <- colnames(data.input)
 scalefactors1 = jsonlite::fromJSON(txt = file.path("/Users/suoqinjin/Library/CloudStorage/OneDrive-Personal/works/CellChat/tutorial/spatial_imaging_data-intestinalA1", 'scalefactors_json.json'))
 spot.size = 65 # the theoretical spot size (um) in 10X Visium
 conversion.factor1 = spot.size/scalefactors1$spot_diameter_fullres
-scale.factors1 = data.frame(ratio = conversion.factor1, tol = spot.size/2)
+spatial.factors1 = data.frame(ratio = conversion.factor1, tol = spot.size/2)
 
 scalefactors2 = jsonlite::fromJSON(txt = file.path("/Users/suoqinjin/Library/CloudStorage/OneDrive-Personal/works/CellChat/tutorial/spatial_imaging_data-intestinalA2", 'scalefactors_json.json'))
 conversion.factor2 = spot.size/scalefactors2$spot_diameter_fullres
-scale.factors2 = data.frame(ratio = conversion.factor2, tol = spot.size/2)
+spatial.factors2 = data.frame(ratio = conversion.factor2, tol = spot.size/2)
 
-scale.factors <- rbind(scale.factors1, scale.factors2)
-rownames(scale.factors) <- c("A1", "A2")
+spatial.factors <- rbind(spatial.factors1, spatial.factors2)
+rownames(spatial.factors) <- c("A1", "A2")
 
 ```
 
@@ -119,7 +119,7 @@ rownames(scale.factors) <- c("A1", "A2")
 **NB: If USERS load previously calculated CellChat object (version < 2.1.0), please update the object via `updateCellChat`** 
 ```{r}
 cellchat <- createCellChat(object = data.input, meta = meta, group.by = "labels",
-                           datatype = "spatial", coordinates = spatial.locs, scale.factors = scale.factors)
+                           datatype = "spatial", coordinates = spatial.locs, spatial.factors = spatial.factors)
 cellchat
 ```
 
@@ -155,7 +155,7 @@ print(as.numeric(execution.time, units = "secs"))
 ptm = Sys.time()
 cellchat <- computeCommunProb(cellchat, type = "truncatedMean", trim = 0.1, 
                               distance.use = FALSE, interaction.range = 250, scale.distance = NULL,
-                              contact.knn = TRUE, contact.knn.k = 6)
+                              contact.dependent = TRUE, contact.range = 100)
 
 # Filter out the cell-cell communication if there are only few number of cells in certain cell groups
 cellchat <- filterCommunication(cellchat, min.cells = 10)
@@ -255,7 +255,7 @@ spatialFeaturePlot(cellchat, pairLR.use = "AREG_EGFR", slice.use = "A1", point.s
 **NB: Upon infering the intercellular communication network from spatial transcriptomics data, CellChat's various functionality can be used for further data exploration, analysis, and visualization. Please check other functionality in the basic tutorial named `CellChat-vignette.html`**
 
 # Part V: Save the CellChat object
-```{r eval=FALSE}
+```{r eval=TRUE}
 saveRDS(cellchat, file = "cellchat_human_intestine_ReplicatesA1A2.rds")
 ```
 

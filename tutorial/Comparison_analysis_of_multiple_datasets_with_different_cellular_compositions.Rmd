@@ -51,9 +51,11 @@ cellchat.E14 <- updateCellChat(cellchat.E14)
 Since there are additional two populations (i.e., dermal DC and pericytes) specific to E14.5 compared to E13.5, we lift up `cellchat.E13` by lifting up the cell groups to the same cell labels as E14.5. `liftCellChat` will only update the slot related to the cell-cell communication network, including slots object@net, object@netP and object@idents. 
 
 ```{r}
-# Define the cell labels to lift up
+# Define the cell labels to lift up by combining both cell labels from the conditions
+# Please note that the order of cell groups in `group.new` will affect the appearance order when visualizing the cell-cell communication. If there are unique cell groups in both the conditions, you should define `group.new = union(levels(cellchat.E14@idents), levels(cellchat.E13@idents))`
 group.new = levels(cellchat.E14@idents)
 cellchat.E13 <- liftCellChat(cellchat.E13, group.new)
+# Of note, we did not apply `liftCellChat` to cellchat.E14 here because it contains all cell groups. 
 object.list <- list(E13 = cellchat.E13, E14 = cellchat.E14)
 cellchat <- mergeCellChat(object.list, add.names = names(object.list), cell.prefix = TRUE)
 ```
