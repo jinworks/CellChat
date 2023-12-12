@@ -2088,6 +2088,7 @@ netVisual_barplot <- function(object, comparison = c(1,2), measure = c("count", 
 #' @param line.size size of vertical line if added
 #' @param color.text.use whether color the xtick labels according to the dataset origin when doing comparison analysis
 #' @param color.text the colors for xtick labels according to the dataset origin when doing comparison analysis
+#' @param dot.size.min,dot.size.max Size of smallest and largest points
 #' @param title.name main title of the plot
 #' @param font.size,font.size.title font size of all the text and the title name
 #' @param show.legend whether show legend
@@ -2129,7 +2130,7 @@ netVisual_barplot <- function(object, comparison = c(1,2), measure = c("count", 
 #'}
 netVisual_bubble <- function(object, sources.use = NULL, targets.use = NULL, signaling = NULL, pairLR.use = NULL, sort.by.source = FALSE, sort.by.target = FALSE, sort.by.source.priority = TRUE, color.heatmap = c("Spectral","viridis"), n.colors = 10, direction = -1, thresh = 0.05,
                              comparison = NULL, group = NULL, remove.isolate = FALSE, max.dataset = NULL, min.dataset = NULL,
-                             min.quantile = 0, max.quantile = 1, line.on = TRUE, line.size = 0.2, color.text.use = TRUE, color.text = NULL,
+                             min.quantile = 0, max.quantile = 1, line.on = TRUE, line.size = 0.2, color.text.use = TRUE, color.text = NULL, dot.size.min = NULL, dot.size.max = NULL,
                              title.name = NULL, font.size = 10, font.size.title = 10, show.legend = TRUE,
                              grid.on = TRUE, color.grid = "grey90", angle.x = 90, vjust.x = NULL, hjust.x = NULL,
                              return.data = FALSE){
@@ -2406,7 +2407,13 @@ netVisual_bubble <- function(object, sources.use = NULL, targets.use = NULL, sig
     scale_x_discrete(position = "bottom")
 
   values <- c(1,2,3); names(values) <- c("p > 0.05", "0.01 < p < 0.05","p < 0.01")
-  g <- g + scale_radius(range = c(min(df$pval), max(df$pval)), breaks = sort(unique(df$pval)),labels = names(values)[values %in% sort(unique(df$pval))], name = "p-value")
+  if (is.null(dot.size.max)) {
+    dot.size.max = max(df$pval)
+  }
+  if (is.null(dot.size.min)) {
+    dot.size.min = min(df$pval)
+  }
+  g <- g + scale_radius(range = c(dot.size.min, dot.size.max), breaks = sort(unique(df$pval)),labels = names(values)[values %in% sort(unique(df$pval))], name = "p-value")
   #g <- g + scale_radius(range = c(1,3), breaks = values,labels = names(values), name = "p-value")
   if (min(df$prob, na.rm = T) != max(df$prob, na.rm = T)) {
     g <- g + scale_colour_gradientn(colors = colorRampPalette(color.use)(99), na.value = "white", limits=c(quantile(df$prob, 0,na.rm= T), quantile(df$prob, 1,na.rm= T)),
