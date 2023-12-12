@@ -1,7 +1,16 @@
+# Version 2.1.1 (2023-12-12)
+- Enable to flexibly infer contact-dependent or juxtacrine signaling from any type of spatial transcriptomics data by defining the `contact.range` in `computeCommunProb`. 
+- Change `scale.factors` to `spatial factors`.
 
-## Version 2.1.0 (Nov 26, 2023)
+## Updated functions with minor changes
+Functions that have been updated for analyzing spatial transcriptomics and perform comparison analysis, including  `createCellChat`, 'updateCellChat', `computeCommunProb`,`computeRegionDistance`, `netMappingDEG`, `computeEnrichmentScore`, `netVisual_bubble`, `identifyOverExpressedInteractions`, `identifyOverExpressedGenes`.
+
+# Version 2.1.0 (2023-11-26)
 - CellChat v2 now enables the [inferrence of cell-cell communication from multiple spatially resolved transcriptomics datasets](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/CellChat_analysis_of_multiple_spatial_transcriptomics_datasets.html). Users should update the previously calculated individual CellChat object for spatial transcriptomics data analysis via `updateCellChat` function.
-- We add [Frequently Asked Questions (FAQ) when analyzing spatially resolved transcriptomics datasets](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/FAQ_on_applying_CellChat_to_spatial_transcriptomics_data.html), particularly on how to apply CellChat to different technologies of spatial transcriptomics data, including sequencing-based and in-situ imaging-based readouts. In addition, we redefine the `scale.factors` for easier interpretation when applying other spatial technologies. 
+- We add [Frequently Asked Questions (FAQ) when analyzing spatially resolved transcriptomics datasets](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/FAQ_on_applying_CellChat_to_spatial_transcriptomics_data.html), particularly on how to apply CellChat to different technologies of spatial transcriptomics data, including sequencing-based and in-situ imaging-based readouts. In addition, we redefine the `scale.factors` for easier interpretation when applying other spatial technologies.
+
+## Updated functions with changes
+Functions that have been updated for analyzing spatial transcriptomics, including `CellChat-class`, `createCellChat`, 'updateCellChat', `computeCommunProb`,`computeRegionDistance`, `computeCellDistance`, `subsetDB`, `spatialFeaturePlot`, `spatialDimPlot`, `netVisual_spatial`, `netVisual_aggregate`, `netVisual`. 
 
 # CellChat 2.0.0 (2023-11-01)
 
