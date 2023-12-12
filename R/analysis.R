@@ -2916,6 +2916,8 @@ netAnalysis_signalingRole_heatmap <- function(object, signaling = NULL, pattern 
 #'
 #' @param object CellChat object
 #' @param features.name a char name used for extracting the DEG in `object@var.features[[features.name]]`
+#' @param variable.all variable.all = TRUE will compute the c("pvalues", "logFC", "pct.1", "pct.2") for a ligand/receptor complex using the mean value of its all subunits, that is requiring all subunits of the complex are differential expressed;
+#' variable.all = FALSE will compute the minimum value of "pvalues" and maximum value of c("logFC", "pct.1", "pct.2") among the subunits, that is only requiring that any one of the subunits of the complex is differential expressed.
 #' @param thresh threshold of the p-value for determining significant interaction
 #' @importFrom  dplyr select
 #'
@@ -2923,7 +2925,7 @@ netAnalysis_signalingRole_heatmap <- function(object, signaling = NULL, pattern 
 #'
 #' @export
 #'
-netMappingDEG <- function(object, features.name, thresh = 0.05) {
+netMappingDEG <- function(object, features.name, variable.all = TRUE, thresh = 0.05) {
   features.name <- paste0(features.name, ".info")
   if (!(features.name %in% names(object@var.features))) {
     stop("The input features.name does not exist in `names(object@var.features)`. Please first run `identifyOverExpressedGenes`! ")
@@ -2970,8 +2972,13 @@ netMappingDEG <- function(object, features.name, thresh = 0.05) {
       idx.pos <- match(source.ligand.complex, DEG$clusters.features)
       idx1.clusters.features <- idx.pos[!is.na(idx.pos)]
       if (length(idx1.clusters.features) > 0) {
-        net.temp <- DEG[idx1.clusters.features, c("pvalues", "logFC", "pct.1", "pct.2")]
-        net.temp <- colMeans(net.temp, na.rm = TRUE)
+        net.temp <- DEG[idx1.clusters.features, c("pvalues", "logFC", "pct.1", "pct.2"), drop = FALSE]
+        if (variable.all == TRUE) {
+          net.temp <- colMeans(net.temp, na.rm = TRUE)
+        } else {
+          net.temp <- c(min(net.temp$pvalues), apply(net.temp[, 2:ncol(net.temp), drop = FALSE], 2, function(x) max(x, na.rm = TRUE)))
+          names(net.temp)[1] <- "pvalues"
+        }
         net.temp <- as.data.frame(t(net.temp))
         colnames(net.temp) <- c("ligand.pvalues", "ligand.logFC", "ligand.pct.1", "ligand.pct.2")
       } else {
@@ -3003,7 +3010,12 @@ netMappingDEG <- function(object, features.name, thresh = 0.05) {
       idx1.clusters.features <- idx.pos[!is.na(idx.pos)]
       if (length(idx1.clusters.features) > 0) {
         net.temp <- DEG[idx1.clusters.features, c("pvalues", "logFC", "pct.1", "pct.2")]
-        net.temp <- colMeans(net.temp, na.rm = TRUE)
+        if (variable.all == TRUE) {
+          net.temp <- colMeans(net.temp, na.rm = TRUE)
+        } else {
+          net.temp <- c(min(net.temp$pvalues, na.rm = TRUE), apply(net.temp[, 2:ncol(net.temp), drop = FALSE], 2, function(x) max(x, na.rm = TRUE)))
+          names(net.temp)[1] <- "pvalues"
+        }
         net.temp <- as.data.frame(t(net.temp))
         colnames(net.temp) <- c("receptor.pvalues", "receptor.logFC", "receptor.pct.1", "receptor.pct.2")
       } else {
@@ -3025,7 +3037,10 @@ netMappingDEG <- function(object, features.name, thresh = 0.05) {
 #' @param color.use defining the color for each group of datasets
 #' @param color.name the color names in RColorBrewer::brewer.pal
 #' @param n.color the number of colors
-#' @param species a vector giving the groups of different datasets to define colors of the bar plot. Default: only one group and a single color
+#' @param species define the species as one of the c('mouse','human') to extract the CellChatDB; For other species, users need to provide a ligand-receptor database `db`
+#' @param db a customized ligand-receptor database `db`
+#' @param variable.both variable.both = TRUE will require that both ligand and receptor from one pair are over-expressed;
+#' variable.both = FALSE will only require that either ligand or receptor from one pair is over-expressed.
 #' @param scale A vector of length 2 indicating the range of the size of the words.
 #' @param min.freq words with frequency below min.freq will not be plotted
 #' @param max.words Maximum number of words to be plotted. least frequent terms dropped
@@ -3038,7 +3053,7 @@ netMappingDEG <- function(object, features.name, thresh = 0.05) {
 #' @return A ggplot object
 #' @export
 #'
-computeEnrichmentScore <- function(df, measure = c("ligand", "signaling","LR-pair"), species = c('mouse','human'), color.use = NULL, color.name = "Dark2", n.color = 8,
+computeEnrichmentScore <- function(df, measure = c("ligand", "signaling","LR-pair"), variable.both = TRUE, species = c('mouse','human'), db = NULL, color.use = NULL, color.name = "Dark2", n.color = 8,
                                    scale=c(4,.8), min.freq = 0, max.words = 200, random.order = FALSE, rot.per = 0,return.data = FALSE,seed = 1,...) {
   measure <- match.arg(measure)
   species <- match.arg(species)
@@ -3046,15 +3061,31 @@ computeEnrichmentScore <- function(df, measure = c("ligand", "signaling","LR-pai
   ES <- vector(length = length(LRpairs))
   for (i in 1:length(LRpairs)) {
     df.i <- subset(df, interaction_name == LRpairs[i])
-    if (length(which(rowSums(is.na(df.i)) > 0)) > 0) {
-      df.i <- df.i[-which(rowSums(is.na(df.i)) > 0), ,drop = FALSE]
+    idx = which(rowSums(is.na(df.i)) > 0)
+    if (variable.both & (length(idx) > 0)) {
+      df.i <- df.i[-idx, ,drop = FALSE]
     }
-    ES[i] = mean(abs(df.i$ligand.logFC) * abs(df.i$receptor.logFC) *abs(df.i$ligand.pct.2-df.i$ligand.pct.1)*abs(df.i$receptor.pct.2-df.i$receptor.pct.1))
+    ES[i] = mean(abs(df.i$ligand.logFC) * abs(df.i$receptor.logFC) *abs(df.i$ligand.pct.2-df.i$ligand.pct.1)*abs(df.i$receptor.pct.2-df.i$receptor.pct.1), na.rm = TRUE)
   }
-  if (species == "mouse") {
-    CellChatDB <- CellChatDB.mouse
-  } else if (species == 'human') {
-    CellChatDB <- CellChatDB.human
+  idx.na <- which(is.na(ES))
+  if (length(idx.na) > 0) {
+    ES <- ES[-idx.na]
+    LRpairs <- LRpairs[-idx.na]
+  }
+
+  if (length(ES) == 0) {
+    stop("No enriched signaling! Please adjust the parameters for selecting differential expressed signaling!")
+  }
+  if (is.null(db)) {
+    if (species == "mouse") {
+      CellChatDB <- CellChatDB.mouse
+    } else if (species == 'human') {
+      CellChatDB <- CellChatDB.human
+    } else {
+      stop("Only mouse and human are supported currently. Please provide a `db` instead! ")
+    }
+  } else {
+    CellChatDB <- db
   }
   df.es <- CellChatDB$interaction[LRpairs, c("ligand",'receptor','pathway_name')]
   df.es$score <- ES
