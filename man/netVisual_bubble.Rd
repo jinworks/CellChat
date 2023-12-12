@@ -28,6 +28,8 @@ netVisual_bubble(
   line.size = 0.2,
   color.text.use = TRUE,
   color.text = NULL,
+  dot.size.min = NULL,
+  dot.size.max = NULL,
   title.name = NULL,
   font.size = 10,
   font.size.title = 10,
@@ -80,6 +82,8 @@ netVisual_bubble(
 \item{color.text.use}{whether color the xtick labels according to the dataset origin when doing comparison analysis}
 
 \item{color.text}{the colors for xtick labels according to the dataset origin when doing comparison analysis}
+
+\item{dot.size.min, dot.size.max}{Size of smallest and largest points}
 
 \item{title.name}{main title of the plot}
 

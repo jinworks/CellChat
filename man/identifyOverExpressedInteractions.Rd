@@ -7,6 +7,7 @@
 identifyOverExpressedInteractions(
   object,
   features.name = "features",
+  variable.both = TRUE,
   features = NULL,
   return.object = TRUE
 )
@@ -15,6 +16,10 @@ identifyOverExpressedInteractions(
 \item{object}{CellChat object}
 
 \item{features.name}{a char name used for assess the results in `object@var.features[[features.name]]`}
+
+\item{variable.both}{variable.both = TRUE will require that both ligand and receptor from one pair are over-expressed;
+
+variable.both = FALSE will only require that either ligand or receptor from one pair is over-expressed, leading to more over-expressed ligand-receptor interactions (pairs) for further analysis.}
 
 \item{features}{a vector of features to use. default use all over-expressed genes in `object@var.features[[features.name]]`}
 

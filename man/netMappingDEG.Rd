@@ -4,12 +4,15 @@
 \alias{netMappingDEG}
 \title{Mapping the differential expressed genes (DEG) information onto the inferred cell-cell communications}
 \usage{
-netMappingDEG(object, features.name, thresh = 0.05)
+netMappingDEG(object, features.name, variable.all = TRUE, thresh = 0.05)
 }
 \arguments{
 \item{object}{CellChat object}
 
 \item{features.name}{a char name used for extracting the DEG in `object@var.features[[features.name]]`}
+
+\item{variable.all}{variable.all = TRUE will compute the c("pvalues", "logFC", "pct.1", "pct.2") for a ligand/receptor complex using the mean value of its all subunits, that is requiring all subunits of the complex are differential expressed;
+variable.all = FALSE will compute the minimum value of "pvalues" and maximum value of c("logFC", "pct.1", "pct.2") among the subunits, that is only requiring that any one of the subunits of the complex is differential expressed.}
 
 \item{thresh}{threshold of the p-value for determining significant interaction}
 }

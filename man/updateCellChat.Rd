@@ -23,4 +23,6 @@ version < 0.5.0: `object@var.features` is now `object@var.features$features`; `o
 version 1.6.0: a `object@images` slot is added and `datatype` is added in `object@options$datatype`
 
 version 2.1.0: a column named `slices` is added in `meta` data for spatial transcriptomics data analysis.
+
+version 2.1.1: `images$scale.factors` is changed to `images$spatial.factors` for spatial transcriptomics data analysis.
 }

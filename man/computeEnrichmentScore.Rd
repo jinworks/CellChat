@@ -7,7 +7,9 @@
 computeEnrichmentScore(
   df,
   measure = c("ligand", "signaling", "LR-pair"),
+  variable.both = TRUE,
   species = c("mouse", "human"),
+  db = NULL,
   color.use = NULL,
   color.name = "Dark2",
   n.color = 8,
@@ -26,7 +28,12 @@ computeEnrichmentScore(
 
 \item{measure}{compute the enrichment score in terms of "ligand", "signaling",or "LR-pair"}
 
-\item{species}{a vector giving the groups of different datasets to define colors of the bar plot. Default: only one group and a single color}
+\item{variable.both}{variable.both = TRUE will require that both ligand and receptor from one pair are over-expressed;
+variable.both = FALSE will only require that either ligand or receptor from one pair is over-expressed.}
+
+\item{species}{define the species as one of the c('mouse','human') to extract the CellChatDB; For other species, users need to provide a ligand-receptor database `db`}
+
+\item{db}{a customized ligand-receptor database `db`}
 
 \item{color.use}{defining the color for each group of datasets}
 

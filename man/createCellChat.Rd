@@ -10,7 +10,7 @@ createCellChat(
   group.by = NULL,
   datatype = c("RNA", "spatial"),
   coordinates = NULL,
-  scale.factors = NULL,
+  spatial.factors = NULL,
   assay = NULL,
   do.sparse = T
 )
@@ -25,13 +25,13 @@ If input is a Seurat or SingleCellExperiment object, the meta data in the object
 If input is a data matrix and group.by is NULL, the input `meta` should contain a column named 'labels',
 If input is a Seurat or SingleCellExperiment object, USER must provide `group.by` to define the cell groups. e.g, group.by = "ident" for Seurat object}
 
-\item{datatype}{By default datatype = "RNA"; when running CellChat on spatial imaging data, set datatype = "spatial" and input `scale.factors`}
+\item{datatype}{By default datatype = "RNA"; when running CellChat on spatial imaging data, set datatype = "spatial" and input `spatial.factors`}
 
 \item{coordinates}{a data matrix in which each row gives the spatial locations/coordinates of each cell/spot}
 
-\item{scale.factors}{a data frame containing two distance factors `ratio` and `tol`, which is dependent on spatial transcriptomics technologies (and specific datasets).
+\item{spatial.factors}{a data frame containing two distance factors `ratio` and `tol`, which is dependent on spatial transcriptomics technologies (and specific datasets).
 
-USER must input this data frame when datatype = "spatial". scale.factors must contain an element named `ratio`, which is the conversion factor when converting spatial coordinates from Pixels or other units to Micrometers (i.e.,Microns). For example, setting `ratio = 0.18` indicates that 1 pixel equals 0.18um in the coordinates,
+USER must input this data frame when datatype = "spatial". spatial.factors must contain an element named `ratio`, which is the conversion factor when converting spatial coordinates from Pixels or other units to Micrometers (i.e.,Microns). For example, setting `ratio = 0.18` indicates that 1 pixel equals 0.18um in the coordinates,
 
 and another element named `tol`, which is the tolerance factor to increase the robustness when comparing the center-to-center distance against the `interaction.range`. This can be the half value of cell/spot size in the unit of um. If the cell/spot size is not known, we provide a function `computeCellDistance` to compute the cell center-to-center distance. `tol` can be the the half value of the minimum center-to-center distance. Of note, CellChat does not need an accurate tolerance factor, which is used for determining whether considering the cell-pair as spatially proximal if their distance is greater than `interaction.range` but smaller than "`interaction.range` + `tol`".}
 
@@ -72,11 +72,11 @@ cellChat <- createCellChat(object = sce, group.by = "sce.clusters")
 Create a CellChat object from spatial transcriptomics data
 # Input is a data matrix
 cellChat <- createCellChat(object = data.input, meta = meta, group.by = "labels",
-                           datatype = "spatial", coordinates = coordinates, scale.factors = scale.factors)
+                           datatype = "spatial", coordinates = coordinates, spatial.factors = spatial.factors)
 
 # input is a Seurat object
 cellChat <- createCellChat(object = seurat.obj, group.by = "ident", assay = "SCT",
-                           datatype = "spatial", scale.factors = scale.factors)
+                           datatype = "spatial", spatial.factors = spatial.factors)
 
 }
 }

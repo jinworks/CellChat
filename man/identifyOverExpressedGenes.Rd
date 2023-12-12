@@ -12,6 +12,7 @@ identifyOverExpressedGenes(
   invert = FALSE,
   group.dataset = NULL,
   pos.dataset = NULL,
+  group.DE.combined = FALSE,
   features.name = "features",
   only.pos = TRUE,
   features = NULL,
@@ -33,11 +34,14 @@ identifyOverExpressedGenes(
 
 \item{idents.use}{a subset of cell groups used for analysis}
 
-\item{invert}{whether invert the idents.use}
+\item{invert}{whether to invert the idents.use}
 
 \item{group.dataset}{dataset origin information in a merged CellChat object; set it as one of the column names of meta slot when identifying the highly enriched genes in one dataset for each cell group}
 
 \item{pos.dataset}{the dataset name used for identifying highly enriched genes in this dataset for each cell group}
+
+\item{group.DE.combined}{Whether to perform differential expression between conditions by ignoring cell group information. By default, group.DE.combined = FALSE, which will perform differential expression analysis between two biological conditions for each cell group;
+When group.DE.combined = TRUE, it will perform DE analysis by combining all cell groups together.}
 
 \item{features.name}{a char name used for storing the over-expressed signaling genes in `object@var.features[[features.name]]`}
 
@@ -45,7 +49,7 @@ identifyOverExpressedGenes(
 
 \item{features}{features used for identifying Over Expressed genes. default use all features}
 
-\item{return.object}{whether return the object; otherwise return a data frame consisting of over-expressed signaling genes associated with each cell group}
+\item{return.object}{whether to return the object; otherwise return a data frame consisting of over-expressed signaling genes associated with each cell group}
 
 \item{thresh.pc}{Threshold of the percent of cells expressed in one cluster}
 
@@ -53,7 +57,7 @@ identifyOverExpressedGenes(
 
 \item{thresh.p}{Threshold of p-values}
 
-\item{do.DE}{Whether perform differential expression analysis. By default do.DE = TRUE; When do.DE = FALSE, selecting over-expressed genes that are expressed in more than `min.cells` cells.}
+\item{do.DE}{Whether to perform differential expression analysis. By default do.DE = TRUE; When do.DE = FALSE, selecting over-expressed genes that are expressed in more than `min.cells` cells.}
 
 \item{do.fast}{If do.fast = TRUE, then perform a ultra-fast Wilcoxon test using presto package; otherwise using stats package. These two methods produce different logFC values, and the presto::wilcoxauc method gives smaller values.}
 

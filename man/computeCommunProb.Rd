@@ -15,9 +15,11 @@ computeCommunProb(
   interaction.range = 250,
   scale.distance = 0.01,
   k.min = 10,
-  contact.knn = TRUE,
-  contact.knn.k = 6,
-  contact.knn.forced = FALSE,
+  contact.dependent = TRUE,
+  contact.range = NULL,
+  contact.knn.k = NULL,
+  contact.dependent.forced = FALSE,
+  do.symmetric = TRUE,
   nboot = 100,
   seed.use = 1L,
   Kh = 0.5,
@@ -41,7 +43,7 @@ Set raw.use = FALSE to use the projected data when analyzing single-cell data wi
 Set population.size = FALSE if analyzing sorting-enriched single cells, to remove the potential artifact of population size.
 Set population.size = TRUE if analyzing unsorted single-cell transcriptomes, with the reason that abundant cell populations tend to send collectively stronger signals than the rare cell populations.
 
-Parameters for spatial data analysis}
+Parameters for spatial data analysis:}
 
 \item{distance.use}{Whether to use distance constraints to compute communication probability. Setting `distance.use = TRUE` indicates that the cell-cell communication probability is inversely proportional to the computed distance.
 Setting `distance.use = FALSE` will only filter out interactions between spatially distant regions, but not add distance constraints.}
@@ -52,14 +54,22 @@ Setting `distance.use = FALSE` will only filter out interactions between spatial
 
 When comparing communication across different CellChat objects, the same scale factor should be used. For a single CellChat analysis, different scale factors will not affect the ranking of the signaling based on their interaction strength.}
 
-\item{k.min}{The minimum number of interacting cell pairs required for defining adjacent cell groups}
+\item{k.min}{The minimum number of interacting cell pairs required for defining spatially proximal cell groups}
 
-\item{contact.knn}{Whether determining spatially proximal cell regions based on the k-nearest neighbors (knn). By default `contact.knn = TRUE` when inferring contact-dependent signaling (including ECM-Receptor and Cell-Cell Contact signaling classified in CellChatDB$interaction$annotation).
-If only focusing on `Secreted Signaling`, `contact.knn` will be automatically set as FALSE except for `contact.knn.forced = TRUE`.}
+\item{contact.dependent}{Whether determining spatially proximal cell groups based on either the contact.range or the k-nearest neighbors (knn). By default `contact.dependent = TRUE` when inferring contact-dependent and juxtacrine signaling (including ECM-Receptor and Cell-Cell Contact signaling classified in CellChatDB$interaction$annotation).
+If only focusing on `Secreted Signaling`, the `contact.dependent` will be automatically set as FALSE except for `contact.dependent.forced = TRUE`.}
 
-\item{contact.knn.k}{Number of neighbors in a knn graph, which is used to restrict the contact-dependent signaling within the neatest neighbors. For 10X visium, contact.knn.k = 6.}
+\item{contact.range}{The interaction range (Unit: microns) to restrict the contact-dependent signaling.
+For spatial transcriptomics in a single-cell resolution, `contact.range` is approximately equal to the estimated cell diameter (i.e., the cell center-to-center distance), which means that contact-dependent and juxtacrine signaling can only happens when the two cells are contact to each other.
 
-\item{contact.knn.forced}{Whether forcing to determine spatially proximal cell regions based on knn. Users can set `contact.knn.forced = TRUE` if also preferring interactions within spatial neighbors for `Secreted Signaling`.}
+Typically, `contact.range = 10`, which is a typical human cell size. However, for low-resolution spatial data such as 10X visium, it should be the cell center-to-center distance (i.e., `contact.range = 100` for visium data).  The function `computeCellDistance` can compute the center-to-center distance.}
+
+\item{contact.knn.k}{Number of neighbors to restrict the contact-dependent signaling within the neatest neighbors. By default, CellChat uses `contact.range` to restrict the contact-dependent signaling; however, users can also provide a value of `contact.knn.k`, in order to determine spatially proximal cell groups based on the k-nearest neighbors (knn).
+For 10X visium, contact.knn.k = 6. For other spatial technologies, this value may be hard to determine because the sequenced cells/spots are usually not regularly arranged.}
+
+\item{contact.dependent.forced}{Whether forcing to determine spatially proximal cell regions based on either the contact.range or the k-nearest neighbors. Users can set `contact.dependent.forced = TRUE` if also preferring interactions within a contact manner for `Secreted Signaling`.}
+
+\item{do.symmetric}{Whether converting the adjacent matrix into symmetric one when determining spatially proximal cell groups. Default is TRUE, indicating that if adj(i,j) or adj(j,i) is zero, then both are zeros.}
 
 \item{nboot}{Threshold of p-values}
 

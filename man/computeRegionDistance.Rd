@@ -7,21 +7,20 @@
 computeRegionDistance(
   coordinates,
   meta,
-  trim = 0.1,
   interaction.range = NULL,
   ratio = NULL,
   tol = NULL,
   k.min = 10,
-  contact.knn = TRUE,
-  contact.knn.k = 6
+  contact.dependent = TRUE,
+  contact.range = NULL,
+  contact.knn.k = NULL,
+  do.symmetric = TRUE
 )
 }
 \arguments{
 \item{coordinates}{a data matrix in which each row gives the spatial locations/coordinates of each cell/spot}
 
 \item{meta}{a data frame including at least two columns named `group` and `slices`. `meta$group` is a factor vector defining the regions/labels of each cell/spot. `meta$slices` is a factor vector defining the slice labels of each dataset.}
-
-\item{trim}{the fraction (0 to 0.25) of observations to be trimmed from each end of x before computing the average distance per cell group.}
 
 \item{interaction.range}{The maximum interaction/diffusion range of ligands. This hard threshold is used to filter out the connections between spatially distant regions}
 
@@ -37,12 +36,21 @@ If the cell/spot size is not known, we provide a function `computeCellDistance` 
 
 \item{k.min}{the minimum number of interacting cell pairs required for defining adjacent cell groups}
 
-\item{contact.knn}{whether determining spatially proximal cell regions based on the k-nearest neighbors (knn). Users can set `contact.knn = TRUE` if inferring contact-dependent signaling or preferring interactions within spatial neighbors.}
+\item{contact.dependent}{Whether determining spatially proximal cell groups based on either the contact.range or the k-nearest neighbors (knn). By default `contact.dependent = TRUE` when inferring contact-dependent and juxtacrine signaling (including ECM-Receptor and Cell-Cell Contact signaling classified in CellChatDB$interaction$annotation).
+If only focusing on `Secreted Signaling`, the `contact.dependent` will be automatically set as FALSE except for `contact.dependent.forced = TRUE`.}
 
-\item{contact.knn.k}{Number of neighbors in a knn graph, which is used to restrict the contact-dependent signaling within the neatest neighbors. For 10X visium, contact.knn.k = 6.}
+\item{contact.range}{The interaction range (Unit: microns) to restrict the contact-dependent signaling.
+For spatial transcriptomics in a single-cell resolution, `contact.range` is approximately equal to the estimated cell diameter (i.e., the cell center-to-center distance), which means that contact-dependent and juxtacrine signaling can only happens when the two cells are contact to each other.
+
+Typically, `contact.range = 10`, which is a typical human cell size. However, for low-resolution spatial data such as 10X visium, it should be the cell center-to-center distance (i.e., `contact.range = 100` for visium data). The function `computeCellDistance` can compute the center-to-center distance.}
+
+\item{contact.knn.k}{Number of neighbors to restrict the contact-dependent signaling within the neatest neighbors. By default, CellChat uses `contact.range` to restrict the contact-dependent signaling; however, users can also provide a value of `contact.knn.k`, in order to determine spatially proximal cell groups based on the k-nearest neighbors (knn).
+For 10X visium, contact.knn.k = 6. For other spatial technologies, this value may be hard to determine because the sequenced cells/spots are usually not regularly arranged.}
+
+\item{do.symmetric}{Whether converting the adjacent matrix into symmetric one when determining spatially proximal cell groups. Default is TRUE, indicating that if adj(i,j) or adj(j,i) is zero, then both are zeros.}
 }
 \value{
-A list including a square matrix giving the pairwise region distance and an adjacent matrix obtained from the k.spatial neatest neighbors
+A list including a square matrix giving the pairwise region distances and an adjacent matrix indicating physically contacting cell groups based on either the contact.range or the k-nearest neighbors
 }
 \description{
 Compute the region distance based on the spatial locations of each splot/cell of the spatial transcriptomics
