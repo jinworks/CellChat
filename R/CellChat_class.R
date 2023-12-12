@@ -85,12 +85,12 @@ setMethod(f = "show", signature = "CellChat", definition = function(object) {
 #' @param group.by a char name of the variable in meta data, defining cell groups.
 #' If input is a data matrix and group.by is NULL, the input `meta` should contain a column named 'labels',
 #' If input is a Seurat or SingleCellExperiment object, USER must provide `group.by` to define the cell groups. e.g, group.by = "ident" for Seurat object
-#' @param datatype By default datatype = "RNA"; when running CellChat on spatial imaging data, set datatype = "spatial" and input `scale.factors`
+#' @param datatype By default datatype = "RNA"; when running CellChat on spatial imaging data, set datatype = "spatial" and input `spatial.factors`
 #'
 #' @param coordinates a data matrix in which each row gives the spatial locations/coordinates of each cell/spot
-#' @param scale.factors a data frame containing two distance factors `ratio` and `tol`, which is dependent on spatial transcriptomics technologies (and specific datasets).
+#' @param spatial.factors a data frame containing two distance factors `ratio` and `tol`, which is dependent on spatial transcriptomics technologies (and specific datasets).
 #'
-#' USER must input this data frame when datatype = "spatial". scale.factors must contain an element named `ratio`, which is the conversion factor when converting spatial coordinates from Pixels or other units to Micrometers (i.e.,Microns). For example, setting `ratio = 0.18` indicates that 1 pixel equals 0.18um in the coordinates,
+#' USER must input this data frame when datatype = "spatial". spatial.factors must contain an element named `ratio`, which is the conversion factor when converting spatial coordinates from Pixels or other units to Micrometers (i.e.,Microns). For example, setting `ratio = 0.18` indicates that 1 pixel equals 0.18um in the coordinates,
 #'
 #' and another element named `tol`, which is the tolerance factor to increase the robustness when comparing the center-to-center distance against the `interaction.range`. This can be the half value of cell/spot size in the unit of um. If the cell/spot size is not known, we provide a function `computeCellDistance` to compute the cell center-to-center distance. `tol` can be the the half value of the minimum center-to-center distance. Of note, CellChat does not need an accurate tolerance factor, which is used for determining whether considering the cell-pair as spatially proximal if their distance is greater than `interaction.range` but smaller than "`interaction.range` + `tol`".
 #'
@@ -131,15 +131,15 @@ setMethod(f = "show", signature = "CellChat", definition = function(object) {
 #' Create a CellChat object from spatial transcriptomics data
 #' # Input is a data matrix
 #' cellChat <- createCellChat(object = data.input, meta = meta, group.by = "labels",
-#'                            datatype = "spatial", coordinates = coordinates, scale.factors = scale.factors)
+#'                            datatype = "spatial", coordinates = coordinates, spatial.factors = spatial.factors)
 #'
 #' # input is a Seurat object
 #' cellChat <- createCellChat(object = seurat.obj, group.by = "ident", assay = "SCT",
-#'                            datatype = "spatial", scale.factors = scale.factors)
+#'                            datatype = "spatial", spatial.factors = spatial.factors)
 #'
 #' }
 createCellChat <- function(object, meta = NULL, group.by = NULL,
-                           datatype = c("RNA", "spatial"), coordinates = NULL, scale.factors = NULL,
+                           datatype = c("RNA", "spatial"), coordinates = NULL, spatial.factors = NULL,
                            assay = NULL, do.sparse = T) {
   datatype <- match.arg(datatype)
   # data matrix as input
@@ -177,7 +177,7 @@ createCellChat <- function(object, meta = NULL, group.by = NULL,
     if (datatype %in% c("spatial")) {
       if (is.null(coordinates)) {
         coordinates <- GetTissueCoordinates(object, scale = NULL, cols = c("imagerow", "imagecol"))
-        # scale.factors <- object@images[["slice1"]]@scale.factors
+        # spatial.factors <- object@images[["slice1"]]@spatial.factors
       }
     }
 
@@ -227,11 +227,11 @@ createCellChat <- function(object, meta = NULL, group.by = NULL,
     } else {
       stop("Please check the input 'coordinates' and make sure it is a two column matrix.")
     }
-    if (is.null(scale.factors) | !("ratio" %in% names(scale.factors)) | !("tol" %in% names(scale.factors))) {
-      stop("scale.factors with colnames `ratio` and `tol` should be provided!")
+    if (is.null(spatial.factors) | !("ratio" %in% names(spatial.factors)) | !("tol" %in% names(spatial.factors))) {
+      stop("spatial.factors with colnames `ratio` and `tol` should be provided!")
     } else {
       images = list("coordinates" = coordinates,
-                    "scale.factors" = scale.factors)
+                    "spatial.factors" = spatial.factors)
     }
     cat("Create a CellChat object from spatial transcriptomics data...",'\n')
   } else {
@@ -249,7 +249,7 @@ createCellChat <- function(object, meta = NULL, group.by = NULL,
       stop("The 'group.by' is not a column name in the `meta`, which will be used for cell grouping.")
     }
     object <- setIdent(object, ident.use = group.by) # set "labels" as default cell identity
-    cat("The cell groups used for CellChat analysis are ", levels(object@idents), '\n')
+    cat("The cell groups used for CellChat analysis are ", toString(levels(object@idents)), '\n')
 
     if (datatype %in% c("spatial")) {
       if (!("slices" %in% colnames(meta))) {
@@ -257,6 +257,11 @@ createCellChat <- function(object, meta = NULL, group.by = NULL,
               We now add this column and all cells are assigned as `slice1`!")
         meta$slices <- "slice1"
         meta$slices <- factor(meta$slices)
+        object@meta <- meta
+      } else if (is.factor(meta$slices) == FALSE) {
+        warning("The 'meta$slices' is not a factor. We now force it as a factor!")
+        meta$slices <- factor(meta$slices)
+        object@meta <- meta
       }
     }
   }
@@ -409,6 +414,8 @@ mergeCellChat <- function(object.list, add.names = NULL, merge.data = FALSE, cel
 #'
 #' version 2.1.0: a column named `slices` is added in `meta` data for spatial transcriptomics data analysis.
 #'
+#' version 2.1.1: `images$scale.factors` is changed to `images$spatial.factors` for spatial transcriptomics data analysis.
+#'
 #' @param object CellChat object
 #'
 #' @return a updated CellChat object
@@ -443,16 +450,21 @@ updateCellChat <- function(object) {
   } else {
     images = object@images
   }
+  meta = object@meta
   if (object@options$datatype %in% c("spatial")) {
-    meta = object@meta
     if (!("slices" %in% colnames(meta))) {
       warning("The 'meta' data does not have a column named `slices` for spatial transcriptomics data analysis.
               We now add this column and all cells are assigned as `slice1`!")
       meta$slices <- "slice1"
       meta$slices <- factor(meta$slices)
+    } else if (is.factor(meta$slices) == FALSE) {
+      warning("The 'meta$slices' is not a factor. We now force it as a factor!")
+      meta$slices <- factor(meta$slices)
     }
-    if (is.null(ncol(images$scale.factors))) {
-      images$scale.factors <- as.data.frame(images$scale.factors)
+
+    if ("scale.factors" %in% names(object@images)) {
+      images$spatial.factors <- as.data.frame(images$scale.factors)
+      images$scale.factors <- NULL
     }
   }
   object.new <- methods::new(
