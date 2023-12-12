@@ -15,7 +15,7 @@
 #' Set population.size = FALSE if analyzing sorting-enriched single cells, to remove the potential artifact of population size.
 #' Set population.size = TRUE if analyzing unsorted single-cell transcriptomes, with the reason that abundant cell populations tend to send collectively stronger signals than the rare cell populations.
 #'
-#' Parameters for spatial data analysis
+#' Parameters for spatial data analysis:
 #' @param distance.use Whether to use distance constraints to compute communication probability. Setting `distance.use = TRUE` indicates that the cell-cell communication probability is inversely proportional to the computed distance.
 #' Setting `distance.use = FALSE` will only filter out interactions between spatially distant regions, but not add distance constraints.
 #' @param interaction.range The maximum interaction/diffusion length of ligands (Unit: microns). This hard threshold is used to filter out the connections between spatially distant regions
@@ -23,11 +23,19 @@
 #'
 #' When comparing communication across different CellChat objects, the same scale factor should be used. For a single CellChat analysis, different scale factors will not affect the ranking of the signaling based on their interaction strength.
 #'
-#' @param k.min The minimum number of interacting cell pairs required for defining adjacent cell groups
-#' @param contact.knn Whether determining spatially proximal cell regions based on the k-nearest neighbors (knn). By default `contact.knn = TRUE` when inferring contact-dependent signaling (including ECM-Receptor and Cell-Cell Contact signaling classified in CellChatDB$interaction$annotation).
-#' If only focusing on `Secreted Signaling`, `contact.knn` will be automatically set as FALSE except for `contact.knn.forced = TRUE`.
-#' @param contact.knn.k Number of neighbors in a knn graph, which is used to restrict the contact-dependent signaling within the neatest neighbors. For 10X visium, contact.knn.k = 6.
-#' @param contact.knn.forced Whether forcing to determine spatially proximal cell regions based on knn. Users can set `contact.knn.forced = TRUE` if also preferring interactions within spatial neighbors for `Secreted Signaling`.
+#' @param k.min The minimum number of interacting cell pairs required for defining spatially proximal cell groups
+#' @param contact.dependent Whether determining spatially proximal cell groups based on either the contact.range or the k-nearest neighbors (knn). By default `contact.dependent = TRUE` when inferring contact-dependent and juxtacrine signaling (including ECM-Receptor and Cell-Cell Contact signaling classified in CellChatDB$interaction$annotation).
+#' If only focusing on `Secreted Signaling`, the `contact.dependent` will be automatically set as FALSE except for `contact.dependent.forced = TRUE`.
+#' @param contact.range The interaction range (Unit: microns) to restrict the contact-dependent signaling.
+#' For spatial transcriptomics in a single-cell resolution, `contact.range` is approximately equal to the estimated cell diameter (i.e., the cell center-to-center distance), which means that contact-dependent and juxtacrine signaling can only happens when the two cells are contact to each other.
+#'
+#' Typically, `contact.range = 10`, which is a typical human cell size. However, for low-resolution spatial data such as 10X visium, it should be the cell center-to-center distance (i.e., `contact.range = 100` for visium data).  The function `computeCellDistance` can compute the center-to-center distance.
+#'
+#' @param contact.knn.k Number of neighbors to restrict the contact-dependent signaling within the neatest neighbors. By default, CellChat uses `contact.range` to restrict the contact-dependent signaling; however, users can also provide a value of `contact.knn.k`, in order to determine spatially proximal cell groups based on the k-nearest neighbors (knn).
+#' For 10X visium, contact.knn.k = 6. For other spatial technologies, this value may be hard to determine because the sequenced cells/spots are usually not regularly arranged.
+#' @param do.symmetric Whether converting the adjacent matrix into symmetric one when determining spatially proximal cell groups. Default is TRUE, indicating that if adj(i,j) or adj(j,i) is zero, then both are zeros.
+#'
+#' @param contact.dependent.forced Whether forcing to determine spatially proximal cell regions based on either the contact.range or the k-nearest neighbors. Users can set `contact.dependent.forced = TRUE` if also preferring interactions within a contact manner for `Secreted Signaling`.
 #'
 #' @param nboot Threshold of p-values
 #' @param seed.use Set a random seed. By default, set the seed to 1.
@@ -53,7 +61,7 @@
 #' @export
 #'
 computeCommunProb <- function(object, type = c("triMean", "truncatedMean","thresholdedMean", "median"), trim = 0.1, LR.use = NULL, raw.use = TRUE, population.size = FALSE,
-                              distance.use = TRUE, interaction.range = 250, scale.distance = 0.01, k.min = 10, contact.knn = TRUE, contact.knn.k = 6, contact.knn.forced = FALSE,
+                              distance.use = TRUE, interaction.range = 250, scale.distance = 0.01, k.min = 10, contact.dependent = TRUE, contact.range = NULL, contact.knn.k = NULL, contact.dependent.forced = FALSE, do.symmetric = TRUE,
                               nboot = 100, seed.use = 1L, Kh = 0.5, n = 1) {
   type <- match.arg(type)
   cat(type, "is used for calculating the average gene expression per cell group.", "\n")
@@ -126,44 +134,49 @@ computeCommunProb <- function(object, type = c("triMean", "truncatedMean","thres
   # compute the spatial constraint
   if (object@options$datatype != "RNA") {
     data.spatial <- object@images$coordinates
-    ratio <- object@images$scale.factors$ratio
-    tol <- object@images$scale.factors$tol
-    meta <- object@meta
-    meta$group <- group
-    res <- computeRegionDistance(coordinates = data.spatial, meta = meta, trim = trim, interaction.range = interaction.range, ratio = ratio, tol = tol, k.min = k.min, contact.knn = contact.knn, contact.knn.k = contact.knn.k)
+    if ("spatial.factors" %in% names(object@images)) {
+      ratio <- object@images$spatial.factors$ratio
+      tol <- object@images$spatial.factors$tol
+    } else {
+      ratio <- object@images$scale.factors$ratio
+      tol <- object@images$scale.factors$tol
+    }
+
+    meta.t = data.frame(group = group, slices = object@meta$slices, row.names = rownames(object@meta))
+    res <- computeRegionDistance(coordinates = data.spatial, meta = meta.t, interaction.range = interaction.range, ratio = ratio, tol = tol, k.min = k.min, contact.dependent = contact.dependent, contact.range = contact.range, contact.knn.k = contact.knn.k)
     d.spatial <- res$d.spatial # NaN if no nearby cell pairs
-    adj.contact.knn <- res$adj.contact.knn # zeros if no nearby cell pairs
+    adj.contact <- res$adj.contact # zeros if no nearby cell pairs
     if (distance.use) {
       print(paste0('>>> Run CellChat on spatial transcriptomics data using distances as constraints of the computed communication probability <<< [', Sys.time(),']'))
       d.spatial <- d.spatial * scale.distance
       diag(d.spatial) <- NaN
-      cat("The suggested minimum value of scaled distances is in [1,2], and the calculated value here is ", min(d.spatial, na.rm = TRUE),"\n")
-      if (min(d.spatial, na.rm = TRUE) < 1) {
-        stop("Please increase the value of `scale.distance` and check the suggested values in the parameter description (e.g., 1, 0.1, 0.01, 0.001, 0.11, 0.011)")
+      d.min <- min(d.spatial, na.rm = TRUE)
+      if (d.min < 1) {
+        cat("The suggested minimum value of scaled distances is in [1,2], and the calculated value here is ", d.min,"\n")
+        stop("Please increase the value of `scale.distance` and use a value that is slighly smaller than ", format(1/d.min, digits = 2) ,"\n")
       }
       P.spatial <- 1/d.spatial
-      # P.spatial[is.inf(d.spatial)] <- 1
       P.spatial[is.na(d.spatial)] <- 0
       diag(P.spatial) <- max(P.spatial) # if this value is 1, the self-connections will have more larger weight.
       d.spatial <- d.spatial/scale.distance # This is only for saving the data
     } else {
       print(paste0('>>> Run CellChat on spatial transcriptomics data without distance values as constraints of the computed communication probability <<< [', Sys.time(),']'))
       P.spatial <- matrix(1, nrow = numCluster, ncol = numCluster)
-      P.spatial[is.na(d.spatial)] <- 0
+      P.spatial[is.na(d.spatial)] <- 0 # diagonal is 1
     }
 
   } else {
     print(paste0('>>> Run CellChat on sc/snRNA-seq data <<< [', Sys.time(),']'))
     d.spatial <- matrix(NaN, nrow = numCluster, ncol = numCluster)
     P.spatial <- matrix(1, nrow = numCluster, ncol = numCluster)
-    adj.contact.knn <- matrix(1, nrow = numCluster, ncol = numCluster)
-    contact.knn = FALSE; contact.knn.forced = FALSE;
+    adj.contact <- matrix(1, nrow = numCluster, ncol = numCluster)
+    contact.dependent = FALSE; contact.dependent.forced = FALSE; contact.range = NULL; contact.knn.k = NULL;
     distance.use = NULL; interaction.range = NULL; ratio = NULL; tol = NULL; k.min = NULL;
   }
 
-  if (object@options$datatype != "RNA" & contact.knn == TRUE) {
+  if (object@options$datatype != "RNA" & contact.dependent == TRUE) {
     if (all(unique(pairLRsig$interaction$annotation) %in% c("ECM-Receptor", "Cell-Cell Contact"))) {
-      P.spatial <- P.spatial * adj.contact.knn
+      P.spatial <- P.spatial * adj.contact
       nLR1 <- nLR
     } else if (all(unique(pairLRsig$interaction$annotation) %in% c("Secreted Signaling"))) {
       nLR1 <- nLR
@@ -173,9 +186,9 @@ computeCommunProb <- function(object, type = c("triMean", "truncatedMean","thres
   } else {
     nLR1 <- nLR
   }
-  if (object@options$datatype != "RNA" & contact.knn.forced == TRUE) {
-    if (contact.knn == TRUE & all(unique(pairLRsig$interaction$annotation) %in% c("ECM-Receptor", "Cell-Cell Contact")) == FALSE) {
-      P.spatial <- P.spatial * adj.contact.knn
+  if (object@options$datatype != "RNA" & contact.dependent.forced == TRUE) {
+    if (contact.dependent == TRUE & all(unique(pairLRsig$interaction$annotation) %in% c("ECM-Receptor", "Cell-Cell Contact")) == FALSE) {
+      P.spatial <- P.spatial * adj.contact
       nLR1 <- nLR
     }
   }
@@ -209,7 +222,7 @@ computeCommunProb <- function(object, type = c("triMean", "truncatedMean","thres
       Pval[, , i] <- matrix(p, nrow = numCluster, ncol = numCluster, byrow = FALSE)
     } else {
       if (i > nLR1) {
-        P.spatial <- P.spatial * adj.contact.knn
+        P.spatial <- P.spatial * adj.contact
       }
       # agonist and antagonist
       if (is.element(i, index.agonist)) {
@@ -295,7 +308,8 @@ computeCommunProb <- function(object, type = c("triMean", "truncatedMean","thres
   object@options$run.time <- as.numeric(execution.time, units = "secs")
 
   object@options$parameter <- list(type.mean = type, trim = trim, raw.use = raw.use, population.size = population.size,  nboot = nboot, seed.use = seed.use, Kh = Kh, n = n,
-                                   distance.use = distance.use, interaction.range = interaction.range, ratio = ratio, tol = tol, k.min = k.min
+                                   distance.use = distance.use, interaction.range = interaction.range, ratio = ratio, tol = tol, k.min = k.min,
+                                   contact.dependent = contact.dependent, contact.range = contact.range, contact.knn.k = contact.knn.k, contact.dependent.forced = contact.dependent.forced
                                    )
   if (object@options$datatype != "RNA") {
     object@images$distance <- d.spatial
@@ -959,7 +973,6 @@ identifyEnrichedInteractions <- function(object, from, to, bidirection = FALSE, 
 #'
 #' @param coordinates a data matrix in which each row gives the spatial locations/coordinates of each cell/spot
 #' @param meta a data frame including at least two columns named `group` and `slices`. `meta$group` is a factor vector defining the regions/labels of each cell/spot. `meta$slices` is a factor vector defining the slice labels of each dataset.
-#' @param trim the fraction (0 to 0.25) of observations to be trimmed from each end of x before computing the average distance per cell group.
 #' @param interaction.range The maximum interaction/diffusion range of ligands. This hard threshold is used to filter out the connections between spatially distant regions
 #' @param ratio a numerical vector giving the conversion factor when converting spatial coordinates from Pixels or other units to Micrometers (i.e.,Microns).
 #'
@@ -970,46 +983,61 @@ identifyEnrichedInteractions <- function(object, from, to, bidirection = FALSE, 
 #' For example, for 10X visium, `tol` can be set as `65/2`; for slide-seq, `tol` can be set as `10/2`.
 #' If the cell/spot size is not known, we provide a function `computeCellDistance` to compute the center-to-center distance. `tol` can be the the half value of the minimum center-to-center distance.
 #' @param k.min the minimum number of interacting cell pairs required for defining adjacent cell groups
-#' @param contact.knn whether determining spatially proximal cell regions based on the k-nearest neighbors (knn). Users can set `contact.knn = TRUE` if inferring contact-dependent signaling or preferring interactions within spatial neighbors.
-#' @param contact.knn.k Number of neighbors in a knn graph, which is used to restrict the contact-dependent signaling within the neatest neighbors. For 10X visium, contact.knn.k = 6.
-#' @importFrom BiocNeighbors queryKNN KmknnParam
-#' @return A list including a square matrix giving the pairwise region distance and an adjacent matrix obtained from the k.spatial neatest neighbors
+#' @param contact.dependent Whether determining spatially proximal cell groups based on either the contact.range or the k-nearest neighbors (knn). By default `contact.dependent = TRUE` when inferring contact-dependent and juxtacrine signaling (including ECM-Receptor and Cell-Cell Contact signaling classified in CellChatDB$interaction$annotation).
+#' If only focusing on `Secreted Signaling`, the `contact.dependent` will be automatically set as FALSE except for `contact.dependent.forced = TRUE`.
+#' @param contact.range The interaction range (Unit: microns) to restrict the contact-dependent signaling.
+#' For spatial transcriptomics in a single-cell resolution, `contact.range` is approximately equal to the estimated cell diameter (i.e., the cell center-to-center distance), which means that contact-dependent and juxtacrine signaling can only happens when the two cells are contact to each other.
+#'
+#' Typically, `contact.range = 10`, which is a typical human cell size. However, for low-resolution spatial data such as 10X visium, it should be the cell center-to-center distance (i.e., `contact.range = 100` for visium data). The function `computeCellDistance` can compute the center-to-center distance.
+#'
+#' @param contact.knn.k Number of neighbors to restrict the contact-dependent signaling within the neatest neighbors. By default, CellChat uses `contact.range` to restrict the contact-dependent signaling; however, users can also provide a value of `contact.knn.k`, in order to determine spatially proximal cell groups based on the k-nearest neighbors (knn).
+#' For 10X visium, contact.knn.k = 6. For other spatial technologies, this value may be hard to determine because the sequenced cells/spots are usually not regularly arranged.
+#' @param do.symmetric Whether converting the adjacent matrix into symmetric one when determining spatially proximal cell groups. Default is TRUE, indicating that if adj(i,j) or adj(j,i) is zero, then both are zeros.
+#'
+#' @importFrom BiocNeighbors queryKNN AnnoyParam
+#' @return A list including a square matrix giving the pairwise region distances and an adjacent matrix indicating physically contacting cell groups based on either the contact.range or the k-nearest neighbors
 #'
 #' @export
-computeRegionDistance <- function(coordinates, meta, trim = 0.1,
+computeRegionDistance <- function(coordinates, meta,
                                   interaction.range = NULL, ratio = NULL, tol = NULL, k.min = 10,
-                                  contact.knn = TRUE, contact.knn.k = 6
-                                  ) {
-  # if (!is.factor(group)) {
-  #   stop("Please input the `group` as a factor!")
-  # }
-  # type <- match.arg(type)
-  # type <- "truncatedMean"
-  # FunMean <- switch(type,
-  #                   triMean = triMean,
-  #                   truncatedMean = function(x) mean(x, trim = trim, na.rm = TRUE),
-  #                   thresholdedMean = function(x) thresholdedMean(x, trim = trim, na.rm = TRUE),
-  #                   median = function(x) median(x, na.rm = TRUE))
-  FunMean <- function(x) mean(x, trim = trim, na.rm = TRUE)
+                                  contact.dependent = TRUE, contact.range = NULL, contact.knn.k = NULL, do.symmetric = TRUE
+) {
+  trim <- 0.1
+  FunMean <- function(x) mean(x, trim = trim, na.rm = TRUE) # This is used for computing the average distance between two cell groups
   group <- meta$group
   numCluster <- nlevels(group)
   level.use <- levels(group)
   level.use <- level.use[level.use %in% unique(group)]
   slices <- meta$slices
   slices.use <- levels(slices)
-  # d.spatial <- array(NaN, nrow = numCluster, ncol = numCluster)
-  # adj.spatial <- matrix(0, nrow = numCluster, ncol = numCluster)
-  # adj.contact.knn <- matrix(0, nrow = numCluster, ncol = numCluster)
   d.spatial <- array(NaN, dim = c(numCluster,numCluster,length(slices.use)))
   adj.spatial <- array(0, dim = c(numCluster,numCluster,length(slices.use)))
+  adj.contact <- array(0, dim = c(numCluster,numCluster,length(slices.use)))
   adj.contact.knn <- array(0, dim = c(numCluster,numCluster,length(slices.use)))
-  ## find the k-nearest neighbors for each single cell
-  if (contact.knn) {
-    my.knn <- FNN::get.knn(coordinates, k = contact.knn.k)
-    nn.ranked <- my.knn$nn.index
+
+  if (contact.dependent == TRUE & !is.null(contact.knn.k)) {
+    ## find the k-nearest neighbors for each single cell
+    # my.knn <- FNN::get.knn(coordinates, k = contact.knn.k)
+    # nn.ranked <- my.knn$nn.index # this is a matrix with the size of nCell * contact.knn.k
+    nn.ranked <- matrix(NA, nrow = nrow(coordinates), ncol = contact.knn.k)
+    for (k in 1:length(slices.use)) {
+      idx.k <- which(slices == slices.use[k])
+      my.knn <- suppressWarnings(BiocNeighbors::findKNN(coordinates[idx.k, ], k = contact.knn.k, BNPARAM = BiocNeighbors::AnnoyParam(), get.index = TRUE))
+      nn.ranked[idx.k, ] <- my.knn$index # this is a matrix with the size of nCell * contact.knn.k
+    }
+    k.min.contact <- k.min
   } else {
     nn.ranked <- matrix(1, nrow = nrow(coordinates), ncol = 1)
+    k.min.contact <- -1 # this produces adj.contact.knn with all elements being 1
   }
+  if (contact.dependent == TRUE) {
+    if (is.null(contact.range) & is.null(contact.knn.k)) {
+      stop("Please check the documentation of `computeCommunProb` and provide the value of either `contact.range` or `contact.knn.k`")
+    }
+  } else {
+    contact.range <- 10000 # this produces adj.contact with all elements being 1
+  }
+
   for (k in 1:length(slices.use)) {
     idx.k <- slices == slices.use[k]
     for (i in 1:numCluster) {
@@ -1017,18 +1045,29 @@ computeRegionDistance <- function(coordinates, meta, trim = 0.1,
         idx.i <- which((group == level.use[i]) & idx.k)
         idx.j <- which((group == level.use[j]) & idx.k)
         if (length(idx.i) == 0 | length(idx.j) == 0) {
-          next
+          next # if one cell group is missing in one slice, just goes to next loop
         }
         data.spatial.i <- coordinates[idx.i, , drop = FALSE]
         data.spatial.j <- coordinates[idx.j, , drop = FALSE]
-        qout <- suppressWarnings(BiocNeighbors::queryKNN(data.spatial.j, data.spatial.i, k = 1, BNPARAM = BiocNeighbors::KmknnParam(), get.index = TRUE))
+        # for each point in the i-th cell group, find its 1-nearest neighbor in the j-th cell group
+        #qout <- suppressWarnings(BiocNeighbors::queryKNN(data.spatial.j, data.spatial.i, k = 1, BNPARAM = BiocNeighbors::KmknnParam(), get.index = TRUE))
+        qout <- suppressWarnings(BiocNeighbors::queryKNN(data.spatial.j, data.spatial.i, k = 1, BNPARAM = BiocNeighbors::AnnoyParam(), get.index = TRUE))
+        # qout$index is an one column matrix with length being `length(idx.i)`, which is the index of the 1-nearest neighbor in the j-th cell group defined by `idx.j`
+        # qout$distance is an one column matrix with length being `length(idx.i)`, which is the distance to the 1-nearest neighbor in the j-th cell group defined by `idx.j`
+
+        # conver the calculated distance into the distance in micrometers
+        qout$distance <- qout$distance*ratio[k]
+        # long-range distance
+        idx <- qout$distance - interaction.range < tol[k]
+        adj.spatial[i,j,k] <- (length(unique(qout$index[idx])) >= k.min) * 1
+        # short-range distance based on contact.range
+        idx2 <- qout$distance - contact.range < tol[k]
+        adj.contact[i,j,k] <- (length(unique(qout$index[idx2])) >= k.min) * 1
+        # short-range distance based on knn
         knn.i <- unique(as.vector(nn.ranked[idx.i, ]))
-        adj.contact.knn[i,j,k] <- (length(intersect(knn.i, idx.j)) > k.min) * 1
-        if (!is.null(ratio) & !is.null(tol)) {
-          qout$distance <- qout$distance*ratio[k]
-          idx <- qout$distance - interaction.range < tol[k]
-          adj.spatial[i,j,k] <- (length(unique(qout$index[idx])) >= k.min) * 1
-        }
+        #adj.contact.knn[i,j,k] <- (length(intersect(knn.i, idx.j)) >= k.min.contact) * 1
+        adj.contact.knn[i,j,k] <- (length(intersect(knn.i, unique(qout$index[idx]))) >= k.min.contact) * 1 # knn within the long-range distance
+        # computing the average distance between two cell groups
         d.spatial[i,j,k] <- FunMean(qout$distance) # since distances are positive values, different ways for computing the mean have little effects.
 
       }
@@ -1038,19 +1077,31 @@ computeRegionDistance <- function(coordinates, meta, trim = 0.1,
   # merged spatial information from different slices
   d.spatial <- apply(d.spatial, c(1,2), function(x) mean(x, na.rm = TRUE))
   adj.spatial <- apply(adj.spatial, c(1,2), mean)
+  adj.contact <- apply(adj.contact, c(1,2), mean)
   adj.contact.knn <- apply(adj.contact.knn, c(1,2), mean)
+  # for multi-slices analysis, the following is needed
+  adj.spatial[adj.spatial > 0] <- 1
+  adj.contact[adj.contact > 0] <- 1
+  adj.contact.knn[adj.contact.knn > 0] <- 1
 
-  d.spatial <- (d.spatial + t(d.spatial))/2
-  if (!is.null(ratio) & !is.null(tol)) {
+  # make these adjacent matrix as symmetric
+  if (do.symmetric) {
     adj.spatial <- adj.spatial * t(adj.spatial) # if one is zero, then both are zeros.
-    adj.spatial[adj.spatial == 0] <- NaN
-    d.spatial <- d.spatial * adj.spatial
+    adj.contact <- adj.contact * t(adj.contact) # if one is zero, then both are zeros.
+    adj.contact.knn <- adj.contact.knn * t(adj.contact.knn) # if one is zero, then both are zeros.
   }
-  adj.contact.knn <- adj.contact.knn * t(adj.contact.knn) # if one is zero, then both are zeros.
-  # adj.contact.knn[adj.contact.knn == 0] <- NaN
+  d.spatial <- (d.spatial + t(d.spatial))/2
+
+  # filter out the spatially distant cell groups
+  adj.spatial[adj.spatial == 0] <- NaN
+  d.spatial <- d.spatial * adj.spatial
 
   rownames(d.spatial) <- levels(group); colnames(d.spatial) <- levels(group)
-  res <- list(d.spatial = d.spatial, adj.contact.knn = adj.contact.knn)
+
+  if (length(contact.knn.k) > 0) {
+    adj.contact = adj.contact.knn
+  }
+  res <- list(d.spatial = d.spatial, adj.contact = adj.contact)
   return(res)
 
 }
