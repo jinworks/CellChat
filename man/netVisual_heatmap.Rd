@@ -11,7 +11,7 @@ netVisual_heatmap(
   signaling = NULL,
   slot.name = c("netP", "net"),
   color.use = NULL,
-  color.heatmap = c("#2166ac", "#b2182b"),
+  color.heatmap = c("Reds"),
   title.name = NULL,
   width = NULL,
   height = NULL,
