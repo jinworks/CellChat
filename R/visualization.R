@@ -1814,11 +1814,9 @@ netVisual_diffInteraction <- function(object, comparison = c(1,2), measure = c("
 #' @importFrom ComplexHeatmap Heatmap HeatmapAnnotation anno_barplot rowAnnotation
 #' @return  an object of ComplexHeatmap
 #' @export
-netVisual_heatmap <- function(object, comparison = c(1,2), measure = c("count", "weight"), signaling = NULL, slot.name = c("netP", "net"), color.use = NULL, color.heatmap = c("#2166ac","#b2182b"),
+netVisual_heatmap <- function(object, comparison = c(1,2), measure = c("count", "weight"), signaling = NULL, slot.name = c("netP", "net"), color.use = NULL, color.heatmap = c("Reds"),
                               title.name = NULL, width = NULL, height = NULL, font.size = 8, font.size.title = 10, cluster.rows = FALSE, cluster.cols = FALSE,
                               sources.use = NULL, targets.use = NULL, remove.isolate = FALSE, row.show = NULL, col.show = NULL){
-  # obj1 <- object.list[[comparison[1]]]
-  # obj2 <- object.list[[comparison[2]]]
   if (!is.null(measure)) {
     measure <- match.arg(measure)
   }
@@ -1864,7 +1862,6 @@ netVisual_heatmap <- function(object, comparison = c(1,2), measure = c("count", 
 
   net <- net.diff
 
-
   if ((!is.null(sources.use)) | (!is.null(targets.use))) {
     df.net <- reshape2::melt(net, value.name = "value")
     colnames(df.net)[1:2] <- c("source","target")
@@ -1889,28 +1886,38 @@ netVisual_heatmap <- function(object, comparison = c(1,2), measure = c("count", 
   }
   net[is.na(net)] <- 0
 
+  if (is.null(color.use)) {
+    color.use <- scPalette(ncol(net))
+  }
+  names(color.use) <- colnames(net)
+  color.use.row <- color.use
+  color.use.col <- color.use
   if (remove.isolate) {
     idx1 <- which(Matrix::rowSums(net) == 0)
     idx2 <- which(Matrix::colSums(net) == 0)
-    idx <- intersect(idx1, idx2)
-    if (length(idx) > 0) {
-      net <- net[-idx, ]
-      net <- net[, -idx]
+    #idx <- intersect(idx1, idx2)
+    # if (length(idx) > 0) {
+    #   net <- net[-idx, ]
+    #   net <- net[, -idx]
+    # }
+    if (length(idx1) > 0) {
+      net <- net[-idx1, ]
+      color.use.row <- color.use.row[-idx1]
+    }
+    if (length(idx2) > 0) {
+      net <- net[, -idx2]
+      color.use.col <- color.use.col[-idx2]
     }
   }
 
   mat <- net
-  if (is.null(color.use)) {
-    color.use <- scPalette(ncol(mat))
-  }
-  names(color.use) <- colnames(mat)
-
   if (!is.null(row.show)) {
     mat <- mat[row.show, ]
+    color.use.row <- color.use.row[row.show]
   }
   if (!is.null(col.show)) {
     mat <- mat[ ,col.show]
-    color.use <- color.use[col.show]
+    color.use.col <- color.use.col[col.show]
   }
 
 
@@ -1930,16 +1937,17 @@ netVisual_heatmap <- function(object, comparison = c(1,2), measure = c("count", 
   }
   # col_fun(as.vector(mat))
 
-  df<- data.frame(group = colnames(mat)); rownames(df) <- colnames(mat)
-  col_annotation <- HeatmapAnnotation(df = df, col = list(group = color.use),which = "column",
+  df.col<- data.frame(group = colnames(mat)); rownames(df.col) <- colnames(mat)
+  df.row<- data.frame(group = rownames(mat)); rownames(df.row) <- rownames(mat)
+  col_annotation <- HeatmapAnnotation(df = df.col, col = list(group = color.use.col),which = "column",
                                       show_legend = FALSE, show_annotation_name = FALSE,
                                       simple_anno_size = grid::unit(0.2, "cm"))
-  row_annotation <- HeatmapAnnotation(df = df, col = list(group = color.use), which = "row",
+  row_annotation <- HeatmapAnnotation(df = df.row, col = list(group = color.use.row), which = "row",
                                       show_legend = FALSE, show_annotation_name = FALSE,
                                       simple_anno_size = grid::unit(0.2, "cm"))
 
-  ha1 = rowAnnotation(Strength = anno_barplot(rowSums(abs(mat)), border = FALSE,gp = gpar(fill = color.use, col=color.use)), show_annotation_name = FALSE)
-  ha2 = HeatmapAnnotation(Strength = anno_barplot(colSums(abs(mat)), border = FALSE,gp = gpar(fill = color.use, col=color.use)), show_annotation_name = FALSE)
+  ha1 = rowAnnotation(Strength = anno_barplot(rowSums(abs(mat)), border = FALSE,gp = gpar(fill = color.use.row, col=color.use.row)), show_annotation_name = FALSE)
+  ha2 = HeatmapAnnotation(Strength = anno_barplot(colSums(abs(mat)), border = FALSE,gp = gpar(fill = color.use.col, col=color.use.col)), show_annotation_name = FALSE)
 
   if (sum(abs(mat) > 0) == 1) {
     color.heatmap.use = c("white", color.heatmap.use)
@@ -1950,7 +1958,7 @@ netVisual_heatmap <- function(object, comparison = c(1,2), measure = c("count", 
                 bottom_annotation = col_annotation, left_annotation =row_annotation, top_annotation = ha2, right_annotation = ha1,
                 cluster_rows = cluster.rows,cluster_columns = cluster.rows,
                 row_names_side = "left",row_names_rot = 0,row_names_gp = gpar(fontsize = font.size),column_names_gp = gpar(fontsize = font.size),
-               # width = unit(width, "cm"), height = unit(height, "cm"),
+                # width = unit(width, "cm"), height = unit(height, "cm"),
                 column_title = title.name,column_title_gp = gpar(fontsize = font.size.title),column_names_rot = 90,
                 row_title = "Sources (Sender)",row_title_gp = gpar(fontsize = font.size.title),row_title_rot = 90,
                 heatmap_legend_param = list(title_gp = gpar(fontsize = 8, fontface = "plain"),title_position = "leftcenter-rot",
