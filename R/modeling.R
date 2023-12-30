@@ -80,7 +80,7 @@ computeCommunProb <- function(object, type = c("triMean", "truncatedMean","thres
     pairLR.use <- object@LR$LRsig
   } else {
     if (length(unique(LR.use$annotation)) > 1) {
-      LR.use$annotation <- factor(LR.use$annotation, levels = c("Secreted Signaling", "ECM-Receptor", "Cell-Cell Contact"))
+      LR.use$annotation <- factor(LR.use$annotation, levels = c("Secreted Signaling", "ECM-Receptor", "Cell-Cell Contact","Non-protein Signaling"))
       LR.use <- LR.use[order(LR.use$annotation), , drop = FALSE]
       LR.use$annotation <- as.character(LR.use$annotation)
     }
