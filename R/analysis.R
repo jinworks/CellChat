@@ -2081,7 +2081,8 @@ subsetCommunication_internal <- function(net, LR, cells.level, slot.name = "net"
     net <- subset(net, prob > 0)
   }
   if (!("ligand" %in% colnames(net))) {
-    pairLR <- dplyr::select(LR, c("interaction_name_2", "pathway_name", "ligand",  "receptor" ,"annotation","evidence"))
+    col.use <- intersect(c("interaction_name_2", "pathway_name", "ligand",  "receptor" ,"annotation","evidence"), colnames(LR))
+    pairLR <- dplyr::select(LR, col.use)
     idx <- match(net$interaction_name, rownames(pairLR))
     net <- cbind(net, pairLR[idx,])
   }
@@ -2174,7 +2175,8 @@ subsetCommunication_internal <- function(net, LR, cells.level, slot.name = "net"
 
 
   if (slot.name == "netP") {
-    net <- dplyr::select(net, c("source","target","pathway_name","prob", "pval","annotation"))
+    col.use <- intersect(c("source","target","pathway_name","prob", "pval","annotation"), colnames(net))
+    net <- dplyr::select(net, col.use)
     net$source_target <- paste(net$source, net$target, sep = "sourceTotarget")
     # net$source_target_pathway <- paste(paste(net$source, net$target, sep = "_"), net$pathway_name, sep = "_")
     net.pval <- net %>% group_by(source_target, pathway_name) %>% summarize(pval = mean(pval), .groups = 'drop')
@@ -2210,16 +2212,20 @@ subsetCommunication_internal <- function(net, LR, cells.level, slot.name = "net"
 
   if (slot.name == "net") {
     if (("ligand.logFC" %in% colnames(net)) & ("datasets" %in% colnames(net))) {
-      net <- net[,c("source", "target", "ligand", "receptor",  "prob", "pval", "interaction_name", "interaction_name_2", "pathway_name","annotation","evidence",
-                    "datasets","ligand.logFC", "ligand.pct.1", "ligand.pct.2", "ligand.pvalues",  "receptor.logFC", "receptor.pct.1", "receptor.pct.2", "receptor.pvalues")]
+      col.use <- intersect(c("source", "target", "ligand", "receptor",  "prob", "pval", "interaction_name", "interaction_name_2", "pathway_name","annotation","evidence",
+                             "datasets","ligand.logFC", "ligand.pct.1", "ligand.pct.2", "ligand.pvalues",  "receptor.logFC", "receptor.pct.1", "receptor.pct.2", "receptor.pvalues"), colnames(net))
+      net <- net[,col.use]
     } else if ("ligand.logFC" %in% colnames(net)) {
-      net <- net[,c("source", "target", "ligand", "receptor",  "prob", "pval", "interaction_name", "interaction_name_2", "pathway_name","annotation","evidence",
-                    "ligand.logFC", "ligand.pct.1", "ligand.pct.2", "ligand.pvalues",  "receptor.logFC", "receptor.pct.1", "receptor.pct.2", "receptor.pvalues")]
+      col.use <- intersect(c("source", "target", "ligand", "receptor",  "prob", "pval", "interaction_name", "interaction_name_2", "pathway_name","annotation","evidence",
+                             "ligand.logFC", "ligand.pct.1", "ligand.pct.2", "ligand.pvalues",  "receptor.logFC", "receptor.pct.1", "receptor.pct.2", "receptor.pvalues"), colnames(net))
+      net <- net[,col.use]
     } else {
-      net <- net[,c("source", "target", "ligand", "receptor",  "prob", "pval", "interaction_name", "interaction_name_2", "pathway_name","annotation","evidence")]
+      col.use <- intersect(c("source", "target", "ligand", "receptor",  "prob", "pval", "interaction_name", "interaction_name_2", "pathway_name","annotation","evidence"), colnames(net))
+      net <- net[,col.use]
     }
   } else if (slot.name == "netP") {
-    net <- net[,c("source", "target", "pathway_name", "prob", "pval")]
+    col.use <- intersect(c("source", "target", "pathway_name", "prob", "pval"), colnames(net))
+    net <- net[,col.use]
   }
 
   return(net)
@@ -2293,7 +2299,7 @@ netAnalysis_signalingRole_network <- function(object, signaling, slot.name = "ne
 
     ht1 = Heatmap(mat, col = color.heatmap.use, na_col = "white", name = "Importance",
                   bottom_annotation = col_annotation,
-                  cluster_rows = cluster.rows,cluster_columns = cluster.rows,
+                  cluster_rows = cluster.rows,cluster_columns = cluster.cols,
                   row_names_side = "left",row_names_rot = 0,row_names_gp = gpar(fontsize = font.size),column_names_gp = gpar(fontsize = font.size),
                   width = unit(width, "cm"), height = unit(height, "cm"),
                   column_title = paste0(names(centr[i]), " signaling pathway network"),column_title_gp = gpar(fontsize = font.size.title),column_names_rot = 45,
