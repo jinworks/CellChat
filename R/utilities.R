@@ -686,6 +686,20 @@ identifyOverExpressedInteractions <- function(object, features.name = "features"
   )
   complexSubunits.sig <- complexSubunits[index.sig,]
 
+  index.use <- unlist(
+    x = my.sapply(
+      X = 1:nrow(complexSubunits),
+      FUN = function(x) {
+        complexsubunitsV <- unlist(complexSubunits[x,], use.names = F)
+        complexsubunitsV <- complexsubunitsV[complexsubunitsV != ""]
+        if (all(complexsubunitsV %in% gene.use)) {
+          return(x)
+        }
+      }
+    )
+  )
+  complexSubunits.use <- complexSubunits[index.use,]
+
   pairLR <- select(interaction_input, ligand, receptor)
 
   if (variable.both) {
@@ -715,6 +729,7 @@ identifyOverExpressedInteractions <- function(object, features.name = "features"
 
   pairLRsig <- interaction_input[index.sig, ]
   object@LR$LRsig <- pairLRsig
+  cat("The number of highly variable ligand-receptor pairs used for signaling inference is", nrow(pairLRsig), '\n')
   if (return.object) {
     return(object)
   } else {
