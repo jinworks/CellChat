@@ -1,5 +1,4 @@
 # Get available core
-#' @export
 getAvailableCCore <- function() {
   library(parallel)
   n_cores <- parallel::detectCores()
@@ -14,7 +13,6 @@ getAvailableCCore <- function() {
 }
 
 # Load MatrixExtra
-#' @export
 loadMatrixExtra <- function() {
   library(spam)
   library(spam64)
