@@ -28,8 +28,6 @@ loadMatrixExtra <- function() {
   options("MatrixExtra.quick_show" = FALSE)
   options("MatrixExtra.nthreads" = n_core)
   options(spam.force64 = TRUE)
-  #future::plan(future::multisession, workers = n_core)
-  options(future.globals.maxSize = 20000 * 1024^2)
 }
 
 #' Normalize data using a scaling factor
