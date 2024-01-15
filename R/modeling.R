@@ -1,31 +1,3 @@
-# Get available core
-getAvailableCCore <- function() {
-  library(parallel)
-  n_cores <- parallel::detectCores()
-  if (is.null(n_cores)) {
-      return(4)
-  }
-
-  if (n_cores > 128) {
-      n_cores <- 128
-  }
-  return(as.integer(n_cores))
-}
-
-# Load MatrixExtra
-loadMatrixExtra <- function() {
-  library(spam)
-  library(spam64)
-  library(Matrix)
-  library(MatrixExtra)
-  n_core <- getAvailableCCore()
-  options("MatrixExtra.quick_show" = FALSE)
-  options("MatrixExtra.nthreads" = n_core)
-  options(spam.force64 = TRUE)
-  future::plan(future::multisession, workers = n_core, gc = TRUE)
-  options(future.globals.maxSize = 20000 * 1024^2)
-}
-
 #' Compute the communication probability/strength between any interacting cell groups
 #'
 #' To further speed up on large-scale datasets, USER can downsample the data using the function 'subset' from Seurat package (e.g., pbmc.small <- subset(pbmc, downsample = 500)), or using the function `sketchData` from CellChat, in particular for the large cell clusters;
@@ -115,6 +87,7 @@ computeCommunProb <- function(object, type = c("triMean", "truncatedMean","thres
   }
   complex_input <- object@DB$complex
   cofactor_input <- object@DB$cofactor
+  CellChat::loadMatrixExtra()
   my.sapply <- ifelse(
     test = future::nbrOfWorkers() == 1,
     yes = sapply,
@@ -539,6 +512,7 @@ computeAveExpr <- function(object, features = NULL, group.by = NULL, type = c("t
 #' @export
 computeExpr_complex <- function(complex_input, data.use, complex) {
   Rsubunits <- complex_input[complex,] %>% dplyr::select(starts_with("subunit"))
+  CellChat::loadMatrixExtra()
   my.sapply <- ifelse(
     test = future::nbrOfWorkers() == 1,
     yes = sapply,
@@ -570,6 +544,7 @@ computeExpr_complex <- function(complex_input, data.use, complex) {
 # #' @export
 .computeExprGroup_complex <- function(complex_input, data.use, complex, group, FunMean) {
   Rsubunits <- complex_input[complex,] %>% dplyr::select(starts_with("subunit"))
+  CellChat::loadMatrixExtra()
   my.sapply <- ifelse(
     test = future::nbrOfWorkers() == 1,
     yes = pbapply::pbsapply,
@@ -642,6 +617,7 @@ computeExpr_coreceptor <- function(cofactor_input, data.use, pairLRsig, type = c
   }
   index.coreceptor <- which(!is.na(coreceptor.all) & coreceptor.all != "")
   if (length(index.coreceptor) > 0) {
+    CellChat::loadMatrixExtra()
     my.sapply <- ifelse(
       test = future::nbrOfWorkers() == 1,
       yes = sapply,
@@ -695,6 +671,7 @@ computeExpr_coreceptor <- function(cofactor_input, data.use, pairLRsig, type = c
   }
   index.coreceptor <- which(!is.na(coreceptor.all) & coreceptor.all != "")
   if (length(index.coreceptor) > 0) {
+    CellChat::loadMatrixExtra()
     my.sapply <- ifelse(
       test = future::nbrOfWorkers() == 1,
       yes = pbapply::pbsapply,

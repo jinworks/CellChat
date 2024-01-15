@@ -211,6 +211,7 @@ netAnalysis_computeCentrality <- function(object = NULL, slot.name = "netP", net
   }
   if (length(dim(net)) == 3) {
     nrun <- dim(net)[3]
+    CellChat::loadMatrixExtra()
     my.sapply <- ifelse(
       test = future::nbrOfWorkers() == 1,
       yes = pbapply::pbsapply,
@@ -734,8 +735,8 @@ netClustering <- function(object, slot.name = "netP", type = c("functional","str
       N <- nrow(data.use)
       kRange <- seq(2,min(N-1, 10),by = 1)
       if (do.parallel) {
-        future::plan("multisession", workers = nCores, gc = TRUE)
-        options(future.globals.maxSize = 20000 * 1024^2)
+        future::plan("multisession", workers = nCores)
+        options(future.globals.maxSize = 10000 * 1024^2)
       }
       my.sapply <- ifelse(
         test = future::nbrOfWorkers() == 1,
