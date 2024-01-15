@@ -6,11 +6,11 @@ getAvailableCCore <- function() {
   library(parallel)
   n_cores <- parallel::detectCores()
   if (is.null(n_cores)) {
-      return(4)
+      return(2)
   }
 
-  if (n_cores > 16) {
-      n_cores <- 16
+  if (n_cores > 4) {
+      n_cores <- 4
   }
   return(as.integer(n_cores))
 }

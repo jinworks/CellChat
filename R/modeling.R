@@ -89,7 +89,7 @@ computeCommunProb <- function(object, type = c("triMean", "truncatedMean","thres
   cofactor_input <- object@DB$cofactor
   
   CellChat::loadMatrixExtra()
-  future::plan(future::cluster, workers = CellChat::getAvailableCCore())
+  future::plan("multisession", workers = CellChat::getAvailableCCore())
   options(future.globals.maxSize = 10000 * 1024^2)
   
   my.sapply <- ifelse(

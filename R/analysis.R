@@ -713,7 +713,7 @@ netEmbedding <- function(object, slot.name = "netP", type = c("functional","stru
 #' @export
 #'
 #' @examples
-netClustering <- function(object, slot.name = "netP", type = c("functional","structural"), comparison = NULL, k = NULL, methods = "kmeans", do.plot = TRUE, fig.id = NULL, do.parallel = TRUE, nCores = 8, k.eigen = NULL) {
+netClustering <- function(object, slot.name = "netP", type = c("functional","structural"), comparison = NULL, k = NULL, methods = "kmeans", do.plot = TRUE, fig.id = NULL, do.parallel = TRUE, nCores = 2, k.eigen = NULL) {
   type <- match.arg(type)
   if (object@options$mode == "single") {
     comparison <- "single"
