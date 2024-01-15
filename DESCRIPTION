@@ -19,6 +19,7 @@ Imports:
     stringr,
     svglite,
     Matrix,
+    MatrixExtra,
     ggrepel, 
     circlize (>= 0.4.12),
     RColorBrewer,
@@ -41,8 +42,12 @@ Imports:
     plyr,
     ggpubr,
     ggnetwork, 
+    spam,
+    spam64,
     BiocNeighbors,
-    plotly,shiny,bslib,presto,tidyverse
+    plotly,shiny,
+    bslib,presto,
+    tidyverse
 LinkingTo: Rcpp, RcppEigen
 Suggests:
     rmarkdown, knitr, roxygen2, Seurat (>= 4.0.0), SingleCellExperiment, SummarizedExperiment, purrr,uwot,gg.gap,wordcloud,bsicons
