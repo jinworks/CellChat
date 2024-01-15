@@ -1,3 +1,37 @@
+#' Get available core
+#'
+#' @export
+#'
+getAvailableCCore <- function() {
+  library(parallel)
+  n_cores <- parallel::detectCores()
+  if (is.null(n_cores)) {
+      return(4)
+  }
+
+  if (n_cores > 16) {
+      n_cores <- 16
+  }
+  return(as.integer(n_cores))
+}
+
+#' Load MatrixExtra
+#'
+#' @export
+#'
+loadMatrixExtra <- function() {
+  library(spam)
+  library(spam64)
+  library(Matrix)
+  library(MatrixExtra)
+  n_core <- getAvailableCCore()
+  options("MatrixExtra.quick_show" = FALSE)
+  options("MatrixExtra.nthreads" = n_core)
+  options(spam.force64 = TRUE)
+  future::plan(future::multisession, workers = n_core)
+  options(future.globals.maxSize = 20000 * 1024^2)
+}
+
 #' Normalize data using a scaling factor
 #'
 #' @param data.raw input raw data
@@ -419,7 +453,7 @@ identifyOverExpressedGenes <- function(object, data.use = NULL, group.by = NULL,
       object@var.features[[features.name]] <- markers.all
 
     } else {
-
+      CellChat::loadMatrixExtra()
       my.sapply <- ifelse(
         test = future::nbrOfWorkers() == 1,
         yes = pbapply::pbsapply,
@@ -588,6 +622,7 @@ identifyOverExpressedLigandReceptor <- function(object, features.name = "feature
     markers.all <- subset(markers.all, subset = features %in% features.use)
   }
 
+  CellChat::loadMatrixExtra()
   my.sapply <- ifelse(
     test = future::nbrOfWorkers() == 1,
     yes = pbapply::pbsapply,
@@ -666,6 +701,7 @@ identifyOverExpressedInteractions <- function(object, features.name = "features"
 
   interaction_input <- DB$interaction
   complex_input <- DB$complex
+  CellChat::loadMatrixExtra()
   my.sapply <- ifelse(
     test = future::nbrOfWorkers() == 1,
     yes = pbapply::pbsapply,
