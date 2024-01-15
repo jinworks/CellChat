@@ -24,7 +24,7 @@ loadMatrixExtra <- function() {
   options("MatrixExtra.quick_show" = FALSE)
   options("MatrixExtra.nthreads" = n_core)
   options(spam.force64 = TRUE)
-  future::plan("multisession", workers = n_cores, gc = TRUE)
+  future::plan("multisession", workers = n_core, gc = TRUE)
   options(future.globals.maxSize = 20000 * 1024^2)
 }
 

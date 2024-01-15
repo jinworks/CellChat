@@ -712,7 +712,7 @@ netEmbedding <- function(object, slot.name = "netP", type = c("functional","stru
 #' @export
 #'
 #' @examples
-netClustering <- function(object, slot.name = "netP", type = c("functional","structural"), comparison = NULL, k = NULL, methods = "kmeans", do.plot = TRUE, fig.id = NULL, do.parallel = TRUE, nCores = 4, k.eigen = NULL) {
+netClustering <- function(object, slot.name = "netP", type = c("functional","structural"), comparison = NULL, k = NULL, methods = "kmeans", do.plot = TRUE, fig.id = NULL, do.parallel = TRUE, nCores = 8, k.eigen = NULL) {
   type <- match.arg(type)
   if (object@options$mode == "single") {
     comparison <- "single"
@@ -734,8 +734,8 @@ netClustering <- function(object, slot.name = "netP", type = c("functional","str
       N <- nrow(data.use)
       kRange <- seq(2,min(N-1, 10),by = 1)
       if (do.parallel) {
-        future::plan("multisession", workers = nCores)
-        options(future.globals.maxSize = 1000 * 1024^2)
+        future::plan("multisession", workers = nCores, gc = TRUE)
+        options(future.globals.maxSize = 20000 * 1024^2)
       }
       my.sapply <- ifelse(
         test = future::nbrOfWorkers() == 1,
