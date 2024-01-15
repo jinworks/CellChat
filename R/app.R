@@ -383,7 +383,7 @@ runCellChatApp <- function(object,...) {
       else if (length(intersect(feature.use, colnames(meta))) >
                0) {
         feature.use <- feature.use[feature.use %in% colnames(meta)]
-        data.use <- t(meta[, feature.use, drop = FALSE])
+        data.use <- MatrixExtra::t(meta[, feature.use, drop = FALSE])
       }
       else {
         stop("Please check your input! ")

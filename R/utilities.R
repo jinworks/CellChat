@@ -1090,7 +1090,7 @@ colorRamp3 = function(breaks, colors, transparency = 0, space = "LAB") {
     stop("`space` should be in 'RGB', 'HSV', 'HLS', 'LAB', 'XYZ', 'sRGB', 'LUV'")
   }
 
-  colors = t(grDevices::col2rgb(colors)/255)
+  colors = MatrixExtra::t(grDevices::col2rgb(colors)/255)
 
   attr = list(breaks = breaks, colors = colors, transparency = transparency, space = space)
 
@@ -1131,7 +1131,7 @@ colorRamp3 = function(breaks, colors, transparency = 0, space = "LAB") {
     res_col = paste(res_col, transparency_str[1], sep = "")
 
     if(return_rgb) {
-      res_col = t(grDevices::col2rgb(as.vector(res_col), alpha = TRUE)/255)
+      res_col = MatrixExtra::t(grDevices::col2rgb(as.vector(res_col), alpha = TRUE)/255)
       return(res_col)
     } else {
       res_col2 = character(length(x))
