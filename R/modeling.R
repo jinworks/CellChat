@@ -1,3 +1,32 @@
+# Get available core
+#' @export
+getAvailableCCore <- function() {
+  library(parallel)
+  n_cores <- parallel::detectCores()
+  if (is.null(n_cores)) {
+      return(4)
+  }
+
+  if (n_cores > 8) {
+      n_cores <- 8
+  }
+  return(as.integer(n_cores))
+}
+
+# Load MatrixExtra
+#' @export
+loadMatrixExtra <- function() {
+  library(spam)
+  library(spam64)
+  library(Matrix)
+  library(MatrixExtra)
+  n_core <- CellChatApp::getAvailableCCore()
+  options("MatrixExtra.quick_show" = FALSE)
+  options("MatrixExtra.nthreads" = n_core)
+  options(spam.force64 = TRUE)
+  future::plan("multisession", workers = n_cores, gc = TRUE)
+  options(future.globals.maxSize = 20000 * 1024^2)
+}
 
 #' Compute the communication probability/strength between any interacting cell groups
 #'
@@ -63,6 +92,7 @@
 computeCommunProb <- function(object, type = c("triMean", "truncatedMean","thresholdedMean", "median"), trim = 0.1, LR.use = NULL, raw.use = TRUE, population.size = FALSE,
                               distance.use = TRUE, interaction.range = 250, scale.distance = 0.01, k.min = 10, contact.dependent = TRUE, contact.range = NULL, contact.knn.k = NULL, contact.dependent.forced = FALSE, do.symmetric = TRUE,
                               nboot = 100, seed.use = 1L, Kh = 0.5, n = 1) {
+  loadMatrixExtra()
   type <- match.arg(type)
   cat(type, "is used for calculating the average gene expression per cell group.", "\n")
   FunMean <- switch(type,
@@ -212,7 +242,7 @@ computeCommunProb <- function(object, type = c("triMean", "truncatedMean","thres
 
   for (i in 1:nLR) {
     # ligand/receptor
-    dataLR <- Matrix::crossprod(matrix(dataLavg[i,], nrow = 1), matrix(dataRavg[i,], nrow = 1))
+    dataLR <- MatrixExtra::crossprod(matrix(dataLavg[i,], nrow = 1), matrix(dataRavg[i,], nrow = 1))
     P1 <- dataLR^n/(Kh^n + dataLR^n)
     P1_Pspatial <- P1*P.spatial
     if (sum(P1_Pspatial) == 0) {
@@ -227,19 +257,19 @@ computeCommunProb <- function(object, type = c("triMean", "truncatedMean","thres
       # agonist and antagonist
       if (is.element(i, index.agonist)) {
         data.agonist <- computeExpr_agonist(data.use = data.use.avg, pairLRsig, cofactor_input, index.agonist = i, Kh = Kh,  n = n)
-        P2 <- Matrix::crossprod(matrix(data.agonist, nrow = 1))
+        P2 <- MatrixExtra::crossprod(matrix(data.agonist, nrow = 1))
       } else {
         P2 <- matrix(1, nrow = numCluster, ncol = numCluster)
       }
       if (is.element(i, index.antagonist)) {
         data.antagonist <- computeExpr_antagonist(data.use = data.use.avg, pairLRsig, cofactor_input,  index.antagonist = i, Kh = Kh,  n = n)
-        P3 <- Matrix::crossprod(matrix(data.antagonist, nrow = 1))
+        P3 <- MatrixExtra::crossprod(matrix(data.antagonist, nrow = 1))
       } else {
         P3 <- matrix(1, nrow = numCluster, ncol = numCluster)
       }
       # number of cells
       if (population.size) {
-        P4 <- Matrix::crossprod(matrix(dataLavg2[i,], nrow = 1), matrix(dataRavg2[i,], nrow = 1))
+        P4 <- MatrixExtra::crossprod(matrix(dataLavg2[i,], nrow = 1), matrix(dataRavg2[i,], nrow = 1))
       } else {
         P4 <- matrix(1, nrow = numCluster, ncol = numCluster)
       }
@@ -261,18 +291,18 @@ computeCommunProb <- function(object, type = c("triMean", "truncatedMean","thres
           dataRavgB.co.A.receptor <- computeExpr_coreceptor(cofactor_input, data.use.avgB, pairLRsig[i, , drop = FALSE], type = "A")
           dataRavgB.co.I.receptor <- computeExpr_coreceptor(cofactor_input, data.use.avgB, pairLRsig[i, , drop = FALSE], type = "I")
           dataRavgB <- dataRavgB * dataRavgB.co.A.receptor/dataRavgB.co.I.receptor
-          dataLRB = Matrix::crossprod(dataLavgB, dataRavgB)
+          dataLRB = MatrixExtra::crossprod(dataLavgB, dataRavgB)
           P1.boot <- dataLRB^n/(Kh^n + dataLRB^n)
           # agonist and antagonist
           if (is.element(i, index.agonist)) {
             data.agonist <- computeExpr_agonist(data.use = data.use.avgB, pairLRsig, cofactor_input, index.agonist = i, Kh = Kh,  n = n)
-            P2.boot <- Matrix::crossprod(matrix(data.agonist, nrow = 1))
+            P2.boot <- MatrixExtra::crossprod(matrix(data.agonist, nrow = 1))
           } else {
             P2.boot <- matrix(1, nrow = numCluster, ncol = numCluster)
           }
           if (is.element(i, index.antagonist)) {
             data.antagonist <- computeExpr_antagonist(data.use = data.use.avgB, pairLRsig, cofactor_input, index.antagonist = i, Kh = Kh,  n= n)
-            P3.boot <- Matrix::crossprod(matrix(data.antagonist, nrow = 1))
+            P3.boot <- MatrixExtra::crossprod(matrix(data.antagonist, nrow = 1))
           } else {
             P3.boot <- matrix(1, nrow = numCluster, ncol = numCluster)
           }
@@ -282,7 +312,7 @@ computeCommunProb <- function(object, type = c("triMean", "truncatedMean","thres
             dataLavg2B <- as.numeric(table(groupboot))/nC
             dataLavg2B <- matrix(dataLavg2B, nrow = 1)
             dataRavg2B <- dataLavg2B
-            P4.boot = Matrix::crossprod(dataLavg2B, dataRavg2B)
+            P4.boot = MatrixExtra::crossprod(dataLavg2B, dataRavg2B)
           } else {
             P4.boot = matrix(1, nrow = numCluster, ncol = numCluster)
           }
@@ -340,6 +370,7 @@ computeCommunProb <- function(object, type = c("triMean", "truncatedMean","thres
 #' @export
 #'
 computeCommunProbPathway <- function(object = NULL, net = NULL, pairLR.use = NULL, thresh = 0.05) {
+  loadMatrixExtra()
   if (is.null(net)) {
     net <- object@net
   }
@@ -389,6 +420,7 @@ computeCommunProbPathway <- function(object = NULL, net = NULL, pairLR.use = NUL
 #' @export
 #'
 aggregateNet <- function(object, sources.use = NULL, targets.use = NULL, signaling = NULL, pairLR.use = NULL, remove.isolate = TRUE, thresh = 0.05, return.object = TRUE) {
+  loadMatrixExtra()
   net <- object@net
   if (is.null(sources.use) & is.null(targets.use) & is.null(signaling) & is.null(pairLR.use)) {
     prob <- net$prob
@@ -460,6 +492,7 @@ aggregateNet <- function(object, sources.use = NULL, targets.use = NULL, signali
 #'
 computeAveExpr <- function(object, features = NULL, group.by = NULL, type = c("triMean", "truncatedMean", "median"), trim = NULL,
                            slot.name = c("data.signaling", "data"), data.use = NULL) {
+  loadMatrixExtra()
   type <- match.arg(type)
   slot.name <- match.arg(slot.name)
   FunMean <- switch(type,
@@ -511,6 +544,7 @@ computeAveExpr <- function(object, features = NULL, group.by = NULL, type = c("t
 #' @importFrom pbapply pbsapply
 #' @export
 computeExpr_complex <- function(complex_input, data.use, complex) {
+  loadMatrixExtra()
   Rsubunits <- complex_input[complex,] %>% dplyr::select(starts_with("subunit"))
   my.sapply <- ifelse(
     test = future::nbrOfWorkers() == 1,
@@ -542,6 +576,7 @@ computeExpr_complex <- function(complex_input, data.use, complex) {
 # @importFrom pbapply pbsapply
 # #' @export
 .computeExprGroup_complex <- function(complex_input, data.use, complex, group, FunMean) {
+  loadMatrixExtra()
   Rsubunits <- complex_input[complex,] %>% dplyr::select(starts_with("subunit"))
   my.sapply <- ifelse(
     test = future::nbrOfWorkers() == 1,
@@ -579,6 +614,7 @@ computeExpr_complex <- function(complex_input, data.use, complex) {
 #' @return
 #' @export
 computeExpr_LR <- function(geneLR, data.use, complex_input){
+  loadMatrixExtra()
   nLR <- length(geneLR)
   numCluster <- ncol(data.use)
   index.singleL <- which(geneLR %in% rownames(data.use))
@@ -607,6 +643,7 @@ computeExpr_LR <- function(geneLR, data.use, complex_input){
 #' @importFrom pbapply pbsapply
 #' @export
 computeExpr_coreceptor <- function(cofactor_input, data.use, pairLRsig, type = c("A", "I")) {
+  loadMatrixExtra()
   type <- match.arg(type)
   if (type == "A") {
     coreceptor.all = pairLRsig$co_A_receptor
@@ -660,6 +697,7 @@ computeExpr_coreceptor <- function(cofactor_input, data.use, pairLRsig, type = c
 # @importFrom pbapply pbsapply
 # #' @export
 .computeExprGroup_coreceptor <- function(cofactor_input, data.use, pairLRsig, type = c("A", "I"), group, FunMean) {
+  loadMatrixExtra()
   type <- match.arg(type)
   if (type == "A") {
     coreceptor.all = pairLRsig$co_A_receptor
@@ -718,6 +756,7 @@ computeExpr_coreceptor <- function(cofactor_input, data.use, pairLRsig, type = c
 #' @export
 #' @importFrom stats aggregate
 computeExprGroup_agonist <- function(data.use, pairLRsig, cofactor_input, group, index.agonist, Kh, FunMean, n) {
+  loadMatrixExtra()
   agonist <- pairLRsig$agonist[index.agonist]
   agonist.ind <- cofactor_input[agonist, grepl("cofactor" , colnames(cofactor_input))]
   agonist.indV <- unlist(agonist.ind, use.names = F)
@@ -751,6 +790,7 @@ computeExprGroup_agonist <- function(data.use, pairLRsig, cofactor_input, group,
 #' @export
 #' @importFrom stats aggregate
 computeExprGroup_antagonist <- function(data.use, pairLRsig, cofactor_input, group, index.antagonist, Kh, FunMean, n) {
+  loadMatrixExtra()
   antagonist <- pairLRsig$antagonist[index.antagonist]
   antagonist.ind <- cofactor_input[antagonist, grepl( "cofactor" , colnames(cofactor_input) )]
   antagonist.indV <- unlist(antagonist.ind, use.names = F)
@@ -897,6 +937,7 @@ thresholdedMean <- function(x, trim = 0.1, na.rm = TRUE) {
 #' @export
 #'
 identifyEnrichedInteractions <- function(object, from, to, bidirection = FALSE, pair.only = TRUE, pairLR.use0 = NULL, thresh = 0.05){
+  loadMatrixExtra()
   pairwiseLR <- object@net$pairwiseRank
   if (is.null(pairwiseLR)) {
     stop("The interactions between pairwise cell groups have not been extracted!
@@ -1002,6 +1043,7 @@ computeRegionDistance <- function(coordinates, meta,
                                   interaction.range = NULL, ratio = NULL, tol = NULL, k.min = 10,
                                   contact.dependent = TRUE, contact.range = NULL, contact.knn.k = NULL, do.symmetric = TRUE
 ) {
+  loadMatrixExtra()
   trim <- 0.1
   FunMean <- function(x) mean(x, trim = trim, na.rm = TRUE) # This is used for computing the average distance between two cell groups
   group <- meta$group
