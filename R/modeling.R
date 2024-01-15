@@ -20,7 +20,7 @@ loadMatrixExtra <- function() {
   library(spam64)
   library(Matrix)
   library(MatrixExtra)
-  n_core <- CellChatApp::getAvailableCCore()
+  n_core <- getAvailableCCore()
   options("MatrixExtra.quick_show" = FALSE)
   options("MatrixExtra.nthreads" = n_core)
   options(spam.force64 = TRUE)
