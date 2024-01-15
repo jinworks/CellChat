@@ -3,10 +3,10 @@
 
 using namespace Rcpp;
 
-typedef Eigen::Triplet<float> T;
+typedef Eigen::Triplet<double> T;
 // Adapted from swne (https://github.com/yanwu2014/swne)
 //[[Rcpp::export]]
-Eigen::SparseMatrix<float> ComputeSNN(Eigen::MatrixXd nn_ranked, float prune)
+Eigen::SparseMatrix<double> ComputeSNN(Eigen::MatrixXd nn_ranked, double prune)
 {
   std::vector<T> tripletList;
   int k = nn_ranked.cols();
@@ -19,12 +19,12 @@ Eigen::SparseMatrix<float> ComputeSNN(Eigen::MatrixXd nn_ranked, float prune)
     }
   }
 
-  Eigen::SparseMatrix<float> SNN(nn_ranked.rows(), nn_ranked.rows());
+  Eigen::SparseMatrix<double> SNN(nn_ranked.rows(), nn_ranked.rows());
   SNN.setFromTriplets(tripletList.begin(), tripletList.end());
   SNN = SNN * (SNN.transpose());
   for (int i = 0; i < SNN.outerSize(); ++i)
   {
-    for (Eigen::SparseMatrix<float>::InnerIterator it(SNN, i); it; ++it)
+    for (Eigen::SparseMatrix<double>::InnerIterator it(SNN, i); it; ++it)
     {
       it.valueRef() = it.value() / (k + (k - it.value()));
       if (it.value() < prune)
