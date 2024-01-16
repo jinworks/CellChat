@@ -89,7 +89,7 @@ computeCommunProb <- function(object, type = c("triMean", "truncatedMean","thres
   cofactor_input <- object@DB$cofactor
   
   CellChat::loadMatrixExtra()
-  future::plan("multisession", workers = CellChat::getAvailableCCore())
+  future::plan("multicore", workers = CellChat::getAvailableCCore())
   options(future.globals.maxSize = 10000 * 1024^2)
   
   my.sapply <- ifelse(
@@ -517,7 +517,7 @@ computeAveExpr <- function(object, features = NULL, group.by = NULL, type = c("t
 computeExpr_complex <- function(complex_input, data.use, complex) {
   Rsubunits <- complex_input[complex,] %>% dplyr::select(starts_with("subunit"))
   CellChat::loadMatrixExtra()
-  future::plan("multisession", workers = CellChat::getAvailableCCore())
+  future::plan("multicore", workers = CellChat::getAvailableCCore())
   options(future.globals.maxSize = 10000 * 1024^2)
 
   my.sapply <- ifelse(
@@ -552,7 +552,7 @@ computeExpr_complex <- function(complex_input, data.use, complex) {
 .computeExprGroup_complex <- function(complex_input, data.use, complex, group, FunMean) {
   Rsubunits <- complex_input[complex,] %>% dplyr::select(starts_with("subunit"))
   CellChat::loadMatrixExtra()
-  future::plan("multisession", workers = CellChat::getAvailableCCore())
+  future::plan("multicore", workers = CellChat::getAvailableCCore())
   options(future.globals.maxSize = 10000 * 1024^2)
 
   my.sapply <- ifelse(
@@ -628,7 +628,7 @@ computeExpr_coreceptor <- function(cofactor_input, data.use, pairLRsig, type = c
   index.coreceptor <- which(!is.na(coreceptor.all) & coreceptor.all != "")
   if (length(index.coreceptor) > 0) {
     CellChat::loadMatrixExtra()
-    future::plan("multisession", workers = CellChat::getAvailableCCore())
+    future::plan("multicore", workers = CellChat::getAvailableCCore())
     options(future.globals.maxSize = 10000 * 1024^2)
 
     my.sapply <- ifelse(
@@ -685,7 +685,7 @@ computeExpr_coreceptor <- function(cofactor_input, data.use, pairLRsig, type = c
   index.coreceptor <- which(!is.na(coreceptor.all) & coreceptor.all != "")
   if (length(index.coreceptor) > 0) {
     CellChat::loadMatrixExtra()
-    future::plan("multisession", workers = CellChat::getAvailableCCore())
+    future::plan("multicore", workers = CellChat::getAvailableCCore())
     options(future.globals.maxSize = 10000 * 1024^2)
     
     my.sapply <- ifelse(

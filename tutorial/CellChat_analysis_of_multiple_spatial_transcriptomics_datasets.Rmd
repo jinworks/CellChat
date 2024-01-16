@@ -139,7 +139,7 @@ To infer the cell state-specific communications, we identify over-expressed liga
 ```{r}
 # subset the expression data of signaling genes for saving computation cost
 cellchat <- subsetData(cellchat) # This step is necessary even if using the whole database
-future::plan("multisession", workers = 4) 
+future::plan("multicore", workers = 4) 
 cellchat <- identifyOverExpressedGenes(cellchat)
 cellchat <- identifyOverExpressedInteractions(cellchat)
  
