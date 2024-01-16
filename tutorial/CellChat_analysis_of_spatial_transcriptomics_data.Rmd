@@ -134,7 +134,7 @@ We also provide a function to project gene expression data onto protein-protein 
 ```{r}
 # subset the expression data of signaling genes for saving computation cost
 cellchat <- subsetData(cellchat) # This step is necessary even if using the whole database
-future::plan("multisession", workers = 4) 
+future::plan("multicore", workers = 4) 
 cellchat <- identifyOverExpressedGenes(cellchat)
 cellchat <- identifyOverExpressedInteractions(cellchat)
  
