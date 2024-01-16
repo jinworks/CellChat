@@ -517,6 +517,9 @@ computeAveExpr <- function(object, features = NULL, group.by = NULL, type = c("t
 computeExpr_complex <- function(complex_input, data.use, complex) {
   Rsubunits <- complex_input[complex,] %>% dplyr::select(starts_with("subunit"))
   CellChat::loadMatrixExtra()
+  future::plan("multisession", workers = CellChat::getAvailableCCore())
+  options(future.globals.maxSize = 10000 * 1024^2)
+
   my.sapply <- ifelse(
     test = future::nbrOfWorkers() == 1,
     yes = sapply,
@@ -549,6 +552,9 @@ computeExpr_complex <- function(complex_input, data.use, complex) {
 .computeExprGroup_complex <- function(complex_input, data.use, complex, group, FunMean) {
   Rsubunits <- complex_input[complex,] %>% dplyr::select(starts_with("subunit"))
   CellChat::loadMatrixExtra()
+  future::plan("multisession", workers = CellChat::getAvailableCCore())
+  options(future.globals.maxSize = 10000 * 1024^2)
+
   my.sapply <- ifelse(
     test = future::nbrOfWorkers() == 1,
     yes = pbapply::pbsapply,
@@ -622,6 +628,9 @@ computeExpr_coreceptor <- function(cofactor_input, data.use, pairLRsig, type = c
   index.coreceptor <- which(!is.na(coreceptor.all) & coreceptor.all != "")
   if (length(index.coreceptor) > 0) {
     CellChat::loadMatrixExtra()
+    future::plan("multisession", workers = CellChat::getAvailableCCore())
+    options(future.globals.maxSize = 10000 * 1024^2)
+
     my.sapply <- ifelse(
       test = future::nbrOfWorkers() == 1,
       yes = sapply,
@@ -676,6 +685,9 @@ computeExpr_coreceptor <- function(cofactor_input, data.use, pairLRsig, type = c
   index.coreceptor <- which(!is.na(coreceptor.all) & coreceptor.all != "")
   if (length(index.coreceptor) > 0) {
     CellChat::loadMatrixExtra()
+    future::plan("multisession", workers = CellChat::getAvailableCCore())
+    options(future.globals.maxSize = 10000 * 1024^2)
+    
     my.sapply <- ifelse(
       test = future::nbrOfWorkers() == 1,
       yes = pbapply::pbsapply,
