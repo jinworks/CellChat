@@ -10,7 +10,7 @@ getAvailableCCore <- function() {
   }
 
   if (n_cores > 4) {
-      n_cores <- 4
+      n_cores <- 8
   }
   return(as.integer(n_cores))
 }
