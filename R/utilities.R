@@ -452,6 +452,9 @@ identifyOverExpressedGenes <- function(object, data.use = NULL, group.by = NULL,
 
     } else {
       CellChat::loadMatrixExtra()
+      future::plan("multisession", workers = CellChat::getAvailableCCore())
+      options(future.globals.maxSize = 10000 * 1024^2)
+
       my.sapply <- ifelse(
         test = future::nbrOfWorkers() == 1,
         yes = pbapply::pbsapply,
@@ -621,6 +624,9 @@ identifyOverExpressedLigandReceptor <- function(object, features.name = "feature
   }
 
   CellChat::loadMatrixExtra()
+  future::plan("multisession", workers = CellChat::getAvailableCCore())
+  options(future.globals.maxSize = 10000 * 1024^2)
+
   my.sapply <- ifelse(
     test = future::nbrOfWorkers() == 1,
     yes = pbapply::pbsapply,
@@ -700,6 +706,9 @@ identifyOverExpressedInteractions <- function(object, features.name = "features"
   interaction_input <- DB$interaction
   complex_input <- DB$complex
   CellChat::loadMatrixExtra()
+  future::plan("multisession", workers = CellChat::getAvailableCCore())
+  options(future.globals.maxSize = 10000 * 1024^2)
+
   my.sapply <- ifelse(
     test = future::nbrOfWorkers() == 1,
     yes = pbapply::pbsapply,
