@@ -2342,10 +2342,10 @@ netVisual_bubble <- function(object, sources.use = NULL, targets.use = NULL, sig
         #idx.na <- c(which(is.na(values)), which(!(dataset.name[comparison] %in% df.i.j$dataset)))
         dataset.na <- c(df.i.j$dataset[is.na(values)], setdiff(dataset.name[comparison], df.i.j$dataset))
         if (length(idx.max) > 0) {
-          if (!(df.i.j$dataset[idx.max] %in% dataset.name[max.dataset])) {
+          if (all(!(df.i.j$dataset[idx.max] %in% dataset.name[max.dataset]))) {
             df.i.j$prob <- NA
-          } else if ((idx.max != idx.min) & !is.null(min.dataset)) {
-            if (!(df.i.j$dataset[idx.min] %in% dataset.name[min.dataset])) {
+          } else if (all((idx.max != idx.min) & !is.null(min.dataset))) {
+            if (all(!(df.i.j$dataset[idx.min] %in% dataset.name[min.dataset]))) {
               df.i.j$prob <- NA
             } else if (length(dataset.na) > 0 & sum(!(dataset.name[min.dataset] %in% dataset.na)) > 0) {
               df.i.j$prob <- NA
