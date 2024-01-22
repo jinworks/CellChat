@@ -2941,7 +2941,7 @@ netMappingDEG <- function(object, features.name, variable.all = TRUE, thresh = 0
   complex_input <- object@DB$complex
 
   df.net <- subsetCommunication(object, thresh = thresh)
-  if (is.list(df.net)) {
+  if (!is.data.frame(df.net)) {
     net <- data.frame()
     for (ii in 1:length(df.net)) {
       df.net[[ii]]$datasets <- names(df.net)[ii]
