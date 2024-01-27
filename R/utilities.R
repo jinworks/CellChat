@@ -290,9 +290,9 @@ subsetData <- function(object, features = NULL) {
 #' @param only.pos Only return positive markers
 #' @param features features used for identifying Over Expressed genes. default use all features
 #' @param return.object whether to return the object; otherwise return a data frame consisting of over-expressed signaling genes associated with each cell group
-#' @param thresh.pc Threshold of the percent of cells expressed in one cluster
-#' @param thresh.fc Threshold of Log Fold Change
-#' @param thresh.p Threshold of p-values
+#' @param thresh.pc Threshold of the fraction of cells expressed in one cluster, i.e., thresh.pc = 0.1
+#' @param thresh.fc Threshold of Log Fold Change, i.e., thresh.pc = 0.1
+#' @param thresh.p Threshold of p-values, i.e., thresh.pc = 0.05
 #' @param do.DE Whether to perform differential expression analysis. By default do.DE = TRUE; When do.DE = FALSE, selecting over-expressed genes that are expressed in more than `min.cells` cells.
 #' @param do.fast If do.fast = TRUE, then perform a ultra-fast Wilcoxon test using presto package; otherwise using stats package. These two methods produce different logFC values, and the presto::wilcoxauc method gives smaller values.
 #' @param min.cells the minmum number of expressed cells required for the genes that are considered for cell-cell communication analysis
