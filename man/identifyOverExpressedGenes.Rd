@@ -51,11 +51,11 @@ When group.DE.combined = TRUE, it will perform DE analysis by combining all cell
 
 \item{return.object}{whether to return the object; otherwise return a data frame consisting of over-expressed signaling genes associated with each cell group}
 
-\item{thresh.pc}{Threshold of the percent of cells expressed in one cluster}
+\item{thresh.pc}{Threshold of the fraction of cells expressed in one cluster, i.e., thresh.pc = 0.1}
 
-\item{thresh.fc}{Threshold of Log Fold Change}
+\item{thresh.fc}{Threshold of Log Fold Change, i.e., thresh.pc = 0.1}
 
-\item{thresh.p}{Threshold of p-values}
+\item{thresh.p}{Threshold of p-values, i.e., thresh.pc = 0.05}
 
 \item{do.DE}{Whether to perform differential expression analysis. By default do.DE = TRUE; When do.DE = FALSE, selecting over-expressed genes that are expressed in more than `min.cells` cells.}
 
