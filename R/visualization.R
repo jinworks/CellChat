@@ -1780,14 +1780,14 @@ netVisual_diffInteraction <- function(object, comparison = c(1,2), measure = c("
 
 #' Visualization of network using heatmap
 #'
-#' This heatmap can be used to show differential number of interactions or interaction strength in the cell-cell communication network between two datasets;
-#' the number of interactions or interaction strength in a single dataset
-#' the inferred cell-cell communication network in single dataset, defined by `signaling`
+#' This heatmap can be used to 1) show differential number of interactions or interaction strength in the cell-cell communication network between two datasets;
+#' 2) the number of interactions or interaction strength in a single dataset;
+#' 3) the inferred cell-cell communication network in a single dataset, defined by `signaling`. Please see @Details below for detailed explanations of this heatmap plot.
 #'
 #' When show differential number of interactions or interaction strength in the cell-cell communication network between two datasets, the width of edges represent the relative number of interactions or interaction strength.
 #' Red (or blue) colored edges represent increased (or decreased) signaling in the second dataset compared to the first one.
 #'
-#' The top colored bar plot represents the sum of column of values displayed in the heatmap. The right colored bar plot represents the sum of row of values.
+#' The top colored bar plot represents the sum of absolute values displayed in each column of the heatmap. The right colored bar plot represents the sum of absolute values in each row.
 #'
 #'
 #' @param object A merged CellChat object or a single CellChat object
@@ -1796,7 +1796,8 @@ netVisual_diffInteraction <- function(object, comparison = c(1,2), measure = c("
 #' @param signaling a character vector giving the name of signaling networks in a single CellChat object
 #' @param slot.name the slot name of object. Set is to be "netP" if input signaling is a pathway name; Set is to be "net" if input signaling is a ligand-receptor pair
 #' @param color.use the character vector defining the color of each cell group
-#' @param color.heatmap A vector of two colors corresponding to max/min values, or a color name in brewer.pal only when the data in the heatmap do not contain negative values
+#' @param color.heatmap A vector of two colors corresponding to max/min values, or a color name in brewer.pal only when the data in the heatmap do not contain negative values.
+#' By default, color.heatmap = c('#2166ac','#b2182b') when taking a merged CellChat object as input; color.heatmap = "Reds" when taking a single CellChat object as input.
 #' @param title.name the name of the title
 #' @param width width of heatmap
 #' @param height height of heatmap
@@ -1814,7 +1815,7 @@ netVisual_diffInteraction <- function(object, comparison = c(1,2), measure = c("
 #' @importFrom ComplexHeatmap Heatmap HeatmapAnnotation anno_barplot rowAnnotation
 #' @return  an object of ComplexHeatmap
 #' @export
-netVisual_heatmap <- function(object, comparison = c(1,2), measure = c("count", "weight"), signaling = NULL, slot.name = c("netP", "net"), color.use = NULL, color.heatmap = c("Reds"),
+netVisual_heatmap <- function(object, comparison = c(1,2), measure = c("count", "weight"), signaling = NULL, slot.name = c("netP", "net"), color.use = NULL, color.heatmap = NULL,
                               title.name = NULL, width = NULL, height = NULL, font.size = 8, font.size.title = 10, cluster.rows = FALSE, cluster.cols = FALSE,
                               sources.use = NULL, targets.use = NULL, remove.isolate = FALSE, row.show = NULL, col.show = NULL){
   if (!is.null(measure)) {
@@ -1823,6 +1824,9 @@ netVisual_heatmap <- function(object, comparison = c(1,2), measure = c("count", 
   slot.name <- match.arg(slot.name)
   if (is.list(object@net[[1]])) {
     message("Do heatmap based on a merged object \n")
+    if (is.null(color.heatmap)) {
+      color.heatmap <- c('#2166ac','#b2182b')
+    }
     obj1 <- object@net[[comparison[1]]][[measure]]
     obj2 <- object@net[[comparison[2]]][[measure]]
     net.diff <- obj2 - obj1
@@ -1839,6 +1843,9 @@ netVisual_heatmap <- function(object, comparison = c(1,2), measure = c("count", 
     legend.name = "Relative values"
   } else {
     message("Do heatmap based on a single object \n")
+    if (is.null(color.heatmap)) {
+      color.heatmap <- "Reds"
+    }
     if (!is.null(signaling)) {
       net.diff <- slot(object, slot.name)$prob[,,signaling]
       if (is.null(title.name)) {
