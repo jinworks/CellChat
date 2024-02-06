@@ -122,7 +122,7 @@ runCellChatApp <- function(object,...) {
   plotly_spatialDimPlot <- function (object,
                               color.use = NULL,
                               group.by = NULL,
-                              slice.use = NULL,
+                              sample.use = NULL,
                               sources.use = NULL,
                               targets.use = NULL,
                               idents.use = NULL,
@@ -138,17 +138,17 @@ runCellChatApp <- function(object,...) {
     }
 
     coordinates <- object@images$coordinates
-    slices <- object@meta$slices
+    samples <- object@meta$samples
     if (ncol(coordinates) == 2) {
       colnames(coordinates) <- c("x_cent","y_cent")
-      if (length(unique(slices)) > 1) {
-        if (is.null(slice.use)) {
-          stop("`slice.use` should be provided for visualizing signaling on each individual slice.")
-        } else if (slice.use %in% unique(slices)) {
-          coordinates = coordinates[slices == slice.use, ]
-          labels = labels[slices == slice.use]
+      if (length(unique(samples)) > 1) {
+        if (is.null(sample.use)) {
+          stop("`sample.use` should be provided for visualizing signaling on each individual sample.")
+        } else if (sample.use %in% unique(samples)) {
+          coordinates = coordinates[samples == sample.use, ]
+          labels = labels[samples == sample.use]
         } else {
-          stop("Please check the input `slice.use`, which should be the element in `meta$slices`.")
+          stop("Please check the input `sample.use`, which should be the element in `meta$samples`.")
         }
       }
       temp_coordinates = coordinates
@@ -233,7 +233,7 @@ runCellChatApp <- function(object,...) {
                                   features = NULL,
                                   signaling = NULL,
                                   pairLR.use = NULL,
-                                  slice.use = NULL,
+                                  sample.use = NULL,
                                   enriched.only = TRUE,
                                   thresh = 0.05,
                                   do.group = TRUE,
@@ -252,22 +252,22 @@ runCellChatApp <- function(object,...) {
                                   show.legend = TRUE,
                                   show.legend.combined = FALSE){
     coords <- object@images$coordinates
-    slices <- object@meta$slices
+    samples <- object@meta$samples
     spot_labels <- object@idents
     data <- as.matrix(object@data)
     meta <- object@meta
 
     if (ncol(coords) == 2) {
       colnames(coords) <- c("x_cent","y_cent")
-      if (length(unique(slices)) > 1) {
-        if (is.null(slice.use)) {
-          stop("`slice.use` should be provided for visualizing signaling on each individual slice.")
-        } else if (slice.use %in% unique(slices)) {
-          coords = coords[slices == slice.use, ]
-          meta = meta[slices == slice.use, ]
-          data = data[, slices == slice.use]
+      if (length(unique(samples)) > 1) {
+        if (is.null(sample.use)) {
+          stop("`sample.use` should be provided for visualizing signaling on each individual sample.")
+        } else if (sample.use %in% unique(samples)) {
+          coords = coords[samples == sample.use, ]
+          meta = meta[samples == sample.use, ]
+          data = data[, samples == sample.use]
         } else {
-          stop("Please check the input `slice.use`, which should be the element in `meta$slices`.")
+          stop("Please check the input `sample.use`, which should be the element in `meta$samples`.")
         }
       }
       temp_coords = coords
