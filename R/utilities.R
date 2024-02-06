@@ -245,17 +245,17 @@ subsetData <- function(object, features = NULL) {
   interaction_input <- object@DB$interaction
   if (object@options$datatype != "RNA") {
     if ("annotation" %in% colnames(interaction_input) == FALSE) {
-      warning("The column named `annotation` is required in `object@DB$interaction` when running CellChat on spatial transcriptomics!")
-      warning("The `annotation` column is now automatically added and all L-R pairs are considered as `Secreted Signaling`, which means that these L-R pairs are assumed to mediate long-range communication (~250um).")
+      warning("A column named `annotation` is required in `object@DB$interaction` when running CellChat on spatial transcriptomics! The `annotation` column is now automatically added and all L-R pairs are assigned as `Secreted Signaling`, which means that these L-R pairs are assumed to mediate diffusion-based cellular communication.")
+      interaction_input$annotation <- "Secreted Signaling"
     }
   }
   if ("annotation" %in% colnames(interaction_input) == TRUE) {
     if (length(unique(interaction_input$annotation)) > 1) {
-      interaction_input$annotation <- factor(interaction_input$annotation, levels = c("Secreted Signaling", "ECM-Receptor", "Cell-Cell Contact", "Non-protein Signaling"))
+      interaction_input$annotation <- factor(interaction_input$annotation, levels = c("Secreted Signaling", "ECM-Receptor", "Non-protein Signaling", "Cell-Cell Contact"))
       interaction_input <- interaction_input[order(interaction_input$annotation), , drop = FALSE]
       interaction_input$annotation <- as.character(interaction_input$annotation)
-      object@DB$interaction <- interaction_input
     }
+    object@DB$interaction <- interaction_input
   }
 
   if (is.null(features)) {
