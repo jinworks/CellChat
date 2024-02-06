@@ -144,7 +144,7 @@ subsetDB <- function(CellChatDB, search = c(), key = "annotation", non_protein =
 
   if ("Non-protein Signaling" %in% unlist(search)) {
     non_protein = TRUE
-    message("The non-protein signaling is now included for CellChat analysis, which is usually used for neuron-neuron communication!")
+    message("The non-protein signaling is now included for CellChat analysis, which is usually used for neuron-neuron and metabolic communication!")
   }
   if (non_protein == FALSE) {
     interaction_input <- subset(interaction_input, annotation != "Non-protein Signaling")
