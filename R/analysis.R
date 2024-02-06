@@ -1809,27 +1809,6 @@ extractEnrichedLR_internal <- function(net, LR, DB, signaling, enriched.only = T
 }
 
 
-
-#' Filter cell-cell communication if there are only few number of cells in certain cell groups
-#'
-#' @param object CellChat object
-#' @param min.cells the minmum number of cells required in each cell group for cell-cell communication
-#' @return CellChat object with an updated slot net
-#' @export
-#'
-filterCommunication <- function(object, min.cells = 10) {
-  net <- object@net
-  cell.excludes <- which(as.numeric(table(object@idents)) <= min.cells)
-  if (length(cell.excludes) > 0) {
-    cat("The cell-cell communication related with the following cell groups are excluded due to the few number of cells: ", levels(object@idents)[cell.excludes],'\n')
-    net$prob[cell.excludes,,] <- 0
-    net$prob[,cell.excludes,] <- 0
-    object@net <- net
-  }
-  return(object)
-}
-
-
 #' Compute the maximum value of certain measures in the inferred cell-cell communication networks
 #'
 #' To better control the node size and edge weights of the inferred networks across different datasets,
