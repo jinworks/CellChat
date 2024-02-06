@@ -155,14 +155,18 @@ createCellChat <- function(object, meta = NULL, group.by = NULL,
     .error_if_no_Seurat()
     print("Create a CellChat object from a Seurat object")
     if (is.null(assay)) {
-      assay = DefaultAssay(object)
+      assay = Seurat::DefaultAssay(object)
       if (assay == "integrated") {
-        warning("The data in the `integrated` assay is not suitable for CellChat analysis! Please use the `RNA` or `SCT` assay! ")
+        warning("The data in the `integrated` assay is not suitable for CellChat analysis! Please use the `RNA`, `SCT` or `Spatial` assay! ")
       }
       cat(paste0("The `data` slot in the default assay is used. The default assay is ", assay),'\n')
     }
-
-    data <- Seurat::GetAssayData(object, assay = assay, slot = "data") # normalized data matrix
+    if (packageVersion("Seurat") < "5.0.0") {
+      # data <- Seurat::GetAssayData(object, assay = assay, slot = "data") # normalized data matrix
+      data <- object[[assay]]@data
+    } else {
+      data <- object[[assay]]$data
+    }
     if (min(data) < 0) {
       stop("The data matrix contains negative values. Please ensure the normalized data matrix is used.")
     }
@@ -176,8 +180,7 @@ createCellChat <- function(object, meta = NULL, group.by = NULL,
     }
     if (datatype %in% c("spatial")) {
       if (is.null(coordinates)) {
-        coordinates <- GetTissueCoordinates(object, scale = NULL, cols = c("imagerow", "imagecol"))
-        # spatial.factors <- object@images[["slice1"]]@spatial.factors
+        coordinates <- Seurat::GetTissueCoordinates(object, scale = NULL, cols = c("imagerow", "imagecol"))
       }
     }
 
@@ -244,26 +247,23 @@ createCellChat <- function(object, meta = NULL, group.by = NULL,
                          meta = meta)
 
   if (!is.null(meta) & nrow(meta) > 0) {
+    if (!("samples" %in% colnames(meta))) {
+      warning("The 'meta' data does not have a column named `samples`. We now add this column and all cells are assumed to belong to `sample1`!")
+      meta$samples <- "sample1"
+      meta$samples <- factor(meta$samples)
+      object@meta <- meta
+    } else if (is.factor(meta$samples) == FALSE) {
+      warning("The 'meta$samples' is not a factor. We now force it as a factor!")
+      meta$samples <- factor(meta$samples)
+      object@meta <- meta
+    }
+
     cat("Set cell identities for the new CellChat object", '\n')
     if (!(group.by %in% colnames(meta))) {
       stop("The 'group.by' is not a column name in the `meta`, which will be used for cell grouping.")
     }
     object <- setIdent(object, ident.use = group.by) # set "labels" as default cell identity
     cat("The cell groups used for CellChat analysis are ", toString(levels(object@idents)), '\n')
-
-    if (datatype %in% c("spatial")) {
-      if (!("slices" %in% colnames(meta))) {
-        warning("The 'meta' data does not have a column named `slices` for spatial transcriptomics data analysis.
-              We now add this column and all cells are assigned as `slice1`!")
-        meta$slices <- "slice1"
-        meta$slices <- factor(meta$slices)
-        object@meta <- meta
-      } else if (is.factor(meta$slices) == FALSE) {
-        warning("The 'meta$slices' is not a factor. We now force it as a factor!")
-        meta$slices <- factor(meta$slices)
-        object@meta <- meta
-      }
-    }
   }
 
   object@options$mode <- "single"
@@ -416,6 +416,8 @@ mergeCellChat <- function(object.list, add.names = NULL, merge.data = FALSE, cel
 #'
 #' version 2.1.1: `images$scale.factors` is changed to `images$spatial.factors` for spatial transcriptomics data analysis.
 #'
+#' version 2.1.2: the column `slices` in `object@meta` is renamed as `samples` in order to identify consistent signaling across samples for cell-cell communication analysis.
+#'
 #' @param object CellChat object
 #'
 #' @return a updated CellChat object
@@ -451,17 +453,19 @@ updateCellChat <- function(object) {
     images = object@images
   }
   meta = object@meta
+  if ("slices" %in% colnames(meta)) {
+    meta$samples <-  meta$slices
+    meta$slices = NULL
+  }
+  if (!("samples" %in% colnames(meta))) {
+    warning("The 'meta' data does not have a column named `samples`. We now add this column and all cells are assumed to belong to `sample1`!")
+    meta$samples <- "sample1"
+    meta$samples <- factor(meta$samples)
+  } else if (is.factor(meta$samples) == FALSE) {
+    warning("The 'meta$samples' is not a factor. We now force it as a factor!")
+    meta$samples <- factor(meta$samples)
+  }
   if (object@options$datatype %in% c("spatial")) {
-    if (!("slices" %in% colnames(meta))) {
-      warning("The 'meta' data does not have a column named `slices` for spatial transcriptomics data analysis.
-              We now add this column and all cells are assigned as `slice1`!")
-      meta$slices <- "slice1"
-      meta$slices <- factor(meta$slices)
-    } else if (is.factor(meta$slices) == FALSE) {
-      warning("The 'meta$slices' is not a factor. We now force it as a factor!")
-      meta$slices <- factor(meta$slices)
-    }
-
     if ("scale.factors" %in% names(object@images)) {
       images$spatial.factors <- as.data.frame(images$scale.factors)
       images$scale.factors <- NULL
