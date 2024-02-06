@@ -9,7 +9,7 @@ spatialFeaturePlot(
   features = NULL,
   signaling = NULL,
   pairLR.use = NULL,
-  slice.use = NULL,
+  sample.use = NULL,
   enriched.only = TRUE,
   thresh = 0.05,
   do.group = TRUE,
@@ -38,7 +38,7 @@ spatialFeaturePlot(
 
 \item{pairLR.use}{a data frame consisting of one column named "interaction_name", defining the L-R pairs of interest}
 
-\item{slice.use}{the slice used for visualization, which should be the element in `object@meta$slices`.}
+\item{sample.use}{the sample used for visualization, which should be the element in `object@meta$samples`.}
 
 \item{enriched.only}{whether only return the identified enriched signaling genes in the database. Default = TRUE, returning the significantly enriched signaling interactions}
 

@@ -9,10 +9,8 @@ StackedVlnPlot(
   features,
   idents = NULL,
   split.by = NULL,
-  color.use = NULL,
+  colors.use = NULL,
   colors.ggplot = FALSE,
-  show.median = FALSE,
-  median.size = 1,
   angle.x = 90,
   vjust.x = NULL,
   hjust.x = NULL,
@@ -32,13 +30,9 @@ StackedVlnPlot(
 
 \item{split.by}{Name of a metadata column to split plot by;}
 
-\item{color.use}{defining the color for each cell group}
+\item{colors.use}{defining the color for each cell group}
 
 \item{colors.ggplot}{whether use ggplot color scheme; default: colors.ggplot = FALSE}
-
-\item{show.median}{whether show the median value}
-
-\item{median.size}{the shape size of the median}
 
 \item{angle.x}{angle for x-axis text rotation}
 

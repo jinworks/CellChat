@@ -10,8 +10,6 @@ modify_vlnplot(
   idents = NULL,
   split.by = NULL,
   cols = NULL,
-  show.median = FALSE,
-  median.size = 1,
   show.text.y = TRUE,
   line.size = NULL,
   pt.size = 0,
@@ -29,10 +27,6 @@ modify_vlnplot(
 \item{split.by}{Name of a metadata column to split plot by;}
 
 \item{cols}{defining the color for each cell group}
-
-\item{show.median}{whether show the median value}
-
-\item{median.size}{the shape size of the median}
 
 \item{show.text.y}{whther show y-axis text}
 
