@@ -3940,7 +3940,7 @@ dotPlot <- function(object, features, rotation = TRUE, colormap = "OrRd", color.
 #'
 #' @param object seurat object
 #' @param features Features to plot (gene expression, metrics)
-#' @param colors.use defining the color for each cell group
+#' @param color.use defining the color for each cell group
 #' @param colors.ggplot whether use ggplot color scheme; default: colors.ggplot = FALSE
 #' @param split.by Name of a metadata column to split plot by;
 #' @param idents Which classes to include in the plot (default is all)
@@ -3960,18 +3960,18 @@ dotPlot <- function(object, features, rotation = TRUE, colormap = "OrRd", color.
 #' @importFrom  patchwork wrap_plots
 # #' @importFrom Seurat VlnPlot
 StackedVlnPlot<- function(object, features, idents = NULL, split.by = NULL,
-                          colors.use = NULL, colors.ggplot = FALSE,
+                          color.use = NULL, colors.ggplot = FALSE,
                           angle.x = 90, vjust.x = NULL, hjust.x = NULL, show.text.y = TRUE, line.size = NULL,
                           pt.size = 0,
                           plot.margin = margin(0, 0, 0, 0, "cm"),
                           ...) {
   options(warn=-1)
-  if (is.null(colors.use)) {
+  if (is.null(color.use)) {
     numCluster <- length(levels(Idents(object)))
     if (colors.ggplot) {
-      colors.use <- NULL
+      color.use <- NULL
     } else {
-      colors.use <- scPalette(numCluster)
+      color.use <- scPalette(numCluster)
     }
   }
   if (is.null(vjust.x) | is.null(hjust.x)) {
@@ -3982,7 +3982,7 @@ StackedVlnPlot<- function(object, features, idents = NULL, split.by = NULL,
     hjust.x = hjust[angle == angle.x]
   }
 
-  plot_list<- purrr::map(features, function(x) modify_vlnplot(object = object, features = x, idents = idents, split.by = split.by, cols = colors.use, pt.size = pt.size,
+  plot_list<- purrr::map(features, function(x) modify_vlnplot(object = object, features = x, idents = idents, split.by = split.by, cols = color.use, pt.size = pt.size,
                                                               show.text.y = show.text.y, line.size = line.size, ...))
 
   # Add back x-axis title to bottom plot. patchwork is going to support this?
