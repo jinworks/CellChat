@@ -65,10 +65,6 @@ Please check the tutorial directory of the repo.
 - [Interface with other single-cell analysis toolkits (e.g., Seurat, SingleCellExperiment, Scanpy)](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/Interface_with_other_single-cell_analysis_toolkits.html)
 - [Tutorial for updating ligand-receptor database CellChatDB](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/Update-CellChatDB.html)
 
-<p align="center">
-  <img width="700"  src="https://github.com/jinworks/CellChat/blob/main/overview_CellChat.png">
-</p>
-
 
 ## Web-based “CellChat Explorer” 
 
