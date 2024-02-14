@@ -30,7 +30,6 @@ Imports:
     reticulate,
     scales,
     sna,
-    forcats,
     reshape2,
     FNN,
     shape,
@@ -45,6 +44,6 @@ Imports:
     plotly,shiny,bslib,presto,tidyverse
 LinkingTo: Rcpp, RcppEigen
 Suggests:
-    rmarkdown, knitr, roxygen2, Seurat (>= 4.0.0), SingleCellExperiment, SummarizedExperiment, purrr,uwot,gg.gap,wordcloud,bsicons
+    rmarkdown, knitr, roxygen2, Seurat (>= 4.0.0), SingleCellExperiment, SummarizedExperiment, purrr,uwot,gg.gap,wordcloud,bsicons,tidyr
 RoxygenNote: 7.2.3
 VignetteBuilder: knitr
