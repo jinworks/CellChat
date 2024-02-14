@@ -359,7 +359,7 @@ display: none;
 ligand-receptor pairs from other resources or utilizing a custom
 ligand-receptor interaction database</h1>
 <h4 class="author">Suoqin Jin</h4>
-<h4 class="date">01 November, 2023</h4>
+<h4 class="date">14 February, 2024</h4>
 
 </div>
 
@@ -368,6 +368,9 @@ ligand-receptor interaction database</h1>
 <li><a href="#part-i-update-cellchatdb-using-the-function-updatecellchatdb" id="toc-part-i-update-cellchatdb-using-the-function-updatecellchatdb">Part
 I: update CellChatDB using the function
 <code>updateCellChatDB</code></a>
+<ul>
+<li><a href="#example-1-using-l-r-interactions-from-a-simple-dataframe" id="toc-example-1-using-l-r-interactions-from-a-simple-dataframe">Example
+1: using L-R interactions from a simple dataframe</a>
 <ul>
 <li><a href="#load-the-required-libraries" id="toc-load-the-required-libraries">Load the required
 libraries</a></li>
@@ -383,10 +386,27 @@ information</a></li>
 4: Use the new database in CellChat analysis or re-build CellChat
 package</a></li>
 </ul></li>
+<li><a href="#example-2-using-l-r-interactions-from-cellphonedb" id="toc-example-2-using-l-r-interactions-from-cellphonedb">Example 2:
+using L-R interactions from CellPhoneDB</a>
+<ul>
+<li><a href="#load-the-required-libraries-1" id="toc-load-the-required-libraries-1">Load the required
+libraries</a></li>
+<li><a href="#step-1-load-the-database-files" id="toc-step-1-load-the-database-files">Step 1: Load the database
+files</a></li>
+<li><a href="#step-2-formulate-the-input-files-to-be-compatible-with-cellchatdb-1" id="toc-step-2-formulate-the-input-files-to-be-compatible-with-cellchatdb-1">Step
+2: Formulate the input files to be compatible with CellChatDB</a></li>
+<li><a href="#step-3-update-cellchatdb-by-running-the-function-updatecellchatdb-1" id="toc-step-3-update-cellchatdb-by-running-the-function-updatecellchatdb-1">Step
+3: Update CellChatDB by running the function
+<code>updateCellChatDB</code></a></li>
+<li><a href="#step-4-use-the-new-database-in-cellchat-analysis-or-re-build-cellchat-package-1" id="toc-step-4-use-the-new-database-in-cellchat-analysis-or-re-build-cellchat-package-1">Step
+4: Use the new database in CellChat analysis or re-build CellChat
+package</a></li>
+</ul></li>
+</ul></li>
 <li><a href="#part-ii-update-cellchatdb-by-manually-modifying-the-required-files" id="toc-part-ii-update-cellchatdb-by-manually-modifying-the-required-files">Part
 II: update CellChatDB by manually modifying the required files</a>
 <ul>
-<li><a href="#load-the-required-libraries-1" id="toc-load-the-required-libraries-1">Load the required
+<li><a href="#load-the-required-libraries-2" id="toc-load-the-required-libraries-2">Load the required
 libraries</a></li>
 <li><a href="#step-1-access-the-ligand-receptor-interaction-information-in-cellchatdb" id="toc-step-1-access-the-ligand-receptor-interaction-information-in-cellchatdb">Step
 1: Access the ligand-receptor interaction information in
@@ -421,18 +441,20 @@ include classified pathway, complex, cofactor and gene information.
 Users can check the documentation of this function for more details of
 the required input data by typing <code>help(updateCellChatDB)</code> in
 RStudio.</p>
+<div id="example-1-using-l-r-interactions-from-a-simple-dataframe" class="section level2">
+<h2>Example 1: using L-R interactions from a simple dataframe</h2>
 <p>Here we describe how to integrate other resources by taking another
 database CellTalkDB as an example. After downloading the CellTalkDB from
 <a href="https://github.com/ZJUFanLab/CellTalkDB" class="uri">https://github.com/ZJUFanLab/CellTalkDB</a>, follow the four
 steps as follows.</p>
-<div id="load-the-required-libraries" class="section level2">
-<h2>Load the required libraries</h2>
+<div id="load-the-required-libraries" class="section level3">
+<h3>Load the required libraries</h3>
 <pre class="r"><code>library(CellChat)
 options(stringsAsFactors = FALSE)</code></pre>
 </div>
-<div id="step-1-load-the-customized-ligand-receptor-pairs-and-the-gene-information" class="section level2">
-<h2>Step 1: Load the customized ligand-receptor pairs and the gene
-information</h2>
+<div id="step-1-load-the-customized-ligand-receptor-pairs-and-the-gene-information" class="section level3">
+<h3>Step 1: Load the customized ligand-receptor pairs and the gene
+information</h3>
 <p>The first input <code>db</code> is a data frame with as least two
 columns named as <code>ligand</code> and <code>receptor</code>. We
 highly suggest users to provide a column of pathway information named
@@ -453,9 +475,9 @@ db.user &lt;- readRDS(&quot;./CellTalkDB-master/database/human_lr_pair.rds&quot;
 # Load the dataframe consisting of gene information (optional)
 gene_info &lt;- readRDS(&quot;./CellTalkDB-master/data/human_gene_info.rds&quot;)</code></pre>
 </div>
-<div id="step-2-formulate-the-input-files-to-be-compatible-with-cellchatdb" class="section level2">
-<h2>Step 2: Formulate the input files to be compatible with
-CellChatDB</h2>
+<div id="step-2-formulate-the-input-files-to-be-compatible-with-cellchatdb" class="section level3">
+<h3>Step 2: Formulate the input files to be compatible with
+CellChatDB</h3>
 <p>Please check above for the basic requirement of the input files. In
 addition, users can check the detailed database information in
 CellChatDB.</p>
@@ -475,9 +497,9 @@ user-defined complex/cofactor names are the same in
 <pre class="r"><code># Modify the colnames because of incompatible with `colnames(CellChatDB.human$interaction)`
 colnames(db.user) &lt;- plyr::mapvalues(colnames(db.user), from = c(&quot;ligand_gene_symbol&quot;,&quot;receptor_gene_symbol&quot;,&quot;lr_pair&quot;), to = c(&quot;ligand&quot;,&quot;receptor&quot;,&quot;interaction_name&quot;), warn_missing = TRUE)</code></pre>
 </div>
-<div id="step-3-update-cellchatdb-by-running-the-function-updatecellchatdb" class="section level2">
-<h2>Step 3: Update CellChatDB by running the function
-<code>updateCellChatDB</code></h2>
+<div id="step-3-update-cellchatdb-by-running-the-function-updatecellchatdb" class="section level3">
+<h3>Step 3: Update CellChatDB by running the function
+<code>updateCellChatDB</code></h3>
 <pre class="r"><code># Create a new database by typing one of the following commands
 # Use user-provided gene information
 db.new &lt;- updateCellChatDB(db = db.user, gene_info = gene_info)
@@ -488,9 +510,9 @@ db.new &lt;- updateCellChatDB(db = db.user, gene_info = NULL, species_target = &
 db.new &lt;- updateCellChatDB(db = db.user, merged = TRUE, species_target = &quot;human&quot;)
 </code></pre>
 </div>
-<div id="step-4-use-the-new-database-in-cellchat-analysis-or-re-build-cellchat-package" class="section level2">
-<h2>Step 4: Use the new database in CellChat analysis or re-build
-CellChat package</h2>
+<div id="step-4-use-the-new-database-in-cellchat-analysis-or-re-build-cellchat-package" class="section level3">
+<h3>Step 4: Use the new database in CellChat analysis or re-build
+CellChat package</h3>
 <p>Re-build CellChat package by updating the database as follows</p>
 <pre class="r"><code># Users can now use this new database in CellChat analysis 
 cellchat@DB &lt;- db.new
@@ -508,13 +530,96 @@ usethis::use_data(CellChatDB.mouse, overwrite = TRUE)
 # usethis::use_data(CellChatDB.human, overwrite = TRUE)</code></pre>
 </div>
 </div>
+<div id="example-2-using-l-r-interactions-from-cellphonedb" class="section level2">
+<h2>Example 2: using L-R interactions from CellPhoneDB</h2>
+<p>Since cellphonedb v5, cellphonedb also introduces signalling
+directionality (ligand is partner A, receptor partner B) and
+classification of signaling pathways, which makes it easiler to make
+full use of CellChat’s versatile analysis by taking CellPhoneDB as an
+input. Here we describe how to integrate L-R interaction resources from
+CellPhoneDB. After downloading the cellphonedb v5 from <a href="https://github.com/ventolab/cellphonedb-data" class="uri">https://github.com/ventolab/cellphonedb-data</a>, run the
+following codes.</p>
+<div id="load-the-required-libraries-1" class="section level3">
+<h3>Load the required libraries</h3>
+<pre class="r"><code>library(CellChat)
+options(stringsAsFactors = FALSE)</code></pre>
+</div>
+<div id="step-1-load-the-database-files" class="section level3">
+<h3>Step 1: Load the database files</h3>
+<pre class="r"><code>## load the database files
+interaction_input &lt;- read.csv(file = &#39;./otherDB/cellphonedb-data-master/data/interaction_input.csv&#39;)
+complex_input &lt;- read.csv(file = &#39;./otherDB/cellphonedb-data-master/data/complex_input.csv&#39;, row.names = 1)
+geneInfo &lt;- read.csv(file = &#39;./otherDB/cellphonedb-data-master/data/gene_input.csv&#39;)
+geneInfo$Symbol &lt;- geneInfo$hgnc_symbol
+geneInfo &lt;- select(geneInfo, -c(&quot;ensembl&quot;))
+geneInfo &lt;- unique(geneInfo)</code></pre>
+</div>
+<div id="step-2-formulate-the-input-files-to-be-compatible-with-cellchatdb-1" class="section level3">
+<h3>Step 2: Formulate the input files to be compatible with
+CellChatDB</h3>
+<pre class="r"><code>## prepare interaction_input file
+# get the ligand information
+idx_partnerA &lt;- match(interaction_input$partner_a, geneInfo$uniprot)
+idx.use &lt;- !is.na(idx_partnerA)
+interaction_input$ligand &lt;- interaction_input$partner_a
+interaction_input$ligand[idx.use] &lt;- geneInfo$hgnc_symbol[idx_partnerA[idx.use]]
+# get the receptor information
+idx_partnerB &lt;- match(interaction_input$partner_b, geneInfo$uniprot)
+idx.use &lt;- !is.na(idx_partnerB)
+interaction_input$receptor &lt;- interaction_input$partner_b
+interaction_input$receptor[idx.use] &lt;- geneInfo$hgnc_symbol[idx_partnerB[idx.use]]
+# get other information
+interaction_input$interaction_name &lt;- interaction_input$interactors
+interaction_input$interaction_name_2 &lt;- interaction_input$interaction_name
+interaction_input$pathway_name &lt;- interaction_input$classification
+interaction_input$pathway_name &lt;- gsub(&quot;.*by &quot;, &quot;&quot;, interaction_input$pathway_name)
+interaction_input$annotation &lt;- interaction_input$directionality
+interaction_input &lt;- select(interaction_input, -c(&quot;partner_a&quot;,&quot;partner_b&quot;,&quot;protein_name_a&quot;,&quot;protein_name_b&quot;,&quot;interactors&quot;,&quot;classification&quot;,&quot;directionality&quot;))
+
+## prepare complex_input file
+complexsubunits &lt;- dplyr::select(complex_input, starts_with(&quot;uniprot&quot;))
+for (i in 1:ncol(complexsubunits)) {
+  idx_complex &lt;- match(complex_input[,paste0(&quot;uniprot_&quot;,i)], geneInfo$uniprot)
+  idx.use &lt;- !is.na(idx_complex)
+  complex_input[idx.use,paste0(&quot;uniprot_&quot;,i)] &lt;- geneInfo$hgnc_symbol[idx_complex[idx.use]]
+}
+colnames(complex_input)[1:ncol(complexsubunits)] &lt;- paste0(&quot;subunit_&quot;,seq_len(ncol(complexsubunits)))
+complex_input &lt;- dplyr::select(complex_input, starts_with(&quot;subunit&quot;))
+
+## prepare other information 
+other_info &lt;- list(complex = complex_input)</code></pre>
+</div>
+<div id="step-3-update-cellchatdb-by-running-the-function-updatecellchatdb-1" class="section level3">
+<h3>Step 3: Update CellChatDB by running the function
+<code>updateCellChatDB</code></h3>
+<pre class="r"><code>db.new &lt;- updateCellChatDB(db = interaction_input, gene_info = geneInfo, other_info = other_info, trim.pathway = T)
+</code></pre>
+</div>
+<div id="step-4-use-the-new-database-in-cellchat-analysis-or-re-build-cellchat-package-1" class="section level3">
+<h3>Step 4: Use the new database in CellChat analysis or re-build
+CellChat package</h3>
+<p>Re-build CellChat package by updating the database as follows</p>
+<pre class="r"><code># Users can now use this new database in CellChat analysis 
+cellchat@DB &lt;- db.new
+
+# Users can save the new database for future use
+save(db.new, file = &quot;CellChatDB.human_user.rda&quot;)
+
+# Users can also re-build CellChatDB in CellChat package
+setwd(&quot;/Users/$USERS/Downloads/CellChat-master&quot;) # This is the folder of CellChat package downloaded from Github
+CellChatDB.human &lt;- CellChatDB
+usethis::use_data(CellChatDB.human, overwrite = TRUE)
+</code></pre>
+</div>
+</div>
+</div>
 <div id="part-ii-update-cellchatdb-by-manually-modifying-the-required-files" class="section level1">
 <h1>Part II: update CellChatDB by manually modifying the required
 files</h1>
 <p>Here we outline the steps to update CellChatDB by manually adding
 user-defined ligand-receptor pairs. To do so, the format of the users’
 lists must be compatible with the input files of CellChatDB.</p>
-<div id="load-the-required-libraries-1" class="section level2">
+<div id="load-the-required-libraries-2" class="section level2">
 <h2>Load the required libraries</h2>
 <pre class="r"><code>library(CellChat)
 options(stringsAsFactors = FALSE)</code></pre>

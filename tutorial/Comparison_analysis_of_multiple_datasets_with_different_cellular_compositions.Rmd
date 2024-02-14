@@ -31,13 +31,13 @@ library(CellChat)
 library(patchwork)
 ```
 
-# Part I: Comparison analysis of multiple datasets with slightly different cell type compositions
-For the datasets with slightly different cell type (group) compositions, CellChat can lift up the cell groups to the same cell labels across all datasets using the function `liftCellChat`, and then perform comparison analysis as the joint analysis of datasets with the same cell type compositions. 
+# Part I: Comparative analysis of multiple datasets with slightly different cell type compositions
+For the datasets with differing cell type (group) compositions, CellChat lifts up the cell groups to the same cell type compositions across all datasets using the function `liftCellChat`, and then performs comparative analysis as the joint analysis of datasets with the same cell type compositions. 
 
-Here we take an example of comparison analysis of two embryonic mouse skin scRNA-seq datasets from days E13.5 and E14.5. There are 11 shared skin cell populations at E13.5 and E14.5 and additional two populations (i.e., dermal DC and pericytes) specific to E14.5. Therefore, we will lift up the cell groups from E13.5 to the same cell labels as E14.5. 
+Here we take an example of comparative analysis of two embryonic mouse skin scRNA-seq datasets from days E13.5 and E14.5. There are 11 shared skin cell populations at E13.5 and E14.5 and additional two populations (i.e., dermal DC and pericytes) specific to E14.5. Therefore, we lift up the cell groups from E13.5 to the same cell labels as E14.5.
 
 ## Load CellChat object of each dataset
-USERS need to run CellChat on each dataset seperately and then merge different CellChat objects together. Here we also do `updateCellChat` because these two objects are obtained using the earlier version (< 1.6.0) of CellChat. 
+Users need to run CellChat on each dataset separately and then merge different CellChat objects together. Here we do `updateCellChat` because these two objects are obtained using the earlier version (< 1.6.0) of CellChat.
 ```{r}
 ptm = Sys.time()
 
@@ -47,8 +47,8 @@ cellchat.E14 <- readRDS("/Users/suoqinjin/Library/CloudStorage/OneDrive-Personal
 cellchat.E14 <- updateCellChat(cellchat.E14)
 ```
 
-## Lift up CellChat object and merge together
-Since there are additional two populations (i.e., dermal DC and pericytes) specific to E14.5 compared to E13.5, we lift up `cellchat.E13` by lifting up the cell groups to the same cell labels as E14.5. `liftCellChat` will only update the slot related to the cell-cell communication network, including slots object@net, object@netP and object@idents. 
+## Lift up CellChat objects and merge them together
+Since there are two additional populations (i.e., dermal DC and pericytes) specific to E14.5 compared to E13.5, we lift up `cellchat.E13` by lifting up the cell groups to the same cell group compositions as E14.5. `liftCellChat` only updates the slot related to cell-cell communication network, including slots `object@net `, `object@netP` and `object@idents`.
 
 ```{r}
 # Define the cell labels to lift up by combining both cell labels from the conditions
@@ -60,18 +60,9 @@ object.list <- list(E13 = cellchat.E13, E14 = cellchat.E14)
 cellchat <- mergeCellChat(object.list, add.names = names(object.list), cell.prefix = TRUE)
 ```
 
-## Visualize the inferred signaling network using the lifted object
+## Comparative visualization and analysis of cell-cell communication using the lifted objects
+Once we lift up the CellChat object and merge different objects together, we can perform CellChat analysis the same way as the comparative analysis of multiple datasets with the same cell type compositions (see the [tutorial on Comparison analysis of multiple datasets](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/Comparison_analysis_of_multiple_datasets.html)). Below is an example of how to compare the inferred cell-cell communication networks using Circle plot, Hierarchy plot and Chord diagram. 
 
-```{r, fig.width=8,fig.height = 6, fig.wide = TRUE, fig.align = "center"}
-# Hierarchy plot
-pathways.show <- c("WNT") 
-weight.max <- getMaxWeight(object.list, slot.name = c("netP"), attribute = pathways.show) # control the edge weights across different datasets
-vertex.receiver = seq(1,10) # Left portion of hierarchy plot the shows signaling to dermal cells and right portion shows signaling to epidermal cells
-par(mfrow = c(1,2), xpd=TRUE)
-for (i in 1:length(object.list)) {
-  netVisual_aggregate(object.list[[i]], signaling = pathways.show, vertex.receiver = vertex.receiver, edge.weight.max = weight.max[1], edge.width.max = 10, signaling.name = paste(pathways.show, names(object.list)[i]))
-}
-```
 
 ```{r, fig.width=11,fig.height = 5, fig.wide = TRUE, fig.align = "center"}
 # Circle plot
@@ -84,6 +75,17 @@ for (i in 1:length(object.list)) {
 
 execution.time = Sys.time() - ptm
 print(as.numeric(execution.time, units = "secs"))
+```
+
+```{r, fig.width=8,fig.height = 6, fig.wide = TRUE, fig.align = "center"}
+# Hierarchy plot
+pathways.show <- c("WNT") 
+weight.max <- getMaxWeight(object.list, slot.name = c("netP"), attribute = pathways.show) # control the edge weights across different datasets
+vertex.receiver = seq(1,10) # Left portion of hierarchy plot the shows signaling to dermal cells and right portion shows signaling to epidermal cells
+par(mfrow = c(1,2), xpd=TRUE)
+for (i in 1:length(object.list)) {
+  netVisual_aggregate(object.list[[i]], signaling = pathways.show, vertex.receiver = vertex.receiver, edge.weight.max = weight.max[1], edge.width.max = 10, signaling.name = paste(pathways.show, names(object.list)[i]))
+}
 ```
 
 ```{r, fig.width=12,fig.height = 6, fig.wide = TRUE, fig.align = "center"}
