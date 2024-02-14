@@ -191,6 +191,69 @@ setIdent <- function(object, ident.use = NULL, levels = NULL, display.warning = 
 }
 
 
+#' Add a reduced space of the data into CellChat object
+#'
+#' @param object CellChat object from a single dataset
+#' @param dr A data frame (rows are cells with rownames) consisting of a low-dimensional space for visualization
+#' @param dr.name A char name of the reduction method for the input `dr`
+#' @param seu.obj A Seurat object with the reduced space of the data
+#' @param dr.use A char name of the reduction method to use when taking `seu.obj` as input. By default, all reduced space in `seu.obj` will be added in `object@dr`
+#' @param force.add Whether to force to add a new reduced space when a reduced space exists in `object@dr`
+#' @return
+#' @export
+#' @examples
+#' \dontrun{
+#' cellChat <- addReduction(object = cellchat, dr = cell.embeddings, dr.name = "umap")
+#'
+#' cellChat <- addReduction(object = cellchat, seu.obj = seu.obj)
+#' }
+addReduction <- function(object, dr = NULL, dr.name = NULL, seu.obj = NULL, dr.use = NULL, force.add = FALSE) {
+  if (length(names(object@dr)) > 0) {
+    if (!force.add) {
+      stop(paste0("The `object@dr` contains the following reduced space: ", toString(names(object@dr)), ". Please set `force.add = TRUE` if intending to add a new reduced space. \n"))
+    }
+  }
+  if (!is.null(dr)) {
+    if (is.null(dr.name)) {
+      stop("When inputing `dr`, please also provide the `dr.name`! \n")
+    }
+    dr <- as.data.frame(dr)
+    if (all(colnames(object@data.signaling) %in% rownames(dr))) {
+      object@dr[[dr.name]] <- dr[colnames(object@data.signaling), ]
+    } else {
+      stop("Some cell barcodes in the CellChat object are not the rownames of the input `dr`. Please check the input `dr` and make sure it contains all cells in the CellChat analysis. \n")
+    }
+  } else if(!is.null(seu.obj)) {
+    if (!is(seu.obj,"Seurat")) {
+      stop("The input `seu.obj` can be only the Seurat object. \n")
+    }
+    reductions <- names(seu.obj@reductions)
+    if (length(reductions) == 0) {
+      stop("The input `seu.obj` does not contain any low-dimensional space. Please generate a low-dimensional space for visualization. \n")
+    }
+    if (!is.null(dr.use)) {
+      reductions <- intersect(reductions, dr.use)
+    }
+    if (length(reductions) == 0) {
+      stop("The input `dr.use` is not in the reduced space in `seu.obj`. \n")
+    }
+    for (i in 1:length(reductions)) {
+      dr.name <- reductions[i]
+      dr = seu.obj@reductions[[dr.name]]@cell.embeddings
+      if (all(colnames(object@data.signaling) %in% rownames(dr))) {
+        cat(paste0(dr.name, " is now added in `object@dr` as a low-dimensional space. \n"))
+        object@dr[[dr.name]] <- dr[colnames(object@data.signaling), ]
+      } else {
+        stop("Some cell barcodes in the CellChat object are not in the input `seu.obj`. Please check the input `seu.obj` and make sure it contains all cells in the CellChat analysis. \n")
+      }
+    }
+  } else {
+    stop("Please input either `dr` or `seu.obj`! \n")
+  }
+  return(object)
+}
+
+
 #' Update and re-order the cell group names after running `computeCommunProb`
 #'
 #' @param object CellChat object
