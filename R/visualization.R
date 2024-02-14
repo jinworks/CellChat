@@ -2095,21 +2095,21 @@ netVisual_barplot <- function(object, comparison = c(1,2), measure = c("count", 
 #' @param thresh threshold of the p-value for determining significant interaction
 #' @param comparison a numerical vector giving the datasets for comparison in the merged object; e.g., comparison = c(1,2)
 #' @param group a numerical vector giving the group information of different datasets; e.g., group = c(1,2,2)
-#' @param remove.isolate whether remove the entire empty column, i.e., communication between certain cell groups
-#' @param max.dataset a scale, keep the communications with highest probability in max.dataset (i.e., certrain condition)
-#' @param min.dataset a scale, keep the communications with lowest probability in min.dataset (i.e., certrain condition)
+#' @param remove.isolate whether to remove the entire empty columns, i.e., communication between certain cell groups
+#' @param max.dataset a scale, keeping the communications with highest probability in max.dataset (i.e., certrain condition)
+#' @param min.dataset a scale, keeping the communications with lowest probability in min.dataset (i.e., certrain condition)
 #' @param min.quantile,max.quantile minimum and maximum quantile cutoff values for the colorbar, may specify quantile in [0,1]
-#' @param line.on whether add vertical line when doing comparison analysis for the merged object
+#' @param line.on whether to add vertical line when doing comparison analysis for the merged object
 #' @param line.size size of vertical line if added
-#' @param color.text.use whether color the xtick labels according to the dataset origin when doing comparison analysis
+#' @param color.text.use whether to color the xtick labels according to the dataset origin when doing comparison analysis
 #' @param color.text the colors for xtick labels according to the dataset origin when doing comparison analysis
 #' @param dot.size.min,dot.size.max Size of smallest and largest points
 #' @param title.name main title of the plot
 #' @param font.size,font.size.title font size of all the text and the title name
-#' @param show.legend whether show legend
-#' @param grid.on,color.grid whether add grid
+#' @param show.legend whether to show legend
+#' @param grid.on,color.grid whether to add grid
 #' @param angle.x,vjust.x,hjust.x parameters for adjusting the rotation of xtick labels
-#' @param return.data whether return the data.frame for replotting
+#' @param return.data whether to return the data.frame for replotting
 #'
 #' @return
 #' @export
@@ -3940,7 +3940,7 @@ dotPlot <- function(object, features, rotation = TRUE, colormap = "OrRd", color.
 #'
 #' @param object seurat object
 #' @param features Features to plot (gene expression, metrics)
-#' @param colors.use defining the color for each cell group
+#' @param color.use defining the color for each cell group
 #' @param colors.ggplot whether use ggplot color scheme; default: colors.ggplot = FALSE
 #' @param split.by Name of a metadata column to split plot by;
 #' @param idents Which classes to include in the plot (default is all)
@@ -3960,18 +3960,18 @@ dotPlot <- function(object, features, rotation = TRUE, colormap = "OrRd", color.
 #' @importFrom  patchwork wrap_plots
 # #' @importFrom Seurat VlnPlot
 StackedVlnPlot<- function(object, features, idents = NULL, split.by = NULL,
-                          colors.use = NULL, colors.ggplot = FALSE,
+                          color.use = NULL, colors.ggplot = FALSE,
                           angle.x = 90, vjust.x = NULL, hjust.x = NULL, show.text.y = TRUE, line.size = NULL,
                           pt.size = 0,
                           plot.margin = margin(0, 0, 0, 0, "cm"),
                           ...) {
   options(warn=-1)
-  if (is.null(colors.use)) {
-    numCluster <- length(levels(Idents(object)))
+  if (is.null(color.use)) {
+    numCluster <- length(levels(Seurat::Idents(object)))
     if (colors.ggplot) {
-      colors.use <- NULL
+      color.use <- NULL
     } else {
-      colors.use <- scPalette(numCluster)
+      color.use <- scPalette(numCluster)
     }
   }
   if (is.null(vjust.x) | is.null(hjust.x)) {
@@ -3982,7 +3982,7 @@ StackedVlnPlot<- function(object, features, idents = NULL, split.by = NULL,
     hjust.x = hjust[angle == angle.x]
   }
 
-  plot_list<- purrr::map(features, function(x) modify_vlnplot(object = object, features = x, idents = idents, split.by = split.by, cols = colors.use, pt.size = pt.size,
+  plot_list<- purrr::map(features, function(x) modify_vlnplot(object = object, features = x, idents = idents, split.by = split.by, cols = color.use, pt.size = pt.size,
                                                               show.text.y = show.text.y, line.size = line.size, ...))
 
   # Add back x-axis title to bottom plot. patchwork is going to support this?
@@ -4087,7 +4087,7 @@ barPlot <- function(object, features, group.by = NULL, split.by = NULL, color.us
                     x.lab.rot = FALSE, ncol = 1, ...) {
   method <- match.arg(method)
   if (is.null(group.by)) {
-    labels = Idents(object)
+    labels = Seurat::Idents(object)
   } else {
     labels = object@meta.data[,group.by]
   }
