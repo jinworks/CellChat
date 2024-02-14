@@ -23,7 +23,7 @@ netAnalysis_signalingRole_heatmap(
 \arguments{
 \item{object}{CellChat object}
 
-\item{signaling}{a character vector giving the name of signaling networks}
+\item{signaling}{a character vector giving the names of signaling networks of interest}
 
 \item{pattern}{"outgoing", "incoming" or "all". When pattern = "all", it aggregates the outgoing and incoming signaling strength together}
 

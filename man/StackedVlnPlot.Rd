@@ -9,7 +9,7 @@ StackedVlnPlot(
   features,
   idents = NULL,
   split.by = NULL,
-  colors.use = NULL,
+  color.use = NULL,
   colors.ggplot = FALSE,
   angle.x = 90,
   vjust.x = NULL,
@@ -30,7 +30,7 @@ StackedVlnPlot(
 
 \item{split.by}{Name of a metadata column to split plot by;}
 
-\item{colors.use}{defining the color for each cell group}
+\item{color.use}{defining the color for each cell group}
 
 \item{colors.ggplot}{whether use ggplot color scheme; default: colors.ggplot = FALSE}
 
