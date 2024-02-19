@@ -49,7 +49,8 @@ Some users might have issues when installing CellChat pacakge due to different o
 
 
 ## Tutorials
-Please check the tutorial directory of the repo.
+Please check the tutorial directory of the repo. Example datasets are publicly available at [figshare](https://figshare.com/projects/Example_data_for_cell-cell_communication_analysis_using_CellChat/157272). 
+
 
 ### Analysis of single-cell transcriptomics data
 - [Full tutorial for CellChat analysis of a single dataset with detailed explanation of each function](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/CellChat-vignette.html)
