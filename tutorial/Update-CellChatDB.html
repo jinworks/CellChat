@@ -359,7 +359,7 @@ display: none;
 ligand-receptor pairs from other resources or utilizing a custom
 ligand-receptor interaction database</h1>
 <h4 class="author">Suoqin Jin</h4>
-<h4 class="date">14 February, 2024</h4>
+<h4 class="date">22 February, 2024</h4>
 
 </div>
 
@@ -462,6 +462,9 @@ highly suggest users to provide a column of pathway information named
 include ‘interaction_name’ and ‘interaction_name_2’. The default columns
 of CellChatDB can be checked via
 ‘colnames(CellChatDB.human$interaction)’.</p>
+<p><strong>Warning: If no pathway information of each L-R pair is
+provided, all pathway-level analysis from CellChat cannot be used, such
+as <code>computeCommunProb</code>! </strong></p>
 <p>The second input <code>gene_info</code> is a data frame with at least
 one column named as ‘Symbol’. “When setting gene_info = NULL, the input
 ‘species_target’ should be provided: either ‘human’ or ‘mouse’.</p>
@@ -509,6 +512,10 @@ db.new &lt;- updateCellChatDB(db = db.user, gene_info = NULL, species_target = &
 # Alternatively, users can integrate the customized L-R pairs into the built-in CellChatDB 
 db.new &lt;- updateCellChatDB(db = db.user, merged = TRUE, species_target = &quot;human&quot;)
 </code></pre>
+<p><strong>Warning: Becuase no pathway information of each L-R pair is
+provided in <code>db.user</code> here, all pathway-level analysis from
+CellChat cannot be used, such as <code>computeCommunProb</code>!
+</strong></p>
 </div>
 <div id="step-4-use-the-new-database-in-cellchat-analysis-or-re-build-cellchat-package" class="section level3">
 <h3>Step 4: Use the new database in CellChat analysis or re-build

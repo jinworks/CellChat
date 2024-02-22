@@ -54,7 +54,8 @@ meta = meta[cell.use, ]
 ## (B) Starting from a Seurat object
 The normalized count data and cell group information can be obtained from the Seurat object by
 ```{r}
-data.input <- GetAssayData(seurat_object, assay = "RNA", slot = "data") # normalized data matrix
+data.input <- seurat_object[["RNA"]]@data # normalized data matrix
+# For Seurat version >= “5.0.0”, get the normalized data via `seurat_object[["RNA"]]$data`
 labels <- Idents(seurat_object)
 meta <- data.frame(group = labels, row.names = names(labels)) # create a dataframe of the cell labels
 ```
@@ -90,6 +91,7 @@ anndata provides a python class that can be used to store single-cell data, whic
 ### Using anndata R package
 [anndata for R](https://github.com/dynverse/anndata), which is a reticulate wrapper for the anndata Python package, was recently published in CRAN, which makes it much convenient to read from and write to the h5ad file format in R. We show how to extract the required data inputs for CellChat analysis using anndata R package. 
 ```{r}
+# install.packages("anndata")
 # read the data into R using anndata R package
 library(anndata)
 ad <- read_h5ad("scanpy_object.h5ad")
@@ -101,6 +103,7 @@ data.input <- as(log1p(Matrix::t(Matrix::t(counts)/library.size) * 10000), "dgCM
 
 # access meta data
 meta <- ad$obs
+meta$labels <- meta[["ad_clusters"]] 
 # save the data for CellChat analysis
 save(data.input, meta, file = "test_data.RData")
 ```
@@ -189,7 +192,7 @@ meta <- as.data.frame(SingleCellExperiment::colData(sce)) #
 save(sce, file = "sce_object.RData")
 
 # create a CellChat object from the sce object
-cellChat <- createCellChat(object = sce.obj, group.by = "clusters.final")
+cellChat <- createCellChat(object = sce, group.by = "clusters.final")
 ```
 
 

@@ -24,7 +24,7 @@ When inferring spatially-proximal cell-cell communication from spatially resolve
 
 To infer spatially proximal cell-cell communication, in addition to the gene expression data matrix, CellChat requires additional three user inputs:
 
-* **(1) `meta` (User assigned cell labels and slices labels)**: a data frame (rows are cells with rownames) consisting of cell information, which will be used for defining cell groups.  A column named `slices` should be provided for spatial transcriptomics analysis, which is useful for analyzing cell-cell communication by aggregating multiple slices/replicates. Of note, for comparison analysis across different conditions, users still need to create a CellChat object seperately for each condition. 
+* **(1) `meta` (User assigned cell labels and samples labels)**: a data frame (rows are cells with rownames) consisting of cell information, which will be used for defining cell groups.  A column named `samples` should be provided for spatial transcriptomics analysis, which is useful for analyzing cell-cell communication by aggregating multiple samples/replicates. Of note, for comparison analysis across different conditions, users still need to create a CellChat object seperately for each condition. 
 
 * **(2) `coordinates` (Spatial coordinates of spots/cells)**: a data frame in which each row gives the spatial coordinates/locations of each cell/spot centroid. 
 
@@ -34,7 +34,7 @@ To infer spatially proximal cell-cell communication, in addition to the gene exp
 
 - (ii) `tol`: the tolerance factor to increase the robustness when comparing the center-to-center distance against the `interaction.range`. This can be the half value of cell/spot size in the unit of um. If the cell/spot size is not known, we provide a function `computeCellDistance` to compute the cell center-to-center distance. `tol` can be the the half value of the minimum center-to-center distance. Of note, CellChat does not need an accurate tolerance factor, which is used for determining whether considering the cell-pair as spatially proximal if their distance is greater than `interaction.range` but smaller than "`interaction.range` + `tol`". 
 
-When inferring contact-dependent or juxtacrine signaling by setting `contact.dependent = TRUE` in `computeCommunProb`, and using L-R pairs from `ECM-Receptor` and `Cell-Cell Contact` signaling classified in `CellChatDB$interaction$annotation`, CellChat requires another one user input: 
+When inferring contact-dependent or juxtacrine signaling by setting `contact.dependent = TRUE` in `computeCommunProb`, and using L-R pairs from `Cell-Cell Contact` signaling classified in `CellChatDB$interaction$annotation`, CellChat requires another one user input: 
 
 * **(4) `contact.range`**: a value giving the interaction range (Unit: microns) to restrict the contact-dependent signaling. For spatial transcriptomics in a single-cell resolution, `contact.range` is approximately equal to the estimated cell diameter (i.e., the cell center-to-center distance), which means that contact-dependent or juxtacrine signaling can only happens when the two cells are contact to each other. Typically, `contact.range = 10`, which is a typical human cell size. However, for low-resolution spatial data such as 10X visium, it should be the cell center-to-center distance (i.e., `contact.range = 100` for 10X visium data). The function `computeCellDistance` can compute the center-to-center distance.
 
@@ -57,6 +57,9 @@ scalefactors = jsonlite::fromJSON(txt = file.path("./tutorial/spatial_imaging_da
 spot.size = 65 # the theoretical spot size (um) in 10X Visium
 conversion.factor = spot.size/scalefactors$spot_diameter_fullres
 spatial.factors = data.frame(ratio = conversion.factor, tol = spot.size/2)
+
+d.spatial <- computeCellDistance(coordinates = spatial.locs, ratio = spatial.factors$ratio, tol = spatial.factors$tol)
+min(d.spatial[d.spatial!=0]) # this value should approximately equal 100um for 10X Visium data
 ```
 
 Finally, users can create a new CellChat object by taking spatial coordinates and spatial.factors as inputs: 
@@ -82,6 +85,7 @@ d = computeCellDistance(spatial.locs)
 spot.size = min(d)*conversion.factor # converting the distance in Pixels to Micrometers
 spatial.factors = data.frame(ratio = conversion.factor, tol = spot.size/2)
 ```
+
 # Stereo-seq
 For Stereo-seq data, please check the the post https://github.com/jinworks/CellChat/issues/6
 

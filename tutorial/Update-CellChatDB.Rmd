@@ -2,7 +2,7 @@
 ---
 title: "Update CellChatDB by integrating new ligand-receptor pairs from other resources or utilizing a custom ligand-receptor interaction database"
 author: "Suoqin Jin"
-date: "01 November, 2023"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
   html_document:
     toc: true
@@ -37,16 +37,19 @@ updateCellChatDB(
 ```
 The minimum input of this function is a data frame with two columns named as `ligand` and `receptor`, and other inputs include classified pathway, complex, cofactor and gene information. Users can check the documentation of this function for more details of the required input data by typing `help(updateCellChatDB)` in RStudio.
 
+## Example 1: using L-R interactions from a simple dataframe
 Here we describe how to integrate other resources by taking another database CellTalkDB as an example. After downloading the CellTalkDB from https://github.com/ZJUFanLab/CellTalkDB, follow the four steps as follows. 
 
-## Load the required libraries
+### Load the required libraries
 ```{r message=FALSE,warning=FALSE}
 library(CellChat)
 options(stringsAsFactors = FALSE)
 ```
 
-## Step 1: Load the customized ligand-receptor pairs and the gene information
+### Step 1: Load the customized ligand-receptor pairs and the gene information
 The first input `db` is a data frame with as least two columns named as `ligand` and `receptor`. We highly suggest users to provide a column of pathway information named 'pathway_name' associated with each L-R pair. Other optional columns include 'interaction_name' and 'interaction_name_2'. The default columns of CellChatDB can be checked via 'colnames(CellChatDB.human$interaction)'.
+
+ **Warning: If no pathway information of each L-R pair is provided, all pathway-level analysis from CellChat cannot be used, such as `computeCommunProb`! **  
 
 The second input `gene_info` is a data frame with at least one column named as 'Symbol'. "When setting gene_info = NULL, the input 'species_target' should be provided: either 'human' or 'mouse'. 
 
@@ -59,7 +62,7 @@ db.user <- readRDS("./CellTalkDB-master/database/human_lr_pair.rds")
 gene_info <- readRDS("./CellTalkDB-master/data/human_gene_info.rds")
 ```
 
-## Step 2: Formulate the input files to be compatible with CellChatDB
+### Step 2: Formulate the input files to be compatible with CellChatDB
 Please check above for the basic requirement of the input files. In addition, users can check the detailed database information in CellChatDB. 
 
 * The main ligand-receptor interaction information is stored in `CellChatDB$interaction`. Columns of this dataframe includes information of ligands, receptors and co-factors. 
@@ -73,7 +76,7 @@ Please check above for the basic requirement of the input files. In addition, us
 colnames(db.user) <- plyr::mapvalues(colnames(db.user), from = c("ligand_gene_symbol","receptor_gene_symbol","lr_pair"), to = c("ligand","receptor","interaction_name"), warn_missing = TRUE)
 ```
 
-## Step 3: Update CellChatDB by running the function `updateCellChatDB`
+### Step 3: Update CellChatDB by running the function `updateCellChatDB`
 ```{r}
 # Create a new database by typing one of the following commands
 # Use user-provided gene information
@@ -85,7 +88,10 @@ db.new <- updateCellChatDB(db = db.user, gene_info = NULL, species_target = "hum
 db.new <- updateCellChatDB(db = db.user, merged = TRUE, species_target = "human")
 
 ```
-## Step 4: Use the new database in CellChat analysis or re-build CellChat package
+
+**Warning: Becuase no pathway information of each L-R pair is provided in `db.user` here, all pathway-level analysis from CellChat cannot be used, such as `computeCommunProb`! **
+
+### Step 4: Use the new database in CellChat analysis or re-build CellChat package
 Re-build CellChat package by updating the database as follows
 ```{r eval=FALSE}
 # Users can now use this new database in CellChat analysis 
@@ -102,6 +108,82 @@ usethis::use_data(CellChatDB.mouse, overwrite = TRUE)
 # If working on a human dataset, do following:
 # CellChatDB.human <- CellChatDB
 # usethis::use_data(CellChatDB.human, overwrite = TRUE)
+```
+
+## Example 2: using L-R interactions from CellPhoneDB
+Since cellphonedb v5, cellphonedb also introduces signalling directionality (ligand is partner A, receptor partner B) and classification of signaling pathways, which makes it easiler to make full use of CellChat's versatile analysis by taking CellPhoneDB as an input. Here we describe how to integrate L-R interaction resources from CellPhoneDB. After downloading the cellphonedb v5 from https://github.com/ventolab/cellphonedb-data, run the following codes. 
+
+### Load the required libraries
+```{r message=FALSE,warning=FALSE}
+library(CellChat)
+options(stringsAsFactors = FALSE)
+```
+
+### Step 1: Load the database files
+```{r}
+## load the database files
+interaction_input <- read.csv(file = './otherDB/cellphonedb-data-master/data/interaction_input.csv')
+complex_input <- read.csv(file = './otherDB/cellphonedb-data-master/data/complex_input.csv', row.names = 1)
+geneInfo <- read.csv(file = './otherDB/cellphonedb-data-master/data/gene_input.csv')
+geneInfo$Symbol <- geneInfo$hgnc_symbol
+geneInfo <- select(geneInfo, -c("ensembl"))
+geneInfo <- unique(geneInfo)
+```
+
+### Step 2: Formulate the input files to be compatible with CellChatDB
+```{r}
+## prepare interaction_input file
+# get the ligand information
+idx_partnerA <- match(interaction_input$partner_a, geneInfo$uniprot)
+idx.use <- !is.na(idx_partnerA)
+interaction_input$ligand <- interaction_input$partner_a
+interaction_input$ligand[idx.use] <- geneInfo$hgnc_symbol[idx_partnerA[idx.use]]
+# get the receptor information
+idx_partnerB <- match(interaction_input$partner_b, geneInfo$uniprot)
+idx.use <- !is.na(idx_partnerB)
+interaction_input$receptor <- interaction_input$partner_b
+interaction_input$receptor[idx.use] <- geneInfo$hgnc_symbol[idx_partnerB[idx.use]]
+# get other information
+interaction_input$interaction_name <- interaction_input$interactors
+interaction_input$interaction_name_2 <- interaction_input$interaction_name
+interaction_input$pathway_name <- interaction_input$classification
+interaction_input$pathway_name <- gsub(".*by ", "", interaction_input$pathway_name)
+interaction_input$annotation <- interaction_input$directionality
+interaction_input <- select(interaction_input, -c("partner_a","partner_b","protein_name_a","protein_name_b","interactors","classification","directionality"))
+
+## prepare complex_input file
+complexsubunits <- dplyr::select(complex_input, starts_with("uniprot"))
+for (i in 1:ncol(complexsubunits)) {
+  idx_complex <- match(complex_input[,paste0("uniprot_",i)], geneInfo$uniprot)
+  idx.use <- !is.na(idx_complex)
+  complex_input[idx.use,paste0("uniprot_",i)] <- geneInfo$hgnc_symbol[idx_complex[idx.use]]
+}
+colnames(complex_input)[1:ncol(complexsubunits)] <- paste0("subunit_",seq_len(ncol(complexsubunits)))
+complex_input <- dplyr::select(complex_input, starts_with("subunit"))
+
+## prepare other information 
+other_info <- list(complex = complex_input)
+```
+
+### Step 3: Update CellChatDB by running the function `updateCellChatDB`
+```{r}
+db.new <- updateCellChatDB(db = interaction_input, gene_info = geneInfo, other_info = other_info, trim.pathway = T)
+
+```
+### Step 4: Use the new database in CellChat analysis or re-build CellChat package
+Re-build CellChat package by updating the database as follows
+```{r eval=FALSE}
+# Users can now use this new database in CellChat analysis 
+cellchat@DB <- db.new
+
+# Users can save the new database for future use
+save(db.new, file = "CellChatDB.human_user.rda")
+
+# Users can also re-build CellChatDB in CellChat package
+setwd("/Users/$USERS/Downloads/CellChat-master") # This is the folder of CellChat package downloaded from Github
+CellChatDB.human <- CellChatDB
+usethis::use_data(CellChatDB.human, overwrite = TRUE)
+
 ```
 
 # Part II: update CellChatDB by manually modifying the required files
@@ -166,3 +248,4 @@ usethis::use_data(CellChatDB.mouse, overwrite = TRUE)
 # CellChatDB.human <- CellChatDB
 # usethis::use_data(CellChatDB.human, overwrite = TRUE)
 ```
+
