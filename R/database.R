@@ -144,7 +144,7 @@ subsetDB <- function(CellChatDB, search = c(), key = "annotation", non_protein =
 
   if ("Non-protein Signaling" %in% unlist(search)) {
     non_protein = TRUE
-    message("The non-protein signaling is now included for CellChat analysis, which is usually used for neuron-neuron communication!")
+    message("The non-protein signaling is now included for CellChat analysis, which is usually used for neuron-neuron and metabolic communication!")
   }
   if (non_protein == FALSE) {
     interaction_input <- subset(interaction_input, annotation != "Non-protein Signaling")
@@ -291,6 +291,7 @@ checkGeneSymbol <- function(geneSet, geneIfo) {
 #' Other optional columns include `interaction_name` and `interaction_name_2`. The default columns of CellChatDB can be checked via `colnames(CellChatDB.human$interaction)`.
 #' @param gene_info a data frame with at least one column named as `Symbol`. "When setting gene_info = NULL, the input `species_target` should be provided: either `human` or `mouse`.
 #' @param other_info a list consisting of other information including a dataframe named as `complex` and a dataframe named as `cofactor`. This additional information is not necessary. If other_info is provided, the `complex` and `cofactor` are dataframes with defined rownames.
+#' @param trim.pathway whether to delete the interactions with missing pathway names when the column `pathway_name` is provided in `db`.
 #' @param merged whether merging the input database with the existing CellChatDB. setting merged = TRUE, the input `species_target` should be provided: either `human` or `mouse`.
 #' @param species_target the target species for output: either `human` or `mouse`.
 #' @return a list consisting of the customized L-R database for further CellChat analysis
@@ -307,14 +308,24 @@ checkGeneSymbol <- function(geneSet, geneIfo) {
 #' # Users can now use this new database in CellChat analysis
 #' cellchat@DB <- db.new
 #'}
-updateCellChatDB <- function(db, gene_info = NULL, other_info = NULL, merged = FALSE, species_target = NULL) {
+updateCellChatDB <- function(db, gene_info = NULL, other_info = NULL, trim.pathway = FALSE, merged = FALSE, species_target = NULL) {
   db <- dplyr::mutate(db, across(everything(), as.character))
   if (all(c("ligand","receptor") %in% colnames(db)) == FALSE) {
     stop("The input `db` must contain at least two columns named as ligand,receptor")
   }
   if (all(c("pathway_name") %in% colnames(db)) == FALSE) {
-    warning("The pathway_name associated with each L-R pair is not provided in `db`. We suggest to provide this information so that the versatile functionalities of CellChat can be fully used!")
+    warning("The pathway_name associated with each L-R pair is not provided in `db`. We suggest to provide this information so that the versatile functionalities of CellChat can be fully used! \n")
     db$pathway_name <- rep("", nrow(db))
+  } else {
+    pathway.missing <- which(db$pathway_name == "")
+    if (length(pathway.missing) > 0) {
+      if (trim.pathway) {
+        cat(paste0("The pathway names of ", length(pathway.missing) ," interactions are missing and the corresponding interactions are now deleted. \n"))
+        db <- db[-pathway.missing, , drop = FALSE]
+      } else {
+        warning(paste0("The pathway names of ", length(pathway.missing) ," interactions are missing and it may cause error in the downstream analysis. Setting `trim.pathway = TRUE` to avoid such possible errors. \n"))
+      }
+    }
   }
   if (all(c("interaction_name") %in% colnames(db)) == FALSE) {
     db$interaction_name <- paste0(toupper(db$ligand), "_", toupper(db$receptor))
@@ -337,12 +348,18 @@ updateCellChatDB <- function(db, gene_info = NULL, other_info = NULL, merged = F
   ## construct database
   idx.remove <- duplicated(db$interaction_name)
   if (sum(idx.remove) > 0) {
+    warning(paste0(sum(idx.remove), " duplicated interaction_names are identified and the corresponding interactions are now deleted. \n"))
     db <- db[-which(idx.remove), ]
   }
 
   # build the interaction file
   interaction_input <- db
   rownames(interaction_input) <- interaction_input$interaction_name
+  cols.default <- c("interaction_name","pathway_name","ligand","receptor","agonist","antagonist","co_A_receptor","co_I_receptor","annotation","interaction_name_2")
+  cols.common <- intersect(cols.default,colnames(interaction_input))
+  cols.specific <- setdiff(colnames(interaction_input), cols.default)
+  interaction_input <- dplyr::select(interaction_input, c(cols.common, cols.specific))
+
   # build the complex file
   if (!is.null(other_info)) {
     if ("complex" %in% names(other_info) == TRUE) {
@@ -350,13 +367,17 @@ updateCellChatDB <- function(db, gene_info = NULL, other_info = NULL, merged = F
       if (all(colnames(complex_input) %in% paste0("subunit_", seq_len(100))) == FALSE) {
         stop("The colnames of the input `other_info$complex` should be `subunit_1`,`subunit_2`,...")
       }
+    } else {
+      complex_input <- data.frame()
     }
     # build the cofactor file
-    if ("cofactor" %in% colnames(other_info) == TRUE) {
+    if ("cofactor" %in% names(other_info) == TRUE) {
       cofactor_input <- other_info$cofactor
       if (all(colnames(cofactor_input) %in% paste0("cofactor", seq_len(100))) == FALSE) {
         stop("The colnames of the input `other_info$cofactor` should be `cofactor1`,`cofactor2`,...")
       }
+    } else {
+      cofactor_input <- data.frame()
     }
   } else {
     complex_input <- data.frame()
@@ -386,13 +407,16 @@ updateCellChatDB <- function(db, gene_info = NULL, other_info = NULL, merged = F
     }
     if (species_target == "human") {
       db.cellchat <- CellChatDB.human
+      cat("Starting to merge the input database with CellChatDB.human... \n")
     } else if (species_target == "mouse") {
       db.cellchat <- CellChatDB.mouse
+      cat("Starting to merge the input database with CellChatDB.mouse... \n")
     }
+
     # build the interaction file
     interaction_input.cellchat <- db.cellchat$interaction
-    interaction_input.cellchat$source <- "CellChatDB"
-    interaction_input$source <- "User"
+    interaction_input.cellchat$source.merged <- "CellChatDB"
+    interaction_input$source.merged <- "User"
     cols.common <- intersect(colnames(interaction_input), colnames(interaction_input.cellchat))
     interaction_input <- interaction_input[, cols.common]
     interaction_input.cellchat <- interaction_input.cellchat[, cols.common]

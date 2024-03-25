@@ -20,7 +20,7 @@ computeRegionDistance(
 \arguments{
 \item{coordinates}{a data matrix in which each row gives the spatial locations/coordinates of each cell/spot}
 
-\item{meta}{a data frame including at least two columns named `group` and `slices`. `meta$group` is a factor vector defining the regions/labels of each cell/spot. `meta$slices` is a factor vector defining the slice labels of each dataset.}
+\item{meta}{a data frame including at least two columns named `group` and `samples`. `meta$group` is a factor vector defining the regions/labels of each cell/spot. `meta$samples` is a factor vector defining the sample labels of each dataset.}
 
 \item{interaction.range}{The maximum interaction/diffusion range of ligands. This hard threshold is used to filter out the connections between spatially distant regions}
 

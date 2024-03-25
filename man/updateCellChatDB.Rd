@@ -8,6 +8,7 @@ updateCellChatDB(
   db,
   gene_info = NULL,
   other_info = NULL,
+  trim.pathway = FALSE,
   merged = FALSE,
   species_target = NULL
 )
@@ -19,6 +20,8 @@ Other optional columns include `interaction_name` and `interaction_name_2`. The 
 \item{gene_info}{a data frame with at least one column named as `Symbol`. "When setting gene_info = NULL, the input `species_target` should be provided: either `human` or `mouse`.}
 
 \item{other_info}{a list consisting of other information including a dataframe named as `complex` and a dataframe named as `cofactor`. This additional information is not necessary. If other_info is provided, the `complex` and `cofactor` are dataframes with defined rownames.}
+
+\item{trim.pathway}{whether to delete the interactions with missing pathway names when the column `pathway_name` is provided in `db`.}
 
 \item{merged}{whether merging the input database with the existing CellChatDB. setting merged = TRUE, the input `species_target` should be provided: either `human` or `mouse`.}
 

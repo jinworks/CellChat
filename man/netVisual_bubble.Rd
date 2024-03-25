@@ -67,19 +67,19 @@ netVisual_bubble(
 
 \item{group}{a numerical vector giving the group information of different datasets; e.g., group = c(1,2,2)}
 
-\item{remove.isolate}{whether remove the entire empty column, i.e., communication between certain cell groups}
+\item{remove.isolate}{whether to remove the entire empty columns, i.e., communication between certain cell groups}
 
-\item{max.dataset}{a scale, keep the communications with highest probability in max.dataset (i.e., certrain condition)}
+\item{max.dataset}{a scale, keeping the communications with highest probability in max.dataset (i.e., certrain condition)}
 
-\item{min.dataset}{a scale, keep the communications with lowest probability in min.dataset (i.e., certrain condition)}
+\item{min.dataset}{a scale, keeping the communications with lowest probability in min.dataset (i.e., certrain condition)}
 
 \item{min.quantile, max.quantile}{minimum and maximum quantile cutoff values for the colorbar, may specify quantile in [0,1]}
 
-\item{line.on}{whether add vertical line when doing comparison analysis for the merged object}
+\item{line.on}{whether to add vertical line when doing comparison analysis for the merged object}
 
 \item{line.size}{size of vertical line if added}
 
-\item{color.text.use}{whether color the xtick labels according to the dataset origin when doing comparison analysis}
+\item{color.text.use}{whether to color the xtick labels according to the dataset origin when doing comparison analysis}
 
 \item{color.text}{the colors for xtick labels according to the dataset origin when doing comparison analysis}
 
@@ -89,13 +89,13 @@ netVisual_bubble(
 
 \item{font.size, font.size.title}{font size of all the text and the title name}
 
-\item{show.legend}{whether show legend}
+\item{show.legend}{whether to show legend}
 
-\item{grid.on, color.grid}{whether add grid}
+\item{grid.on, color.grid}{whether to add grid}
 
 \item{angle.x, vjust.x, hjust.x}{parameters for adjusting the rotation of xtick labels}
 
-\item{return.data}{whether return the data.frame for replotting}
+\item{return.data}{whether to return the data.frame for replotting}
 }
 \description{
 The dot color and size represent the calculated communication probability and p-values.

@@ -26,7 +26,7 @@ netVisual_aggregate(
   pt.title = 12,
   title.space = 6,
   vertex.label.cex = 0.8,
-  slice.use = NULL,
+  sample.use = NULL,
   alpha.image = 0.15,
   point.size = 1.5,
   group = NULL,
@@ -90,7 +90,7 @@ Set `vertex.weight` as a vector to plot vertex in different size; setting `verte
 
 Parameters below are set for "spatial" diagram. Please also check the function `netVisual_spatial` for more parameters.}
 
-\item{slice.use}{the slice used for visualization, which should be the element in `object@meta$slices`.}
+\item{sample.use}{the sample used for visualization, which should be the element in `object@meta$samples`.}
 
 \item{alpha.image}{the transparency of individual spots}
 

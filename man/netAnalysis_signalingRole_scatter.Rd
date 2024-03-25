@@ -30,7 +30,7 @@ netAnalysis_signalingRole_scatter(
 \arguments{
 \item{object}{CellChat object}
 
-\item{signaling}{a char vector containing signaling pathway names. signaling = NULL: Signaling role analysis on the aggregated cell-cell communication network from all signaling pathways}
+\item{signaling}{a char vector containing signaling pathway names. signaling = NULL: signaling role analysis on the aggregated cell-cell communication network from all signaling pathways}
 
 \item{color.use}{defining the color for each cell group}
 
@@ -50,11 +50,11 @@ netAnalysis_signalingRole_scatter(
 
 \item{x.measure}{The measure used as x-axis. This measure should be one of `names(slot(object, slot.name)$centr[[1]])` computed from `netAnalysis_computeCentrality`
 
-Default = "outdeg" is the weighted outgoing links (i.e., Outgoing interaction strength). If setting as "outdeg_unweighted", it represents the total number of outgoing signaling.}
+Default = "outdeg" is the weighted outgoing links (i.e., outgoing interaction strength). If setting as "outdeg_unweighted", it represents the total number of outgoing signaling.}
 
 \item{y.measure}{The measure used as y-axis. This measure should be one of `names(slot(object, slot.name)$centr[[1]])` computed from `netAnalysis_computeCentrality`
 
-Default = "indeg" is the weighted incoming links (i.e., Incoming interaction strength). If setting as "indeg_unweighted", it represents the total number of incoming signaling.}
+Default = "indeg" is the weighted incoming links (i.e., incoming interaction strength). If setting as "indeg_unweighted", it represents the total number of incoming signaling.}
 
 \item{xlabel}{label of x-axis}
 

@@ -79,17 +79,17 @@ colnames(data.input2) <- paste0("A2_", colnames(data.input2))
 data.input <- cbind(data.input1[genes.common, ], data.input2[genes.common, ])
 
 # define the meta data
-# a column named `slices` should be provided for spatial transcriptomics analysis, which is useful for analyzing cell-cell communication by aggregating multiple slices/replicates. Of note, for comparison analysis across different conditions, users still need to create a CellChat object seperately for each condition.  
-meta1 = data.frame(labels = Idents(seu1), slices = "A1") # manually create a dataframe consisting of the cell labels
-meta2 = data.frame(labels = Idents(seu2), slices = "A2") 
+# a column named `samples` should be provided for spatial transcriptomics analysis, which is useful for analyzing cell-cell communication by aggregating multiple samples/replicates. Of note, for comparison analysis across different conditions, users still need to create a CellChat object seperately for each condition.  
+meta1 = data.frame(labels = Idents(seu1), samples = "A1") # manually create a dataframe consisting of the cell labels
+meta2 = data.frame(labels = Idents(seu2), samples = "A2") 
 
 meta <- rbind(meta1, meta2)
 rownames(meta) <- colnames(data.input)
-# a factor level should be defined for the `meta$labels` and `meta$slices`
+# a factor level should be defined for the `meta$labels` and `meta$samples`
 meta$labels <- factor(meta$labels, levels = levels(Idents(seu1)))
-meta$slices <- factor(meta$slices, levels = c("A1", "A2"))
+meta$samples <- factor(meta$samples, levels = c("A1", "A2"))
 unique(meta$labels) # check the cell labels
-unique(meta$slices) # check the slice labels
+unique(meta$samples) # check the sample labels
 
 # load spatial transcriptomics information
 # Spatial locations of spots from full (NOT high/low) resolution images are required. For 10X Visium, this information is in `tissue_positions.csv`. 
@@ -157,7 +157,10 @@ cellchat <- computeCommunProb(cellchat, type = "truncatedMean", trim = 0.1,
                               distance.use = FALSE, interaction.range = 250, scale.distance = NULL,
                               contact.dependent = TRUE, contact.range = 100)
 
-# Filter out the cell-cell communication if there are only few number of cells in certain cell groups
+```
+
+Users can filter out the cell-cell communication if there are only few cells in certain cell groups. By default, the minimum number of cells required in each cell group for cell-cell communication is 10. 
+```{r}
 cellchat <- filterCommunication(cellchat, min.cells = 10)
 ```
 
@@ -203,13 +206,13 @@ Here we take input of one signaling pathway as an example. All the signaling pat
 ```{r, fig.height = 6, fig.wide = TRUE, fig.align = "center"}
 pathways.show <- c("EGF") 
 # Circle plot
-par(mfrow=c(1,1))
+par(mfrow=c(1,1), xpd=TRUE)
 netVisual_aggregate(cellchat, signaling = pathways.show, layout = "circle")
 ```
 ```{r, fig.width= 14, fig.height = 10, fig.wide = TRUE, fig.align = "center"}
 # Spatial plot
 par(mfrow=c(1,1))
-netVisual_aggregate(cellchat, signaling = pathways.show, slice.use = "A1", layout = "spatial", edge.width.max = 2, vertex.size.max = 1, alpha.image = 0.2, vertex.label.cex = 0)
+netVisual_aggregate(cellchat, signaling = pathways.show, sample.use = "A1", layout = "spatial", edge.width.max = 2, vertex.size.max = 1, alpha.image = 0.2, vertex.label.cex = 0)
 # Setting `vertex.label.cex = 0` to hide the labels on the spatial plot
 execution.time = Sys.time() - ptm
 print(as.numeric(execution.time, units = "secs"))
@@ -228,7 +231,7 @@ netAnalysis_signalingRole_network(cellchat, signaling = pathways.show, width = 8
 ```{r, fig.width= 14, fig.height = 10, fig.wide = TRUE, fig.align = "center"}
 # USER can show this information on the spatial transcriptomics when visualizing a signaling network, e.g., bigger circle indicates larger incoming signaling
 par(mfrow=c(1,1))
-netVisual_aggregate(cellchat, signaling = pathways.show, slice.use = "A1", layout = "spatial", edge.width.max = 2, alpha.image = 0.2, vertex.weight = "incoming", vertex.size.max = 6, vertex.label.cex = 0)
+netVisual_aggregate(cellchat, signaling = pathways.show, sample.use = "A1", layout = "spatial", edge.width.max = 2, alpha.image = 0.2, vertex.weight = "incoming", vertex.size.max = 6, vertex.label.cex = 0)
 
 ```
 
@@ -237,25 +240,25 @@ netVisual_aggregate(cellchat, signaling = pathways.show, slice.use = "A1", layou
 netAnalysis_contribution(cellchat, signaling = pathways.show)
 ```
 
-When visualizing gene expression distribution on tissue using `spatialFeaturePlot`, users also need to provide the `slice.use` as an input. 
+When visualizing gene expression distribution on tissue using `spatialFeaturePlot`, users also need to provide the `sample.use` as an input. 
 
 ```{r, fig.width= 8, fig.wide = TRUE, fig.align = "center"}
 # Take an input of a few genes
-spatialFeaturePlot(cellchat, features = c("AREG","EGFR"), slice.use = "A1", point.size = 0.8, color.heatmap = "Reds", direction = 1)
-spatialFeaturePlot(cellchat, features = c("AREG","EGFR"), slice.use = "A2",point.size = 0.8, color.heatmap = "Reds", direction = 1)
+spatialFeaturePlot(cellchat, features = c("AREG","EGFR"), sample.use = "A1", point.size = 0.8, color.heatmap = "Reds", direction = 1)
+spatialFeaturePlot(cellchat, features = c("AREG","EGFR"), sample.use = "A2",point.size = 0.8, color.heatmap = "Reds", direction = 1)
 
 # Take an input of a ligand-receptor pair
-spatialFeaturePlot(cellchat, pairLR.use = "AREG_EGFR", slice.use = "A1", point.size = 0.5, do.binary = FALSE, cutoff = 0.05, enriched.only = F, color.heatmap = "Reds", direction = 1)
+spatialFeaturePlot(cellchat, pairLR.use = "AREG_EGFR", sample.use = "A1", point.size = 0.5, do.binary = FALSE, cutoff = 0.05, enriched.only = F, color.heatmap = "Reds", direction = 1)
 
 # Take an input of a ligand-receptor pair and show expression in binary
-spatialFeaturePlot(cellchat, pairLR.use = "AREG_EGFR", slice.use = "A1", point.size = 1.5, do.binary = TRUE, cutoff = 0.05, enriched.only = F, color.heatmap = "Reds", direction = 1)
+spatialFeaturePlot(cellchat, pairLR.use = "AREG_EGFR", sample.use = "A1", point.size = 1.5, do.binary = TRUE, cutoff = 0.05, enriched.only = F, color.heatmap = "Reds", direction = 1)
 
 ```
 
-**NB: Upon infering the intercellular communication network from spatial transcriptomics data, CellChat's various functionality can be used for further data exploration, analysis, and visualization. Please check other functionality in the basic tutorial named `CellChat-vignette.html`**
+**NB: Upon infering the intercellular communication network from spatial transcriptomics data, CellChat's various functionality can be used for further data exploration, analysis, and visualization. Please check other functionalities in the [basic tutorial of CellChat](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/CellChat-vignette.html) and [comparison analysis across different conditions](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/Comparison_analysis_of_multiple_datasets.html)** 
 
 # Part V: Save the CellChat object
-```{r eval=TRUE}
+```{r eval=FALSE}
 saveRDS(cellchat, file = "cellchat_human_intestine_ReplicatesA1A2.rds")
 ```
 

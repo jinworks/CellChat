@@ -1813,27 +1813,6 @@ extractEnrichedLR_internal <- function(net, LR, DB, signaling, enriched.only = T
 }
 
 
-
-#' Filter cell-cell communication if there are only few number of cells in certain cell groups
-#'
-#' @param object CellChat object
-#' @param min.cells the minmum number of cells required in each cell group for cell-cell communication
-#' @return CellChat object with an updated slot net
-#' @export
-#'
-filterCommunication <- function(object, min.cells = 10) {
-  net <- object@net
-  cell.excludes <- which(as.numeric(table(object@idents)) <= min.cells)
-  if (length(cell.excludes) > 0) {
-    cat("The cell-cell communication related with the following cell groups are excluded due to the few number of cells: ", levels(object@idents)[cell.excludes],'\n')
-    net$prob[cell.excludes,,] <- 0
-    net$prob[,cell.excludes,] <- 0
-    object@net <- net
-  }
-  return(object)
-}
-
-
 #' Compute the maximum value of certain measures in the inferred cell-cell communication networks
 #'
 #' To better control the node size and edge weights of the inferred networks across different datasets,
@@ -2325,7 +2304,7 @@ netAnalysis_signalingRole_network <- function(object, signaling, slot.name = "ne
 #' Dot colors indicate different cell groups. Dot shapes indicate different categories of cell groups if `group`` is defined.
 #'
 #' @param object CellChat object
-#' @param signaling a char vector containing signaling pathway names. signaling = NULL: Signaling role analysis on the aggregated cell-cell communication network from all signaling pathways
+#' @param signaling a char vector containing signaling pathway names. signaling = NULL: signaling role analysis on the aggregated cell-cell communication network from all signaling pathways
 #' @param color.use defining the color for each cell group
 #' @param slot.name the slot name of object that is used to compute centrality measures of signaling networks
 #' @param group a vector to categorize the cell groups, e.g., categorize the cell groups into two major categories: immune cells and fibroblasts
@@ -2336,11 +2315,11 @@ netAnalysis_signalingRole_network <- function(object, signaling, slot.name = "ne
 #' @param dot.size a range defining the size of the symbol
 #' @param x.measure The measure used as x-axis. This measure should be one of `names(slot(object, slot.name)$centr[[1]])` computed from `netAnalysis_computeCentrality`
 #'
-#' Default = "outdeg" is the weighted outgoing links (i.e., Outgoing interaction strength). If setting as "outdeg_unweighted", it represents the total number of outgoing signaling.
+#' Default = "outdeg" is the weighted outgoing links (i.e., outgoing interaction strength). If setting as "outdeg_unweighted", it represents the total number of outgoing signaling.
 #'
 #' @param y.measure The measure used as y-axis. This measure should be one of `names(slot(object, slot.name)$centr[[1]])` computed from `netAnalysis_computeCentrality`
 #'
-#' Default = "indeg" is the weighted incoming links (i.e., Incoming interaction strength). If setting as "indeg_unweighted", it represents the total number of incoming signaling.
+#' Default = "indeg" is the weighted incoming links (i.e., incoming interaction strength). If setting as "indeg_unweighted", it represents the total number of incoming signaling.
 #'
 #' @param xlabel label of x-axis
 #' @param ylabel label of y-axis
@@ -2809,7 +2788,7 @@ netAnalysis_signalingChanges_scatter <- function(object, idents.use, color.use =
 #' The right grey bar plot shows the total signaling strength of a signaling pathway by summarizing all cell groups displayed in the heatmap.
 #'
 #' @param object CellChat object
-#' @param signaling a character vector giving the name of signaling networks
+#' @param signaling a character vector giving the names of signaling networks of interest
 #' @param pattern "outgoing", "incoming" or "all". When pattern = "all", it aggregates the outgoing and incoming signaling strength together
 #' @param slot.name the slot name of object that is used to compute centrality measures of signaling networks
 #' @param color.use the character vector defining the color of each cell group
@@ -2945,7 +2924,7 @@ netMappingDEG <- function(object, features.name, variable.all = TRUE, thresh = 0
   complex_input <- object@DB$complex
 
   df.net <- subsetCommunication(object, thresh = thresh)
-  if (is.list(df.net)) {
+  if (!is.data.frame(df.net)) {
     net <- data.frame()
     for (ii in 1:length(df.net)) {
       df.net[[ii]]$datasets <- names(df.net)[ii]

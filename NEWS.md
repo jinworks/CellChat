@@ -1,3 +1,12 @@
+# Version 2.1.2 (2023-2-6)
+- Update `filterCommunication` to allow identifying consistent cell-cell communication across samples when mutiple samples/replicates/batches are merged as an input for CellChat analysis.
+- Update `computeCommunProb` where the ECM-receptor signaling is now assumed as diffusible signaling when analyzing spatial transcrptomics.
+- Update 'updateCellChat' to change `object@meta$slices` to `object@meta$samples` in order to identify consistent cell-cell communication across samples.
+- Typos in CellChatDB were fixed.
+
+## Updated functions with minor changes
+Functions that have been updated for analyzing spatial transcriptomics and perform comparison analysis, including  `createCellChat`, 'updateCellChat', `computeCommunProb`,`filterCommunication`, `spatialFeaturePlot`, `spatialDimPlot`, `netVisual_spatial`, `netVisual_aggregate`, `netVisual`, `computeRegionDistance`, `StackedVlnPlot`.
+
 # Version 2.1.1 (2023-12-12)
 - Enable to flexibly infer contact-dependent or juxtacrine signaling from any type of spatial transcriptomics data by defining the `contact.range` in `computeCommunProb`. 
 - Change `scale.factors` to `spatial factors`.

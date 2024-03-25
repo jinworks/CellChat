@@ -24,9 +24,11 @@ knitr::opts_chunk$set(
 ```
 
 
-This vignette shows how to apply CellChat to identify major signaling changes across different biological conditions by quantitative contrasts and joint manifold learning. We showcase CellChat’s diverse functionalities by applying it to a scRNA-seq data on cells from two biological conditions: nonlesional (NL, normal) and lesional (LS, diseased) human skin from patients with atopic dermatitis. **These two datasets (conditions) have the same cell population compositions after joint clustering. If there are slightly or vastly different cell population compositions between different datasets, please check out another related tutorial. **
+This vignette shows how to apply CellChat to identify major signaling changes across different biological conditions by quantitative contrasts and joint manifold learning.
+We showcase CellChat’s diverse functionalities for identifying major signaling changes across conditions by applying it to scRNA-seq datasets from two biological conditions: nonlesional (NL, normal) and lesional (LS, diseased) human skin from patients with atopic dermatitis. **These two datasets (conditions) have the same cell population compositions after joint clustering. If there are different cell population compositions between different conditions, please check out the [tutorial on Comparison analysis of multiple datasets with different cell type compositions](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/Comparison_analysis_of_multiple_datasets_with_different_cellular_compositions.html)**.  
 
-CellChat employs a top-down approach, i.e., starting with the big picture and then refining it in a greater detail on the signaling mechanisms, to identify signaling changes at different levels, including both general principles of cell-cell communication and dysfunctional cell populations/signaling pathways/ligand-receptors. 
+
+CellChat employs a top-down approach, i.e., starting with the big picture and then refining it in a greater detail on the signaling mechanisms, to identify signaling changes at different levels, including altered interactions, cell populations, signaling pathways and ligand-receptor pairs. 
 
 ## Load the required libraries
 ```{r message=FALSE,warning=FALSE}
@@ -43,9 +45,8 @@ dir.create(data.dir)
 setwd(data.dir)
 ```
 
-# Load CellChat object of each dataset and then merge together
-Users need to run CellChat on each dataset seperately and then merge different CellChat objects together.
-Please do `updateCellChat` if you have CellChat objects that are obtained using the earlier version (< 1.6.0). 
+# Load CellChat object of each dataset and merge them together
+Users need to first run CellChat on each dataset separately and then merge different CellChat objects together. Please do `updateCellChat` if the CellChat objects are obtained using the earlier version (< 1.6.0).
 ```{r}
 cellchat.NL <- readRDS("/Users/suoqinjin/Library/CloudStorage/OneDrive-Personal/works/CellChat/tutorial/cellchat_humanSkin_NL.rds")
 cellchat.LS <- readRDS("/Users/suoqinjin/Library/CloudStorage/OneDrive-Personal/works/CellChat/tutorial/cellchat_humanSkin_LS.rds")
@@ -61,8 +62,8 @@ save(object.list, file = "cellchat_object.list_humanSkin_NL_LS.RData")
 save(cellchat, file = "cellchat_merged_humanSkin_NL_LS.RData")
 ```
 
-# Part I: Predict general principles of cell-cell communication
-CellChat starts with the big picture to predict general principles of cell-cell communication. When comparing cell-cell communication among multiple biological conditions, it can answer the following biological questions: 
+# Part I: Identify altered interactions and cell populations
+CellChat employs a top-down approach, i.e., starting with the big picture and then refining it in a greater detail on the signaling mechanisms, to identify signaling changes at different levels, including altered interactions, cell populations, signaling pathways and ligand-receptor pairs. First, CellChat starts with a big picture to answer the following questions: 
 
 * Whether the cell-cell communication is enhanced or not
 
@@ -71,7 +72,7 @@ CellChat starts with the big picture to predict general principles of cell-cell 
 * How the major sources and targets change from one condition to another
 
 ## Compare the total number of interactions and interaction strength
-To answer on question on whether the cell-cell communication is enhanced or not, CellChat compares the the total number of interactions and interaction strength of the inferred cell-cell communication networks from different biological conditions. 
+To answer the question on whether the cell-cell communication is enhanced or not, CellChat compares the total number of interactions and interaction strength of the inferred cell-cell communication networks from different biological conditions.
 ```{r, fig.width=4,fig.height = 2.5, fig.wide = TRUE, fig.align = "center"}
 ptm = Sys.time()
 gg1 <- compareInteractions(cellchat, show.legend = F, group = c(1,2))
@@ -80,9 +81,9 @@ gg1 + gg2
 ```
 
 ## Compare the number of interactions and interaction strength among different cell populations
-To identify the interaction between which cell populations showing significant changes, CellChat compares the number of interactions and interaction strength among different cell populations.
+To identify the interaction between which cell populations showing significant changes, CellChat compares the number of interactions and interaction strength among different cell populations using a circle plot with differential interactions (option A), a heatmap with differential interactions (option B) and two circle plots with the number of interactions or interaction strength per dataset (option C). Alternatively, users can examine the differential number of interactions or interaction strength among coarse cell types by aggregating the cell-cell communication based on the defined cell groups (option D). 
 
-### Differential number of interactions or interaction strength among different cell populations
+### (A) Circle plot showing differential number of interactions or interaction strength among different cell populations across two datasets
 The differential number of interactions or interaction strength in the cell-cell communication network between two datasets can be visualized using circle plot, where $\color{red}{\text{red}}$ (or $\color{blue}{\text{blue}}$) colored edges represent $\color{red}{\text{increased}}$ (or $\color{blue}{\text{decreased}}$) signaling in the second dataset compared to the first one.
 
 ```{r, fig.width=12,fig.height = 6, fig.wide = TRUE, fig.align = "center"}
@@ -91,16 +92,18 @@ netVisual_diffInteraction(cellchat, weight.scale = T)
 netVisual_diffInteraction(cellchat, weight.scale = T, measure = "weight")
 ```
 
-We can also show differential number of interactions or interaction strength in a greater details using a heatmap. The top colored bar plot represents the sum of column of values displayed in the heatmap (incoming signaling). The right colored bar plot represents the sum of row of values (outgoing signaling). In the colorbar, $\color{red}{\text{red}}$ (or $\color{blue}{\text{blue}}$) represents $\color{red}{\text{increased}}$ (or $\color{blue}{\text{decreased}}$) signaling in the second dataset compared to the first one.
+### (B) Heatmap showing differential number of interactions or interaction strength among different cell populations across two datasets
+CellChat can also show differential number of interactions or interaction strength in greater details using a heatmap. The top colored bar plot represents the sum of each column of the absolute values displayed in the heatmap (incoming signaling). The right colored bar plot represents the sum of each row of the absolute values (outgoing signaling). Therefore, the bar height indicates the degree of change in terms of the number of interactions or interaction strength between the two conditions. In the colorbar, $\color{red}{\text{red}}$ (or $\color{blue}{\text{blue}}$) represents $\color{red}{\text{increased}}$ (or $\color{blue}{\text{decreased}}$) signaling in the second dataset compared to the first one.
 ```{r, fig.width=10,fig.height = 5, fig.wide = TRUE, fig.align = "center"}
 gg1 <- netVisual_heatmap(cellchat)
 gg2 <- netVisual_heatmap(cellchat, measure = "weight")
 gg1 + gg2
 ```
 
-The differential network analysis only works for pairwise datasets. If there are more datasets for comparison, we can directly show the number of interactions or interaction strength between any two cell populations in each dataset. 
+### (C) Circle plot showing the number of interactions or interaction strength among different cell populations across multiple datasets
+The above differential network analysis only works for pairwise datasets. If there are more datasets for comparison, CellChat can directly show the number of interactions or interaction strength between any two cell populations in each dataset. 
 
-To better control the node size and edge weights of the inferred networks across different datasets, we compute the maximum number of cells per cell group and the maximum number of interactions (or interaction weights) across all datasets. 
+To better control the node size and edge weights of the inferred networks across different datasets, CellChat computes the maximum number of cells per cell group and the maximum number of interactions (or interaction weights) across all datasets.
 
 ```{r, fig.width=12,fig.height = 6, fig.wide = TRUE, fig.align = "center"}
 weight.max <- getMaxWeight(object.list, attribute = c("idents","count"))
@@ -110,14 +113,15 @@ for (i in 1:length(object.list)) {
 }
 ```
 
-### Differential number of interactions or interaction strength among different cell types
-To simplify the complicated network and gain insights into the cell-cell communication at the cell type level, we can aggregate the cell-cell communication based on the defined cell groups. Here we categorize the cell populations into three cell types, and then re-merge the list of CellChat object. 
+### (D) Circle plot showing the differential number of interactions or interaction strength among coarse cell types
+To simplify the complicated network and gain insights into the cell-cell communication at the cell type level, CellChat aggregates the cell-cell communication based on the defined cell groups. Here we categorize the cell populations into three cell types, and then re-merge the list of CellChat object. 
 ```{r}
 group.cellType <- c(rep("FIB", 4), rep("DC", 4), rep("TC", 4))
 group.cellType <- factor(group.cellType, levels = c("FIB", "DC", "TC"))
 object.list <- lapply(object.list, function(x) {mergeInteractions(x, group.cellType)})
 cellchat <- mergeCellChat(object.list, add.names = names(object.list))
 ```
+
 We then can show the number of interactions or interaction strength between any two cell types in each dataset. 
 ```{r, fig.width=9,fig.height = 4, fig.wide = TRUE, fig.align = "center"}
 weight.max <- getMaxWeight(object.list, slot.name = c("idents", "net", "net"), attribute = c("idents","count", "count.merged"))
@@ -127,7 +131,7 @@ for (i in 1:length(object.list)) {
 }
 ```
 
-Simialrly, we can also show the differential number of interactions or interaction strength between any two cell types using circle plot. Red (or blue) colored edges represent increased (or decreased) signaling in the second dataset compared to the first one. 
+Similarly, CellChat can also show the differential number of interactions or interaction strength between any two cell types using circle plot. Red (or blue) colored edges represent increased (or decreased) signaling in the second dataset compared to the first one. 
 
 ```{r, fig.width=9,fig.height = 4, fig.wide = TRUE, fig.align = "center"}
 par(mfrow = c(1,2), xpd=TRUE)
@@ -135,8 +139,12 @@ netVisual_diffInteraction(cellchat, weight.scale = T, measure = "count.merged", 
 netVisual_diffInteraction(cellchat, weight.scale = T, measure = "weight.merged", label.edge = T)
 ```
 
-## Compare the major sources and targets in 2D space
-Comparing the outgoing and incoming interaction strength in 2D space allows ready identification of the cell populations with significant changes in sending or receiving signals between different datasets. 
+## Compare the major sources and targets in a 2D space
+Comparing the outgoing and incoming interaction strength in a 2D space allows ready identification of the cell populations with significant changes in sending or receiving signals between different datasets. 
+
+Identify cell populations with significant changes in sending or receiving signals between different datasets by following option A, and the signaling changes of specific cell populations by following option B. 
+
+### (A) Identify cell populations with significant changes in sending or receiving signals
 ```{r, fig.width=9,fig.height = 4, fig.wide = TRUE, fig.align = "center"}
 num.link <- sapply(object.list, function(x) {rowSums(x@net$count) + colSums(x@net$count)-diag(x@net$count)})
 weight.MinMax <- c(min(num.link), max(num.link)) # control the dot size in the different datasets
@@ -146,11 +154,11 @@ for (i in 1:length(object.list)) {
 }
 patchwork::wrap_plots(plots = gg)
 ```
-
 From the scatter plot, we can see that Inflam.DC and cDC1 emerge as one of the major source and targets in LS compared to NL. Fibroblast populations also become the major sources in LS. 
 
+### (B) Identify the signaling changes of specific cell populations 
 Furthermore, we can identify the specific signaling changes of Inflam.DC and cDC1 between NL and LS. 
-## Identify signaling changes associated with one cell group
+
 ```{r, fig.width=9,fig.height = 3, fig.wide = TRUE, fig.align = "center"}
 gg1 <- netAnalysis_signalingChanges_scatter(cellchat, idents.use = "Inflam. DC", signaling.exclude = "MIF")
 gg2 <- netAnalysis_signalingChanges_scatter(cellchat, idents.use = "cDC1", signaling.exclude = c("MIF"))
@@ -161,10 +169,12 @@ print(as.numeric(execution.time, units = "secs"))
 ```
 
 # Part II: Identify altered signaling with distinct network architecture and interaction strength 
-CellChat then can identify signaling networks with larger (or less) difference, signaling groups, and the conserved and context-specific signaling pathways based on their cell-cell communication networks among multiple biological conditions. 
+CellChat then can identify signaling with larger (or smaller) network difference as well as signaling groups based on their functional or structure similarity across multiple biological conditions. 
 
 ## Identify signaling networks with larger (or less) difference as well as signaling groups based on their functional/structure similarity
-CellChat performs joint manifold learning and classification of the inferred communication networks based on their functional and topological similarity. NB: Such analysis is applicable to more than two datasets. 
+CellChat performs joint manifold learning and classification of the inferred communication networks based on their functional and topological similarity across different conditions. NB: Such analysis is applicable to more than two datasets. 
+
+By quantifying the similarity between the cellular communication networks of signaling pathways across conditions, this analysis highlights the potentially altered signaling pathways. CellChat adopts the concept of network rewiring from network biology and hypothesized that the difference between different communication networks may affect biological processes across conditions. UMAP is used for visualizing signaling relationship and interpreting our signaling outputs in an intuitive way without involving the classification of conditions. 
 
 **Functional similarity**: High degree of functional similarity indicates major senders and receivers are similar, and it can be interpreted as the two signaling pathways or two ligand-receptor pairs exhibit similar and/or redundant roles. **NB**: Functional similarity analysis is not applicable to multiple datsets with different cell type composition. 
 
@@ -195,28 +205,32 @@ netVisual_embeddingPairwiseZoomIn(cellchat, type = "structural", nCol = 2)
 ```
 
 ### Compute and visualize the pathway distance in the learned joint manifold
-We can identify the signaling networks with larger (or less) difference based on their Euclidean distance in the shared two-dimensions space. Larger distance implies larger difference of the communication networks between two datasets in terms of either functional or structure similarity. **NB**: We only compute the distance of overlapped signaling pathways between two datasets. Those signaling pathways that are only identified in one dataset are not considered here. If there are more than three datasets, one can do pairwise comparisons by defining `comparison` in the function `rankSimilarity`. 
+CellChat can identify the signaling networks with larger (or smaller) difference based on their Euclidean distance in the shared two-dimensions space. Larger distance implies larger difference of the communication networks between two datasets in terms of either functional or structure similarity. It should be noted that we only compute the distance of overlapped signaling pathways between two datasets. Those signaling pathways that are only identified in one dataset are not considered here. If there are more than three datasets, one can do pairwise comparisons by modifying the parameter `comparison` in the function `rankSimilarity`.
+
 ```{r, fig.width=3,fig.height = 3, fig.wide = TRUE, fig.align = "center"}
 rankSimilarity(cellchat, type = "functional")
 ```
 
-## Identify and visualize the conserved and context-specific signaling pathways
-By comparing the information flow/interaction strengh of each signaling pathway, we can identify signaling pathways, (i) turn off, (ii) decrease, (iii) turn on or (iv) increase, by change their information flow at one condition as compared to another condition. 
+## Identify altered signaling with distinct interaction strength
+By comparing the information flow/interaction strength of each signaling pathway, CellChat identifies signaling pathways that: (i) turn off, (ii) decrease, (iii) turn on, or (iv) increase, by changing their information flow at one condition as compared to another condition. Identify the altered signaling pathways or ligand-receptor pairs based on the overall information flow by following option A, and based on the outgoing (or incoming) signaling patterns by following option B. 
 
-### Compare the overall information flow of each signaling pathway
-We can identify the conserved and context-specific signaling pathways by simply comparing the information flow for each signaling pathway, which is defined by the sum of communication probability among all pairs of cell groups in the inferred network (i.e., the total weights in the network). 
+### (A) Compare the overall information flow of each signaling pathway or ligand-receptor pair
+CellChat can identify the conserved and context-specific signaling pathways by simply comparing the information flow for each signaling pathway, which is defined by the sum of communication probability among all pairs of cell groups in the inferred network (i.e., the total weights in the network). 
 
-This bar graph can be plotted in a stacked mode or not. Significant signaling pathways were ranked based on differences in the overall information flow within the inferred networks between NL and LS skin. The top signaling pathways colored red are enriched in NL skin, and these colored green were enriched in the LS skin. 
+This bar chart can be plotted in a stacked mode or not. Significant signaling pathways were ranked based on differences in the overall information flow within the inferred networks between NL and LS skin. When setting `do.stat = TRUE`, a paired Wilcoxon test is performed to determine whether there is a significant difference of the signaling information flow between two conditions. The top signaling pathways colored red are enriched in NL skin, and these colored greens are enriched in the LS skin.
+
 ```{r, fig.width=9,fig.height = 4, fig.wide = TRUE, fig.align = "center"}
-gg1 <- rankNet(cellchat, mode = "comparison", stacked = T, do.stat = TRUE)
-gg2 <- rankNet(cellchat, mode = "comparison", stacked = F, do.stat = TRUE)
+gg1 <- rankNet(cellchat, mode = "comparison", measure = "weight", sources.use = NULL, targets.use = NULL, stacked = T, do.stat = TRUE)
+gg2 <- rankNet(cellchat, mode = "comparison", measure = "weight", sources.use = NULL, targets.use = NULL, stacked = F, do.stat = TRUE)
+
 gg1 + gg2
 ```
 
-### Compare outgoing (or incoming) signaling associated with each cell population
-The above analysis summarize the information from the outgoing and incoming signaling together. We can also compare the outgoing (or incoming) signaling pattern between two datasets, allowing to identify signaling pathways/ligand-receptors that exhibit different signaling patterns. 
+### (B) Compare outgoing (or incoming) signaling patterns associated with each cell population
+The above analysis summarize the information from the outgoing and incoming signaling together. CellChat can also compare the outgoing (or incoming) signaling pattern between two datasets, allowing to identify signaling pathways/ligand-receptors that exhibit different signaling patterns. We can combine all the identified signaling pathways from different datasets and thus compare them side by side, including outgoing signaling, incoming signaling and overall signaling by aggregating outgoing and incoming signaling together. 
 
-We can combine all the identified signaling pathways from different datasets and thus compare them side by side, including outgoing signaling, incoming signaling and overall signaling by aggregating outgoing and incoming signaling together. NB: `rankNet` also shows the comparison of overall signaling, but it does not show the signaling strength in specific cell populations. 
+CellChat uses heatmap plot to show the contribution of signals (signaling pathways or ligand-receptor pairs) to cell groups in terms of outgoing or incoming signaling. In this heatmap, colobar represents the relative signaling strength of a signaling pathway across cell groups (Note that values are row-scaled). The top colored bar plot shows the total signaling strength of a cell group by summarizing all signaling pathways displayed in the heatmap. The right grey bar plot shows the total signaling strength of a signaling pathway by summarizing all cell groups displayed in the heatmap. 
+
 ```{r, fig.width=11, fig.height = 8, fig.align = "center"}
 library(ComplexHeatmap)
 i = 1
@@ -244,16 +258,17 @@ draw(ht1 + ht2, ht_gap = unit(0.5, "cm"))
 
 ```
 
-# Part III: Identify the upgulated and down-regulated signaling ligand-receptor pairs
+# Part III: Identify the up-gulated and down-regulated signaling ligand-receptor pairs
 ## Identify dysfunctional signaling by comparing the communication probabities  
-We can compare the communication probabilities mediated by ligand-receptor pairs from some cell groups to other cell groups. This can be done by setting `comparison` in the function `netVisual_bubble`. 
+CellChat can compare the communication probabilities mediated by L-R pairs from certain cell groups to other cell groups. This can be done by setting `comparison` in the function `netVisual_bubble`.  
 ```{r, fig.width=6, fig.height = 4, fig.align = "center"}
 ptm = Sys.time()
 
 netVisual_bubble(cellchat, sources.use = 4, targets.use = c(5:11),  comparison = c(1, 2), angle.x = 45)
 ```
 
-Moreover, we can identify the upgulated (increased) and down-regulated (decreased) signaling ligand-receptor pairs in one dataset compared to the other dataset. This can be done by specifying `max.dataset` and `min.dataset` in the function `netVisual_bubble`. The increased signaling means these signaling have higher communication probability (strength) in one dataset compared to the other dataset. 
+Moreover, CellChat can identify the up-regulated (increased) and down-regulated (decreased) signaling ligand-receptor pairs in one dataset compared to the other dataset. This can be done by specifying `max.dataset` and `min.dataset` in the function `netVisual_bubble`. The increased signaling means these signaling have higher communication probability (strength) in the second dataset compared to the first dataset. The ligand-receptor pairs shown in the bubble plot can be accessed via `gg1$data`.
+
 ```{r, fig.width=12, fig.height = 5, fig.align = "center"}
 gg1 <- netVisual_bubble(cellchat, sources.use = 4, targets.use = c(5:11),  comparison = c(1, 2), max.dataset = 2, title.name = "Increased signaling in LS", angle.x = 45, remove.isolate = T)
 gg2 <- netVisual_bubble(cellchat, sources.use = 4, targets.use = c(5:11),  comparison = c(1, 2), max.dataset = 1, title.name = "Decreased signaling in LS", angle.x = 45, remove.isolate = T)
@@ -291,6 +306,15 @@ gene.up <- extractGeneSubsetFromPair(net.up, cellchat)
 gene.down <- extractGeneSubsetFromPair(net.down, cellchat)
 ```
 
+Users can also find all the significant outgoing/incoming/both signaling according to the customized features and cell groups of interest
+```{r}
+df <- findEnrichedSignaling(object.list[[2]], features = c("CCL19", "CXCL12"), idents = c("Inflam. FIB", "COL11A1+ FIB"), pattern ="outgoing")
+```
+
+## Visualize the identified up-regulated and down-regulated signaling ligand-receptor pairs
+CellChat can visualize the identified up-regulated and down-regulated signaling ligand-receptor pairs using bubble plot (option A), chord diagram (option B) or wordcloud (option C).
+
+### (A) Bubble plot
 We then visualize the upgulated and down-regulated signaling ligand-receptor pairs using bubble plot or chord diagram. 
 ```{r, fig.width=12, fig.height = 5, fig.align = "center"}
 pairLR.use.up = net.up[, "interaction_name", drop = F]
@@ -300,6 +324,7 @@ gg2 <- netVisual_bubble(cellchat, pairLR.use = pairLR.use.down, sources.use = 4,
 gg1 + gg2
 ```
 
+### (B) Chord diagram
 Visualize the upgulated and down-regulated signaling ligand-receptor pairs using Chord diagram
 ```{r, fig.width=12,fig.height = 6, fig.wide = TRUE, fig.align = "center"}
 # Chord diagram
@@ -308,6 +333,7 @@ netVisual_chord_gene(object.list[[2]], sources.use = 4, targets.use = c(5:11), s
 netVisual_chord_gene(object.list[[1]], sources.use = 4, targets.use = c(5:11), slot.name = 'net', net = net.down, lab.cex = 0.8, small.gap = 3.5, title.name = paste0("Down-regulated signaling in ", names(object.list)[2]))
 ```
 
+### (C) Wordcloud plot
 Visualize the enriched ligands, signaling,or ligand-receptor pairs in one condition compared to another condition using wordcloud
 ```{r, fig.width= 4,fig.height = 4, fig.wide = TRUE, fig.align = "center"}
 # visualize the enriched ligands in the first condition
@@ -318,7 +344,7 @@ computeEnrichmentScore(net.up, species = 'human', variable.both = TRUE)
 ```
 
 # Part IV: Visually compare cell-cell communication using Hierarchy plot, Circle plot or Chord diagram
-Similar to the CellChat analysis of individual dataset, we can visualize the cell-cell communication network using Hierarchy plot, Circle plot or Chord diagram. 
+Similar to the [CellChat analysis of individual dataset](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/CellChat-vignette.html), CellChat can visually compare cell-cell communication networks using hierarchy plot, circle plot, chord diagram, or heatmap.  More details on the visualization can be found in the [CellChat analysis of individual dataset](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/CellChat-vignette.html). 
 
 **Edge color/weight, node color/size/shape**: In all visualization plots, edge colors are consistent with the sources as sender, and edge weights are proportional to the interaction strength. Thicker edge line indicates a stronger signal. In the **Hierarchy plot and Circle plot**, circle sizes are proportional to the number of cells in each cell group. In the hierarchy plot, solid and open circles represent source and target, respectively. In the **Chord diagram**, the inner thinner bar colors represent the targets that receive signal from the corresponding outer bar. The inner bar size is proportional to the signal strength received by the targets. Such inner bar is helpful for interpreting the complex chord diagram. Note that there exist some inner bars without any chord for some cell groups, please just igore it because this is an issue that has not been addressed by [circlize](https://github.com/jokergoo/circlize) package. 
 
@@ -390,7 +416,7 @@ NB: Please ignore the note when generating the plot such as "Note: The first lin
 We can plot the gene expression distribution of signaling genes related to L-R pairs or signaling pathway using a Seurat wrapper function `plotGeneExpression`.  
 ```{r, fig.width=7,fig.height = 4, fig.wide = TRUE, fig.align = "center"}
 cellchat@meta$datasets = factor(cellchat@meta$datasets, levels = c("NL", "LS")) # set factor level
-plotGeneExpression(cellchat, signaling = "CXCL", split.by = "datasets", colors.ggplot = T)
+plotGeneExpression(cellchat, signaling = "CXCL", split.by = "datasets", colors.ggplot = T, type = "violin")
 
 execution.time = Sys.time() - ptm
 print(as.numeric(execution.time, units = "secs"))

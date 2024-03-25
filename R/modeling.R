@@ -22,19 +22,19 @@
 #'
 #' When comparing communication across different CellChat objects, the same scale factor should be used. For a single CellChat analysis, different scale factors will not affect the ranking of the signaling based on their interaction strength.
 #'
-#' @param k.min The minimum number of interacting cell pairs required for defining spatially proximal cell groups
-#' @param contact.dependent Whether determining spatially proximal cell groups based on either the contact.range or the k-nearest neighbors (knn). By default `contact.dependent = TRUE` when inferring contact-dependent and juxtacrine signaling (including ECM-Receptor and Cell-Cell Contact signaling classified in CellChatDB$interaction$annotation).
-#' If only focusing on `Secreted Signaling`, the `contact.dependent` will be automatically set as FALSE except for `contact.dependent.forced = TRUE`.
-#' @param contact.range The interaction range (Unit: microns) to restrict the contact-dependent signaling.
+#' @param k.min The minimum number of interacting cell pairs required for defining spatially proximal cell groups.
+#' @param contact.dependent Whether using the `contact-dependent` manner for inference signaling, that is determining interacting cell pairs by requiring cells to be in direct membrane-membrane contact. By default `contact.dependent = TRUE` when inferring contact-dependent and juxtacrine signaling (that is "Cell-Cell Contact" signaling classified in CellChatDB$interaction$annotation).
+#' If only focusing on `Secreted Signaling`, the `contact-dependent` manner will be not used except for setting `contact.dependent.forced = TRUE`.
+#' @param contact.range The interaction range (Unit: microns) to restrict the contact-dependent signaling when `contact.dependent = TRUE`.
 #' For spatial transcriptomics in a single-cell resolution, `contact.range` is approximately equal to the estimated cell diameter (i.e., the cell center-to-center distance), which means that contact-dependent and juxtacrine signaling can only happens when the two cells are contact to each other.
 #'
 #' Typically, `contact.range = 10`, which is a typical human cell size. However, for low-resolution spatial data such as 10X visium, it should be the cell center-to-center distance (i.e., `contact.range = 100` for visium data).  The function `computeCellDistance` can compute the center-to-center distance.
 #'
-#' @param contact.knn.k Number of neighbors to restrict the contact-dependent signaling within the neatest neighbors. By default, CellChat uses `contact.range` to restrict the contact-dependent signaling; however, users can also provide a value of `contact.knn.k`, in order to determine spatially proximal cell groups based on the k-nearest neighbors (knn).
+#' @param contact.knn.k Number of neighbors to restrict the contact-dependent signaling within the neatest neighbors when `contact.dependent = TRUE`. By default, CellChat uses `contact.range` to restrict the contact-dependent signaling; however, users can also provide a value of `contact.knn.k`, in order to determine interacting cell pairs based on the k-nearest neighbors (knn).
 #' For 10X visium, contact.knn.k = 6. For other spatial technologies, this value may be hard to determine because the sequenced cells/spots are usually not regularly arranged.
 #' @param do.symmetric Whether converting the adjacent matrix into symmetric one when determining spatially proximal cell groups. Default is TRUE, indicating that if adj(i,j) or adj(j,i) is zero, then both are zeros.
 #'
-#' @param contact.dependent.forced Whether forcing to determine spatially proximal cell regions based on either the contact.range or the k-nearest neighbors. Users can set `contact.dependent.forced = TRUE` if also preferring interactions within a contact manner for `Secreted Signaling`.
+#' @param contact.dependent.forced Whether forcing to use the `contact-dependent` manner for inference signaling for all L-R pairs including secreted signaling. Users can set `contact.dependent.forced = TRUE` if also preferring interactions within a contact manner for `Secreted Signaling`.
 #'
 #' @param nboot Threshold of p-values
 #' @param seed.use Set a random seed. By default, set the seed to 1.
@@ -79,7 +79,7 @@ computeCommunProb <- function(object, type = c("triMean", "truncatedMean","thres
     pairLR.use <- object@LR$LRsig
   } else {
     if (length(unique(LR.use$annotation)) > 1) {
-      LR.use$annotation <- factor(LR.use$annotation, levels = c("Secreted Signaling", "ECM-Receptor", "Cell-Cell Contact","Non-protein Signaling"))
+      LR.use$annotation <- factor(LR.use$annotation, levels = c("Secreted Signaling","ECM-Receptor", "Non-protein Signaling", "Cell-Cell Contact"))
       LR.use <- LR.use[order(LR.use$annotation), , drop = FALSE]
       LR.use$annotation <- as.character(LR.use$annotation)
     }
@@ -146,7 +146,7 @@ computeCommunProb <- function(object, type = c("triMean", "truncatedMean","thres
       tol <- object@images$scale.factors$tol
     }
 
-    meta.t = data.frame(group = group, slices = object@meta$slices, row.names = rownames(object@meta))
+    meta.t = data.frame(group = group, samples = object@meta$samples, row.names = rownames(object@meta))
     res <- computeRegionDistance(coordinates = data.spatial, meta = meta.t, interaction.range = interaction.range, ratio = ratio, tol = tol, k.min = k.min, contact.dependent = contact.dependent, contact.range = contact.range, contact.knn.k = contact.knn.k)
     d.spatial <- res$d.spatial # NaN if no nearby cell pairs
     adj.contact <- res$adj.contact # zeros if no nearby cell pairs
@@ -178,22 +178,30 @@ computeCommunProb <- function(object, type = c("triMean", "truncatedMean","thres
     distance.use = NULL; interaction.range = NULL; ratio = NULL; tol = NULL; k.min = NULL;
   }
 
-  if (object@options$datatype != "RNA" & contact.dependent == TRUE) {
-    if (all(unique(pairLRsig$interaction$annotation) %in% c("ECM-Receptor", "Cell-Cell Contact"))) {
-      P.spatial <- P.spatial * adj.contact
-      nLR1 <- nLR
-    } else if (all(unique(pairLRsig$interaction$annotation) %in% c("Secreted Signaling"))) {
-      nLR1 <- nLR
-    } else {
-      nLR1 <- max(which(pairLRsig$interaction$annotation == "Secreted Signaling"))
-    }
-  } else {
+  if (object@options$datatype == "RNA") {
     nLR1 <- nLR
-  }
-  if (object@options$datatype != "RNA" & contact.dependent.forced == TRUE) {
-    if (contact.dependent == TRUE & all(unique(pairLRsig$interaction$annotation) %in% c("ECM-Receptor", "Cell-Cell Contact")) == FALSE) {
+  } else {
+    if (contact.dependent.forced == TRUE) {
+      cat("Force to run CellChat in a `contact-dependent` manner for all L-R pairs including secreted signaling.\n")
       P.spatial <- P.spatial * adj.contact
       nLR1 <- nLR
+    } else { # contact.dependent.forced == F
+      if (contact.dependent == TRUE && length(unique(pairLRsig$annotation)) > 0) {
+        if (all(unique(pairLRsig$annotation) %in% c("Cell-Cell Contact"))) {
+          cat("All the input L-R pairs are `Cell-Cell Contact` signaling. Run CellChat in a contact-dependent manner. \n")
+          P.spatial <- P.spatial * adj.contact
+          nLR1 <- nLR
+        } else if (all(unique(pairLRsig$annotation) %in% c("Secreted Signaling", "ECM-Receptor", "Non-protein Signaling"))) {
+          cat("Molecules of the input L-R pairs are diffusible. Run CellChat in a diffusion manner based on the `interaction.range`.\n")
+          nLR1 <- nLR
+        } else {
+          cat("The input L-R pairs have both secreted signaling and contact-dependent signaling. Run CellChat in a contact-dependent manner for `Cell-Cell Contact` signaling, and in a diffusion manner based on the `interaction.range` for other L-R pairs. \n")
+          nLR1 <- max(which(pairLRsig$annotation %in% c("Secreted Signaling", "ECM-Receptor", "Non-protein Signaling")))
+        }
+      } else { # contact.dependent == F or there is no `annotation` column in the database
+        cat("Run CellChat in a diffusion manner based on the `interaction.range` for all L-R pairs. Setting `contact.dependent = TRUE` if preferring a contact-dependent manner for `Cell-Cell Contact` signaling. \n")
+        nLR1 <- nLR
+      }
     }
   }
 
@@ -352,6 +360,10 @@ computeCommunProbPathway <- function(object = NULL, net = NULL, pairLR.use = NUL
   }
   prob <- net$prob
   prob[net$pval > thresh] <- 0
+
+  LR <- dimnames(prob)[[3]]
+  LR.sig <- LR[apply(prob, 3, sum) != 0]
+
   pathways <- unique(pairLR.use$pathway_name)
   group <- factor(pairLR.use$pathway_name, levels = pathways)
   prob.pathways <- aperm(apply(prob, c(1, 2), by, group, sum), c(2, 3, 1))
@@ -365,6 +377,7 @@ computeCommunProbPathway <- function(object = NULL, net = NULL, pairLR.use = NUL
     netP = list(pathways = pathways.sig, prob = prob.pathways.sig)
     return(netP)
   } else {
+    object@net$LRs <- LR.sig
     object@netP$pathways <- pathways.sig
     object@netP$prob <- prob.pathways.sig
     return(object)
@@ -903,6 +916,144 @@ thresholdedMean <- function(x, trim = 0.1, na.rm = TRUE) {
   }
 }
 
+#' Filter cell-cell communication if there are only few number of cells in certain cell groups or inconsistent cell-cell communication across samples
+#'
+#' @param object CellChat object
+#' @param min.cells The minmum number of cells required in each cell group for cell-cell communication
+#' @param min.samples The minmum number of samples required for consistent cell-cell communication across samples (that is an interaction present in at least `min.samples` samples) when mutiple samples/replicates/batches are merged as an input for CellChat analysis.
+#' @param rare.keep Whether to keep the interactions associated with the rare populations when min.samples >= 2. When a rare population is identified in the merged samples (say 15 cells in this rare population from two samples), it is likely to filter out the interactions associated with this rare population when setting min.samples >= 2. Setting `rare.keep = TRUE` to retain the identified interactions associated with this rare population.
+#' @param nonFilter.keep Whether to keep the non-filtered cell-cell communication in the CellChat object. This is useful for avoiding re-running `computeCommunProb` if you want to adjust the parameters when running `filterCommunication`.
+#' @return CellChat object with an updated slot net
+#' @export
+#'
+filterCommunication <- function(object, min.cells = 10, min.samples = NULL, rare.keep = FALSE, nonFilter.keep = FALSE) {
+  net <- object@net
+  if (nonFilter.keep == TRUE) {
+    cat("The non-filtered cell-cell communication is stored in `object@net$prob.nonFilter` and `object@net$pval.nonFilter`. \n")
+    object@net$prob.nonFilter <- net$prob
+    object@net$pval.nonFilter <- net$pval
+  }
+  num.interaction0 <- sum(net$prob > 0)
+  cell.excludes <- which(as.numeric(table(object@idents)) <= min.cells)
+  if (length(cell.excludes) > 0) {
+    cat("The cell-cell communication related with the following cell groups are excluded due to the few number of cells: ", toString(levels(object@idents)[cell.excludes]), "!",'\t')
+    net$prob[cell.excludes,,] <- 0
+    net$prob[,cell.excludes,] <- 0
+    num.interaction1 <- sum(net$prob > 0)
+    pct.dicrease <- scales::percent((num.interaction0-num.interaction1)/num.interaction0, accuracy = .1)
+    cat(paste0(pct.dicrease, " interactions are removed!",'\n'))
+  } else {
+    num.interaction1 <- num.interaction0
+  }
+
+  sample.info <- object@meta$samples
+  sample.id <- levels(sample.info)
+  if (is.null(min.samples)) {
+    min.samples <- 1
+  } else if (min.samples > length(sample.id)) {
+    stop(paste0("There are only ", length(sample.id), " samples in the data. Please change the value of `min.samples`! "))
+  }
+  if (length(sample.id) >= 2 & min.samples >= 2) {
+    if (object@options$parameter$raw.use == TRUE) {
+      data <- as.matrix(object@data.signaling)
+    } else {
+      data <- object@data.project
+    }
+    data.use <- data/max(data)
+    group <- object@idents
+    type <- object@options$parameter$type.mean
+    trim <- object@options$parameter$trim
+    FunMean <- switch(type,
+                      triMean = triMean,
+                      truncatedMean = function(x) mean(x, trim = trim, na.rm = TRUE),
+                      thresholdedMean = function(x) thresholdedMean(x, trim = trim, na.rm = TRUE),
+                      median = function(x) median(x, na.rm = TRUE))
+
+    LR <- dimnames(net$prob)[[3]]
+    idx.nonzero <- which(apply(net$prob, 3, sum) != 0)
+    LR.nonzero <- LR[idx.nonzero] # only examine the L-R pairs with nonzero communication probabilities.
+
+    interaction_input <- object@DB$interaction
+    complex_input <- object@DB$complex
+    geneIfo <- object@DB$geneInfo
+    idx <- match(LR.nonzero, interaction_input$interaction_name)
+    geneL <- as.character(interaction_input$ligand[idx])
+    geneR <- as.character(interaction_input$receptor[idx])
+
+    geneLR <- c(unique(geneL), unique(geneR))
+    geneLR <- extractGeneSubset(geneLR, complex_input, geneIfo)
+    data.use <- data.use[rownames(data.use) %in% geneLR, ]
+
+    score.LR <- array(0, dim = c(nlevels(group),nlevels(group),length(LR.nonzero), length(sample.id)))
+    LR.nonzero.all <- c()
+    cell.excludes.sample <- c()
+    for (i in 1:length(sample.id)) {
+      cell.use <- which(sample.info == sample.id[i])
+      group.use <- group[cell.use]
+      group.use <- droplevels(group.use)
+      # get the rare populations with few cells in each sample
+      cell.excludes.sample.i <- which(as.numeric(table(object@idents[cell.use])) <= min.cells)
+      cell.excludes.sample <- c(cell.excludes.sample, cell.excludes.sample.i)
+      # compute average expression per cell group
+      data.use.i <- data.use[, cell.use]
+      data.use.avg <- aggregate(t(data.use.i), list(group.use), FUN = FunMean)
+      data.use.avg <- t(data.use.avg[,-1])
+      group.exist <- which(levels(group) %in% unique(group.use))
+      if (length(group.exist) < nlevels(group)) {
+        data.use.avg.temp <- matrix(0, nrow = nrow(data.use), ncol = nlevels(group))
+        data.use.avg.temp[ , group.exist] <- data.use.avg
+        rownames(data.use.avg.temp) <- rownames(data.use.avg)
+        data.use.avg <- data.use.avg.temp
+      }
+      colnames(data.use.avg) <- levels(group)
+      # compute the average expression of ligand or receptor in each cell group
+      dataLavg <- computeExpr_LR(geneL, data.use.avg, complex_input)
+      dataRavg <- computeExpr_LR(geneR, data.use.avg, complex_input)
+      # compute the interaction scores for each ligand-receptor pair based on their expression
+      for (jj in 1:length(LR.nonzero)) { # It is not good to use parallel here because it will change the order of LR
+        score.LR[,,jj,i] <- Matrix::crossprod(matrix(dataLavg[jj, ], nrow = 1), matrix(dataRavg[jj, ], nrow = 1))
+      }
+      if (length(cell.excludes.sample.i) > 0) {
+        cat(paste0("The number of cells of the following cell groups in ", sample.id[i], " sample are less than ", min.cells, " cells: ",toString(levels(object@idents)[cell.excludes.sample.i]), "!",'\n'))
+        score.LR[cell.excludes.sample.i, , , i] <- 0
+        score.LR[ ,cell.excludes.sample.i, , i] <- 0
+      }
+      #LR.nonzero.all <- c(LR.nonzero.all, LR.nonzero[apply(score.LR[ , , , i], 3, sum) != 0])
+    }
+    #LR.nonzero.jointOnly <- setdiff(LR.nonzero, unique(LR.nonzero.all))
+
+    # get the excluded cell groups that are not observed in the merged data, which is very possible for rare populations
+    cell.excludes.sample <- unique(cell.excludes.sample)
+    if (length(cell.excludes.sample) > 0) {
+      cell.excludes.sample <- setdiff(cell.excludes.sample, cell.excludes)
+    }
+
+    score.LR[score.LR > 0] <- 1 # binarize the interaction score
+    score.LR.consitent <- array(0, dim = c(nlevels(group),nlevels(group),length(LR.nonzero)))
+    LR.inconsitent <- c()
+    for (jj in 1:length(LR.nonzero)) {
+      score.LR.sum <- apply(score.LR[ , , jj, ], c(1,2), sum) # elements 2 and 1 means consistent and inconsistent interactions across samples, respectively.
+      # set communication probability to be zero for inconsistent interactions across samples
+      if (sum((score.LR.sum > 0) * (score.LR.sum < min.samples)) > 0) {
+        #LR.inconsitent <- c(LR.inconsitent, LR.nonzero[jj])
+        score.LR.consitent <- (score.LR.sum >= min.samples) * 1
+        if (rare.keep == TRUE & length(cell.excludes.sample) > 0) {
+          score.LR.consitent[cell.excludes.sample, ] <- 1
+          score.LR.consitent[ ,cell.excludes.sample] <- 1
+        }
+        net$prob[ , , LR.nonzero[jj]] <- net$prob[ , , LR.nonzero[jj]] * score.LR.consitent
+      }
+    }
+    num.interaction2 <- sum(net$prob > 0)
+    pct.dicrease <- scales::percent((num.interaction1-num.interaction2)/num.interaction1, accuracy = .1)
+    cat(paste0(pct.dicrease, " interactions are removed due to their inconsistence across ", min.samples, " samples!",'\n'))
+  }
+
+  object@net <- net
+  return(object)
+}
+
+
 #' Identify all the significant interactions (L-R pairs) from some cell groups to other cell groups
 #'
 #' @param object CellChat object
@@ -992,7 +1143,7 @@ identifyEnrichedInteractions <- function(object, from, to, bidirection = FALSE, 
 #' Compute the region distance based on the spatial locations of each splot/cell of the spatial transcriptomics
 #'
 #' @param coordinates a data matrix in which each row gives the spatial locations/coordinates of each cell/spot
-#' @param meta a data frame including at least two columns named `group` and `slices`. `meta$group` is a factor vector defining the regions/labels of each cell/spot. `meta$slices` is a factor vector defining the slice labels of each dataset.
+#' @param meta a data frame including at least two columns named `group` and `samples`. `meta$group` is a factor vector defining the regions/labels of each cell/spot. `meta$samples` is a factor vector defining the sample labels of each dataset.
 #' @param interaction.range The maximum interaction/diffusion range of ligands. This hard threshold is used to filter out the connections between spatially distant regions
 #' @param ratio a numerical vector giving the conversion factor when converting spatial coordinates from Pixels or other units to Micrometers (i.e.,Microns).
 #'
@@ -1028,20 +1179,20 @@ computeRegionDistance <- function(coordinates, meta,
   numCluster <- nlevels(group)
   level.use <- levels(group)
   level.use <- level.use[level.use %in% unique(group)]
-  slices <- meta$slices
-  slices.use <- levels(slices)
-  d.spatial <- array(NaN, dim = c(numCluster,numCluster,length(slices.use)))
-  adj.spatial <- array(0, dim = c(numCluster,numCluster,length(slices.use)))
-  adj.contact <- array(0, dim = c(numCluster,numCluster,length(slices.use)))
-  adj.contact.knn <- array(0, dim = c(numCluster,numCluster,length(slices.use)))
+  samples <- meta$samples
+  samples.use <- levels(samples)
+  d.spatial <- array(NaN, dim = c(numCluster,numCluster,length(samples.use)))
+  adj.spatial <- array(0, dim = c(numCluster,numCluster,length(samples.use)))
+  adj.contact <- array(0, dim = c(numCluster,numCluster,length(samples.use)))
+  adj.contact.knn <- array(0, dim = c(numCluster,numCluster,length(samples.use)))
 
   if (contact.dependent == TRUE & !is.null(contact.knn.k)) {
     ## find the k-nearest neighbors for each single cell
     # my.knn <- FNN::get.knn(coordinates, k = contact.knn.k)
     # nn.ranked <- my.knn$nn.index # this is a matrix with the size of nCell * contact.knn.k
     nn.ranked <- matrix(NA, nrow = nrow(coordinates), ncol = contact.knn.k)
-    for (k in 1:length(slices.use)) {
-      idx.k <- which(slices == slices.use[k])
+    for (k in 1:length(samples.use)) {
+      idx.k <- which(samples == samples.use[k])
       my.knn <- suppressWarnings(BiocNeighbors::findKNN(coordinates[idx.k, ], k = contact.knn.k, BNPARAM = BiocNeighbors::AnnoyParam(), get.index = TRUE))
       nn.ranked[idx.k, ] <- my.knn$index # this is a matrix with the size of nCell * contact.knn.k
     }
@@ -1058,14 +1209,14 @@ computeRegionDistance <- function(coordinates, meta,
     contact.range <- 10000 # this produces adj.contact with all elements being 1
   }
 
-  for (k in 1:length(slices.use)) {
-    idx.k <- slices == slices.use[k]
+  for (k in 1:length(samples.use)) {
+    idx.k <- samples == samples.use[k]
     for (i in 1:numCluster) {
       for (j in 1:numCluster) {
         idx.i <- which((group == level.use[i]) & idx.k)
         idx.j <- which((group == level.use[j]) & idx.k)
         if (length(idx.i) == 0 | length(idx.j) == 0) {
-          next # if one cell group is missing in one slice, just goes to next loop
+          next # if one cell group is missing in one sample, just goes to next loop
         }
         data.spatial.i <- coordinates[idx.i, , drop = FALSE]
         data.spatial.j <- coordinates[idx.j, , drop = FALSE]
@@ -1094,12 +1245,12 @@ computeRegionDistance <- function(coordinates, meta,
     }
   }
 
-  # merged spatial information from different slices
+  # merged spatial information from different samples
   d.spatial <- apply(d.spatial, c(1,2), function(x) mean(x, na.rm = TRUE))
   adj.spatial <- apply(adj.spatial, c(1,2), mean)
   adj.contact <- apply(adj.contact, c(1,2), mean)
   adj.contact.knn <- apply(adj.contact.knn, c(1,2), mean)
-  # for multi-slices analysis, the following is needed
+  # for multi-samples analysis, the following is needed
   adj.spatial[adj.spatial > 0] <- 1
   adj.contact[adj.contact > 0] <- 1
   adj.contact.knn[adj.contact.knn > 0] <- 1
@@ -1160,4 +1311,5 @@ computeCellDistance <- function(coordinates, interaction.range = NULL, ratio = N
   }
   return(d.spatial)
 }
+
 

@@ -11,7 +11,7 @@ netVisual_heatmap(
   signaling = NULL,
   slot.name = c("netP", "net"),
   color.use = NULL,
-  color.heatmap = c("Reds"),
+  color.heatmap = NULL,
   title.name = NULL,
   width = NULL,
   height = NULL,
@@ -39,7 +39,8 @@ netVisual_heatmap(
 
 \item{color.use}{the character vector defining the color of each cell group}
 
-\item{color.heatmap}{A vector of two colors corresponding to max/min values, or a color name in brewer.pal only when the data in the heatmap do not contain negative values}
+\item{color.heatmap}{A vector of two colors corresponding to max/min values, or a color name in brewer.pal only when the data in the heatmap do not contain negative values.
+By default, color.heatmap = c('#2166ac','#b2182b') when taking a merged CellChat object as input; color.heatmap = "Reds" when taking a single CellChat object as input.}
 
 \item{title.name}{the name of the title}
 
@@ -67,13 +68,13 @@ netVisual_heatmap(
 an object of ComplexHeatmap
 }
 \description{
-This heatmap can be used to show differential number of interactions or interaction strength in the cell-cell communication network between two datasets;
-the number of interactions or interaction strength in a single dataset
-the inferred cell-cell communication network in single dataset, defined by `signaling`
+This heatmap can be used to 1) show differential number of interactions or interaction strength in the cell-cell communication network between two datasets;
+2) the number of interactions or interaction strength in a single dataset;
+3) the inferred cell-cell communication network in a single dataset, defined by `signaling`. Please see @Details below for detailed explanations of this heatmap plot.
 }
 \details{
 When show differential number of interactions or interaction strength in the cell-cell communication network between two datasets, the width of edges represent the relative number of interactions or interaction strength.
 Red (or blue) colored edges represent increased (or decreased) signaling in the second dataset compared to the first one.
 
-The top colored bar plot represents the sum of column of values displayed in the heatmap. The right colored bar plot represents the sum of row of values.
+The top colored bar plot represents the sum of absolute values displayed in each column of the heatmap. The right colored bar plot represents the sum of absolute values in each row.
 }

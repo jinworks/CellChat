@@ -358,7 +358,7 @@ display: none;
 <h1 class="title toc-ignore">Interface with other single-cell analysis
 toolkits</h1>
 <h4 class="author">Suoqin Jin</h4>
-<h4 class="date">05 November, 2023</h4>
+<h4 class="date">22 February, 2024</h4>
 
 </div>
 
@@ -477,7 +477,8 @@ meta = meta[cell.use, ]</code></pre>
 <h2>(B) Starting from a Seurat object</h2>
 <p>The normalized count data and cell group information can be obtained
 from the Seurat object by</p>
-<pre class="r"><code>data.input &lt;- GetAssayData(seurat_object, assay = &quot;RNA&quot;, slot = &quot;data&quot;) # normalized data matrix
+<pre class="r"><code>data.input &lt;- seurat_object[[&quot;RNA&quot;]]@data # normalized data matrix
+# For Seurat version &gt;= “5.0.0”, get the normalized data via `seurat_object[[&quot;RNA&quot;]]$data`
 labels &lt;- Idents(seurat_object)
 meta &lt;- data.frame(group = labels, row.names = names(labels)) # create a dataframe of the cell labels</code></pre>
 </div>
@@ -515,7 +516,8 @@ which is a reticulate wrapper for the anndata Python package, was
 recently published in CRAN, which makes it much convenient to read from
 and write to the h5ad file format in R. We show how to extract the
 required data inputs for CellChat analysis using anndata R package.</p>
-<pre class="r"><code># read the data into R using anndata R package
+<pre class="r"><code># install.packages(&quot;anndata&quot;)
+# read the data into R using anndata R package
 library(anndata)
 ad &lt;- read_h5ad(&quot;scanpy_object.h5ad&quot;)
 # access count data matrix
@@ -526,6 +528,7 @@ data.input &lt;- as(log1p(Matrix::t(Matrix::t(counts)/library.size) * 10000), &q
 
 # access meta data
 meta &lt;- ad$obs
+meta$labels &lt;- meta[[&quot;ad_clusters&quot;]] 
 # save the data for CellChat analysis
 save(data.input, meta, file = &quot;test_data.RData&quot;)</code></pre>
 </div>
@@ -622,7 +625,7 @@ meta &lt;- as.data.frame(SingleCellExperiment::colData(sce)) #
 save(sce, file = &quot;sce_object.RData&quot;)
 
 # create a CellChat object from the sce object
-cellChat &lt;- createCellChat(object = sce.obj, group.by = &quot;clusters.final&quot;)</code></pre>
+cellChat &lt;- createCellChat(object = sce, group.by = &quot;clusters.final&quot;)</code></pre>
 </div>
 </div>
 <div id="part-iii-interface-with-other-cell-cell-communication-analysis-toolkits" class="section level1">
