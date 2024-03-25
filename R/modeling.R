@@ -1,4 +1,3 @@
-
 #' Compute the communication probability/strength between any interacting cell groups
 #'
 #' To further speed up on large-scale datasets, USER can downsample the data using the function 'subset' from Seurat package (e.g., pbmc.small <- subset(pbmc, downsample = 500)), or using the function `sketchData` from CellChat, in particular for the large cell clusters;
@@ -88,6 +87,11 @@ computeCommunProb <- function(object, type = c("triMean", "truncatedMean","thres
   }
   complex_input <- object@DB$complex
   cofactor_input <- object@DB$cofactor
+  
+  CellChat::loadMatrixExtra()
+  future::plan("multicore", workers = CellChat::getAvailableCCore())
+  options(future.globals.maxSize = 10000 * 1024^2)
+  
   my.sapply <- ifelse(
     test = future::nbrOfWorkers() == 1,
     yes = sapply,
@@ -113,7 +117,7 @@ computeCommunProb <- function(object, type = c("triMean", "truncatedMean","thres
 
   # compute the average expression per group
   data.use.avg <- aggregate(t(data.use), list(group), FUN = FunMean)
-  data.use.avg <- t(data.use.avg[,-1])
+  data.use.avg <- MatrixExtra::t(data.use.avg[,-1])
   colnames(data.use.avg) <- levels(group)
   # compute the expression of ligand or receptor
   dataLavg <- computeExpr_LR(geneL, data.use.avg, complex_input)
@@ -123,7 +127,7 @@ computeCommunProb <- function(object, type = c("triMean", "truncatedMean","thres
   dataRavg.co.I.receptor <- computeExpr_coreceptor(cofactor_input, data.use.avg, pairLRsig, type = "I")
   dataRavg <- dataRavg * dataRavg.co.A.receptor/dataRavg.co.I.receptor
 
-  dataLavg2 <- t(replicate(nrow(dataLavg), as.numeric(table(group))/nC))
+  dataLavg2 <- MatrixExtra::t(replicate(nrow(dataLavg), as.numeric(table(group))/nC))
   dataRavg2 <- dataLavg2
 
   # compute the expression of agonist and antagonist
@@ -211,7 +215,7 @@ computeCommunProb <- function(object, type = c("triMean", "truncatedMean","thres
     FUN = function(nE) {
       groupboot <- group[permutation[, nE]]
       data.use.avgB <- aggregate(t(data.use), list(groupboot), FUN = FunMean)
-      data.use.avgB <- t(data.use.avgB[,-1])
+      data.use.avgB <- MatrixExtra::t(data.use.avgB[,-1])
       return(data.use.avgB)
     },
     simplify = FALSE
@@ -220,7 +224,7 @@ computeCommunProb <- function(object, type = c("triMean", "truncatedMean","thres
 
   for (i in 1:nLR) {
     # ligand/receptor
-    dataLR <- Matrix::crossprod(matrix(dataLavg[i,], nrow = 1), matrix(dataRavg[i,], nrow = 1))
+    dataLR <- MatrixExtra::crossprod(matrix(dataLavg[i,], nrow = 1), matrix(dataRavg[i,], nrow = 1))
     P1 <- dataLR^n/(Kh^n + dataLR^n)
     P1_Pspatial <- P1*P.spatial
     if (sum(P1_Pspatial) == 0) {
@@ -235,19 +239,19 @@ computeCommunProb <- function(object, type = c("triMean", "truncatedMean","thres
       # agonist and antagonist
       if (is.element(i, index.agonist)) {
         data.agonist <- computeExpr_agonist(data.use = data.use.avg, pairLRsig, cofactor_input, index.agonist = i, Kh = Kh,  n = n)
-        P2 <- Matrix::crossprod(matrix(data.agonist, nrow = 1))
+        P2 <- MatrixExtra::crossprod(matrix(data.agonist, nrow = 1))
       } else {
         P2 <- matrix(1, nrow = numCluster, ncol = numCluster)
       }
       if (is.element(i, index.antagonist)) {
         data.antagonist <- computeExpr_antagonist(data.use = data.use.avg, pairLRsig, cofactor_input,  index.antagonist = i, Kh = Kh,  n = n)
-        P3 <- Matrix::crossprod(matrix(data.antagonist, nrow = 1))
+        P3 <- MatrixExtra::crossprod(matrix(data.antagonist, nrow = 1))
       } else {
         P3 <- matrix(1, nrow = numCluster, ncol = numCluster)
       }
       # number of cells
       if (population.size) {
-        P4 <- Matrix::crossprod(matrix(dataLavg2[i,], nrow = 1), matrix(dataRavg2[i,], nrow = 1))
+        P4 <- MatrixExtra::crossprod(matrix(dataLavg2[i,], nrow = 1), matrix(dataRavg2[i,], nrow = 1))
       } else {
         P4 <- matrix(1, nrow = numCluster, ncol = numCluster)
       }
@@ -269,18 +273,18 @@ computeCommunProb <- function(object, type = c("triMean", "truncatedMean","thres
           dataRavgB.co.A.receptor <- computeExpr_coreceptor(cofactor_input, data.use.avgB, pairLRsig[i, , drop = FALSE], type = "A")
           dataRavgB.co.I.receptor <- computeExpr_coreceptor(cofactor_input, data.use.avgB, pairLRsig[i, , drop = FALSE], type = "I")
           dataRavgB <- dataRavgB * dataRavgB.co.A.receptor/dataRavgB.co.I.receptor
-          dataLRB = Matrix::crossprod(dataLavgB, dataRavgB)
+          dataLRB = MatrixExtra::crossprod(dataLavgB, dataRavgB)
           P1.boot <- dataLRB^n/(Kh^n + dataLRB^n)
           # agonist and antagonist
           if (is.element(i, index.agonist)) {
             data.agonist <- computeExpr_agonist(data.use = data.use.avgB, pairLRsig, cofactor_input, index.agonist = i, Kh = Kh,  n = n)
-            P2.boot <- Matrix::crossprod(matrix(data.agonist, nrow = 1))
+            P2.boot <- MatrixExtra::crossprod(matrix(data.agonist, nrow = 1))
           } else {
             P2.boot <- matrix(1, nrow = numCluster, ncol = numCluster)
           }
           if (is.element(i, index.antagonist)) {
             data.antagonist <- computeExpr_antagonist(data.use = data.use.avgB, pairLRsig, cofactor_input, index.antagonist = i, Kh = Kh,  n= n)
-            P3.boot <- Matrix::crossprod(matrix(data.antagonist, nrow = 1))
+            P3.boot <- MatrixExtra::crossprod(matrix(data.antagonist, nrow = 1))
           } else {
             P3.boot <- matrix(1, nrow = numCluster, ncol = numCluster)
           }
@@ -290,7 +294,7 @@ computeCommunProb <- function(object, type = c("triMean", "truncatedMean","thres
             dataLavg2B <- as.numeric(table(groupboot))/nC
             dataLavg2B <- matrix(dataLavg2B, nrow = 1)
             dataRavg2B <- dataLavg2B
-            P4.boot = Matrix::crossprod(dataLavg2B, dataRavg2B)
+            P4.boot = MatrixExtra::crossprod(dataLavg2B, dataRavg2B)
           } else {
             P4.boot = matrix(1, nrow = numCluster, ncol = numCluster)
           }
@@ -505,7 +509,7 @@ computeAveExpr <- function(object, features = NULL, group.by = NULL, type = c("t
   }
   # compute the average expression per group
   data.use.avg <- aggregate(t(data.use), list(labels), FUN = FunMean)
-  data.use.avg <- t(data.use.avg[,-1])
+  data.use.avg <- MatrixExtra::t(data.use.avg[,-1])
   rownames(data.use.avg) <- features.use
   colnames(data.use.avg) <- levels(labels)
   return(data.use.avg)
@@ -525,6 +529,10 @@ computeAveExpr <- function(object, features = NULL, group.by = NULL, type = c("t
 #' @export
 computeExpr_complex <- function(complex_input, data.use, complex) {
   Rsubunits <- complex_input[complex,] %>% dplyr::select(starts_with("subunit"))
+  CellChat::loadMatrixExtra()
+  future::plan("multicore", workers = CellChat::getAvailableCCore())
+  options(future.globals.maxSize = 10000 * 1024^2)
+
   my.sapply <- ifelse(
     test = future::nbrOfWorkers() == 1,
     yes = sapply,
@@ -538,7 +546,7 @@ computeExpr_complex <- function(complex_input, data.use, complex) {
       return(geometricMean(data.use[RsubunitsV, , drop = FALSE]))
     }
   )
-  data.complex <- t(data.complex)
+  data.complex <- MatrixExtra::t(data.complex)
   return(data.complex)
 }
 
@@ -556,6 +564,10 @@ computeExpr_complex <- function(complex_input, data.use, complex) {
 # #' @export
 .computeExprGroup_complex <- function(complex_input, data.use, complex, group, FunMean) {
   Rsubunits <- complex_input[complex,] %>% dplyr::select(starts_with("subunit"))
+  CellChat::loadMatrixExtra()
+  future::plan("multicore", workers = CellChat::getAvailableCCore())
+  options(future.globals.maxSize = 10000 * 1024^2)
+
   my.sapply <- ifelse(
     test = future::nbrOfWorkers() == 1,
     yes = pbapply::pbsapply,
@@ -569,17 +581,17 @@ computeExpr_complex <- function(complex_input, data.use, complex) {
       RsubunitsV <- intersect(RsubunitsV, rownames(data.use))
       if (length(RsubunitsV) > 1) {
         data.avg <- aggregate(t(data.use[RsubunitsV, ,drop = FALSE]), list(group), FUN = FunMean)
-        data.avg <- t(data.avg[,-1])
+        data.avg <- MatrixExtra::t(data.avg[,-1])
       } else if (length(RsubunitsV) == 1) {
         data.avg <- aggregate(matrix(data.use[RsubunitsV,], ncol = 1), list(group), FUN = FunMean)
-        data.avg <- t(data.avg[,-1])
+        data.avg <- MatrixExtra::t(data.avg[,-1])
       } else {
         data.avg = matrix(0, nrow = 1, ncol = length(unique(group)))
       }
       return(geometricMean(data.avg))
     }
   )
-  data.complex <- t(data.complex)
+  data.complex <- MatrixExtra::t(data.complex)
   return(data.complex)
 }
 
@@ -628,6 +640,10 @@ computeExpr_coreceptor <- function(cofactor_input, data.use, pairLRsig, type = c
   }
   index.coreceptor <- which(!is.na(coreceptor.all) & coreceptor.all != "")
   if (length(index.coreceptor) > 0) {
+    CellChat::loadMatrixExtra()
+    future::plan("multicore", workers = CellChat::getAvailableCCore())
+    options(future.globals.maxSize = 10000 * 1024^2)
+
     my.sapply <- ifelse(
       test = future::nbrOfWorkers() == 1,
       yes = sapply,
@@ -650,7 +666,7 @@ computeExpr_coreceptor <- function(cofactor_input, data.use, pairLRsig, type = c
         }
       }
     )
-    data.coreceptor.ind <- t(data.coreceptor.ind)
+    data.coreceptor.ind <- MatrixExtra::t(data.coreceptor.ind)
     data.coreceptor <- matrix(1, nrow = length(coreceptor.all), ncol = ncol(data.use))
     data.coreceptor[index.coreceptor,] <- data.coreceptor.ind
   } else {
@@ -681,6 +697,10 @@ computeExpr_coreceptor <- function(cofactor_input, data.use, pairLRsig, type = c
   }
   index.coreceptor <- which(!is.na(coreceptor.all) & coreceptor.all != "")
   if (length(index.coreceptor) > 0) {
+    CellChat::loadMatrixExtra()
+    future::plan("multicore", workers = CellChat::getAvailableCCore())
+    options(future.globals.maxSize = 10000 * 1024^2)
+    
     my.sapply <- ifelse(
       test = future::nbrOfWorkers() == 1,
       yes = pbapply::pbsapply,
@@ -696,19 +716,19 @@ computeExpr_coreceptor <- function(cofactor_input, data.use, pairLRsig, type = c
         coreceptor.indV <- intersect(coreceptor.indV, rownames(data.use))
         if (length(coreceptor.indV) > 1) {
           data.avg <- aggregate(t(data.use[coreceptor.indV,]), list(group), FUN = FunMean)
-          data.avg <- t(data.avg[,-1])
+          data.avg <- MatrixExtra::t(data.avg[,-1])
           return(apply(1 + data.avg, 2, prod))
           # return(1 + apply(data.avg, 2, mean))
         } else if (length(coreceptor.indV) == 1) {
           data.avg <- aggregate(matrix(data.use[coreceptor.indV,], ncol = 1), list(group), FUN = FunMean)
-          data.avg <- t(data.avg[,-1])
+          data.avg <- MatrixExtra::t(data.avg[,-1])
           return(1 + data.avg)
         } else {
           return(matrix(1, nrow = 1, ncol = length(unique(group))))
         }
       }
     )
-    data.coreceptor.ind <- t(data.coreceptor.ind)
+    data.coreceptor.ind <- MatrixExtra::t(data.coreceptor.ind)
     data.coreceptor <- matrix(1, nrow = length(coreceptor.all), ncol = length(unique(group)))
     data.coreceptor[index.coreceptor,] <- data.coreceptor.ind
   } else {
@@ -738,11 +758,11 @@ computeExprGroup_agonist <- function(data.use, pairLRsig, cofactor_input, group,
   agonist.indV <- intersect(agonist.indV, rownames(data.use))
   if (length(agonist.indV) == 1) {
     data.avg <- aggregate(matrix(data.use[agonist.indV,], ncol = 1), list(group), FUN = FunMean)
-    data.avg <- t(data.avg[,-1])
+    data.avg <- MatrixExtra::t(data.avg[,-1])
     data.agonist <- 1 + data.avg^n/(Kh^n + data.avg^n)
   } else if (length(agonist.indV) > 1) {
     data.avg <- aggregate(t(data.use[agonist.indV,]), list(group), FUN = FunMean)
-    data.avg <- t(data.avg[,-1])
+    data.avg <- MatrixExtra::t(data.avg[,-1])
     data.agonist <- apply(1 + data.avg^n/(Kh^n + data.avg^n), 2, prod)
   } else {
     data.agonist = matrix(1, nrow = 1, ncol = length(unique(group)))
@@ -771,11 +791,11 @@ computeExprGroup_antagonist <- function(data.use, pairLRsig, cofactor_input, gro
   antagonist.indV <- intersect(antagonist.indV, rownames(data.use))
   if (length(antagonist.indV) == 1) {
     data.avg <- aggregate(matrix(data.use[antagonist.indV,], ncol = 1), list(group), FUN = FunMean)
-    data.avg <- t(data.avg[,-1])
+    data.avg <- MatrixExtra::t(data.avg[,-1])
     data.antagonist <- Kh^n/(Kh^n + data.avg^n)
   } else if (length(antagonist.indV) > 1) {
     data.avg <- aggregate(t(data.use[antagonist.indV,]), list(group), FUN = FunMean)
-    data.avg <- t(data.avg[,-1])
+    data.avg <- MatrixExtra::t(data.avg[,-1])
     data.antagonist <- apply(Kh^n/(Kh^n + data.avg^n), 2, prod)
   } else {
     data.antagonist = matrix(1, nrow = 1, ncol = length(unique(group)))
@@ -804,12 +824,12 @@ computeExpr_agonist <- function(data.use, pairLRsig, cofactor_input, index.agoni
   agonist.indV <- intersect(agonist.indV, rownames(data.use))
   if (length(agonist.indV) == 1) {
     # data.avg <- aggregate(matrix(data.use[agonist.indV,], ncol = 1), list(group), FUN = FunMean)
-    # data.avg <- t(data.avg[,-1])
+    # data.avg <- MatrixExtra::t(data.avg[,-1])
     data.avg <- data.use[agonist.indV,, drop = FALSE]
     data.agonist <- 1 + data.avg^n/(Kh^n + data.avg^n)
   } else if (length(agonist.indV) > 1) {
     # data.avg <- aggregate(t(data.use[agonist.indV,]), list(group), FUN = FunMean)
-    # data.avg <- t(data.avg[,-1])
+    # data.avg <- MatrixExtra::t(data.avg[,-1])
     data.avg <- data.use[agonist.indV,, drop = FALSE]
     data.agonist <- apply(1 + data.avg^n/(Kh^n + data.avg^n), 2, prod)
   } else {
@@ -840,12 +860,12 @@ computeExpr_antagonist <- function(data.use, pairLRsig, cofactor_input, index.an
   antagonist.indV <- intersect(antagonist.indV, rownames(data.use))
   if (length(antagonist.indV) == 1) {
     # data.avg <- aggregate(matrix(data.use[antagonist.indV,], ncol = 1), list(group), FUN = FunMean)
-    # data.avg <- t(data.avg[,-1])
+    # data.avg <- MatrixExtra::t(data.avg[,-1])
     data.avg <- data.use[antagonist.indV,, drop = FALSE]
     data.antagonist <- Kh^n/(Kh^n + data.avg^n)
   } else if (length(antagonist.indV) > 1) {
     # data.avg <- aggregate(t(data.use[antagonist.indV,]), list(group), FUN = FunMean)
-    # data.avg <- t(data.avg[,-1])
+    # data.avg <- MatrixExtra::t(data.avg[,-1])
     data.avg <- data.use[antagonist.indV,, drop = FALSE]
     data.antagonist <- apply(Kh^n/(Kh^n + data.avg^n), 2, prod)
   } else {
@@ -1237,11 +1257,11 @@ computeRegionDistance <- function(coordinates, meta,
 
   # make these adjacent matrix as symmetric
   if (do.symmetric) {
-    adj.spatial <- adj.spatial * t(adj.spatial) # if one is zero, then both are zeros.
-    adj.contact <- adj.contact * t(adj.contact) # if one is zero, then both are zeros.
-    adj.contact.knn <- adj.contact.knn * t(adj.contact.knn) # if one is zero, then both are zeros.
+    adj.spatial <- adj.spatial * MatrixExtra::t(adj.spatial) # if one is zero, then both are zeros.
+    adj.contact <- adj.contact * MatrixExtra::t(adj.contact) # if one is zero, then both are zeros.
+    adj.contact.knn <- adj.contact.knn * MatrixExtra::t(adj.contact.knn) # if one is zero, then both are zeros.
   }
-  d.spatial <- (d.spatial + t(d.spatial))/2
+  d.spatial <- (d.spatial + MatrixExtra::t(d.spatial))/2
 
   # filter out the spatially distant cell groups
   adj.spatial[adj.spatial == 0] <- NaN

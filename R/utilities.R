@@ -1,3 +1,35 @@
+#' Get available core
+#'
+#' @export
+#'
+getAvailableCCore <- function() {
+  library(parallel)
+  n_cores <- parallel::detectCores()
+  if (is.null(n_cores)) {
+      return(2)
+  }
+
+  if (n_cores > 8) {
+      n_cores <- 8
+  }
+  return(as.integer(n_cores))
+}
+
+#' Load MatrixExtra
+#'
+#' @export
+#'
+loadMatrixExtra <- function() {
+  library(spam)
+  library(spam64)
+  library(Matrix)
+  library(MatrixExtra)
+  n_core <- getAvailableCCore()
+  options("MatrixExtra.quick_show" = FALSE)
+  options("MatrixExtra.nthreads" = n_core)
+  options(spam.force64 = TRUE)
+}
+
 #' Normalize data using a scaling factor
 #'
 #' @param data.raw input raw data
@@ -482,6 +514,9 @@ identifyOverExpressedGenes <- function(object, data.use = NULL, group.by = NULL,
       object@var.features[[features.name]] <- markers.all
 
     } else {
+      CellChat::loadMatrixExtra()
+      future::plan("multicore", workers = CellChat::getAvailableCCore())
+      options(future.globals.maxSize = 10000 * 1024^2)
 
       my.sapply <- ifelse(
         test = future::nbrOfWorkers() == 1,
@@ -651,6 +686,10 @@ identifyOverExpressedLigandReceptor <- function(object, features.name = "feature
     markers.all <- subset(markers.all, subset = features %in% features.use)
   }
 
+  CellChat::loadMatrixExtra()
+  future::plan("multicore", workers = CellChat::getAvailableCCore())
+  options(future.globals.maxSize = 10000 * 1024^2)
+
   my.sapply <- ifelse(
     test = future::nbrOfWorkers() == 1,
     yes = pbapply::pbsapply,
@@ -729,6 +768,10 @@ identifyOverExpressedInteractions <- function(object, features.name = "features"
 
   interaction_input <- DB$interaction
   complex_input <- DB$complex
+  CellChat::loadMatrixExtra()
+  future::plan("multicore", workers = CellChat::getAvailableCCore())
+  options(future.globals.maxSize = 10000 * 1024^2)
+
   my.sapply <- ifelse(
     test = future::nbrOfWorkers() == 1,
     yes = pbapply::pbsapply,
@@ -1117,7 +1160,7 @@ colorRamp3 = function(breaks, colors, transparency = 0, space = "LAB") {
     stop("`space` should be in 'RGB', 'HSV', 'HLS', 'LAB', 'XYZ', 'sRGB', 'LUV'")
   }
 
-  colors = t(grDevices::col2rgb(colors)/255)
+  colors = MatrixExtra::t(grDevices::col2rgb(colors)/255)
 
   attr = list(breaks = breaks, colors = colors, transparency = transparency, space = space)
 
@@ -1158,7 +1201,7 @@ colorRamp3 = function(breaks, colors, transparency = 0, space = "LAB") {
     res_col = paste(res_col, transparency_str[1], sep = "")
 
     if(return_rgb) {
-      res_col = t(grDevices::col2rgb(as.vector(res_col), alpha = TRUE)/255)
+      res_col = MatrixExtra::t(grDevices::col2rgb(as.vector(res_col), alpha = TRUE)/255)
       return(res_col)
     } else {
       res_col2 = character(length(x))

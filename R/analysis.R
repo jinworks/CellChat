@@ -211,6 +211,10 @@ netAnalysis_computeCentrality <- function(object = NULL, slot.name = "netP", net
   }
   if (length(dim(net)) == 3) {
     nrun <- dim(net)[3]
+    CellChat::loadMatrixExtra()
+    future::plan("multicore", workers = CellChat::getAvailableCCore())
+    options(future.globals.maxSize = 10000 * 1024^2)
+
     my.sapply <- ifelse(
       test = future::nbrOfWorkers() == 1,
       yes = pbapply::pbsapply,
@@ -413,7 +417,7 @@ identifyCommunicationPatterns <- function(object, slot.name = "netP", pattern = 
     )
 
 
-    net <- t(H)
+    net <- MatrixExtra::t(H)
 
     ht2 = Heatmap(net, col = color.heatmap, na_col = "white", name = "Contribution",
                   cluster_rows = T,cluster_columns = F,clustering_method_rows = "average",
@@ -487,7 +491,7 @@ computeNetSimilarity <- function(object, slot.name = "netP", type = c("functiona
       }
     }
     # define the similarity matrix
-    S3[is.na(S3)] <- 0; S3 <- S3 + t(S3); diag(S3) <- 1
+    S3[is.na(S3)] <- 0; S3 <- S3 + MatrixExtra::t(S3); diag(S3) <- 1
     # S_signalings <- S1 *S2
     S_signalings <- S3
   } else if (type == "structural") {
@@ -503,7 +507,7 @@ computeNetSimilarity <- function(object, slot.name = "netP", type = c("functiona
     # define the structure similarity matrix
     D_signalings[is.infinite(D_signalings)] <- 0
     D_signalings[is.na(D_signalings)] <- 0
-    D_signalings <- D_signalings + t(D_signalings)
+    D_signalings <- D_signalings + MatrixExtra::t(D_signalings)
     S_signalings <- 1-D_signalings
   }
 
@@ -712,7 +716,7 @@ netEmbedding <- function(object, slot.name = "netP", type = c("functional","stru
 #' @export
 #'
 #' @examples
-netClustering <- function(object, slot.name = "netP", type = c("functional","structural"), comparison = NULL, k = NULL, methods = "kmeans", do.plot = TRUE, fig.id = NULL, do.parallel = TRUE, nCores = 4, k.eigen = NULL) {
+netClustering <- function(object, slot.name = "netP", type = c("functional","structural"), comparison = NULL, k = NULL, methods = "kmeans", do.plot = TRUE, fig.id = NULL, do.parallel = TRUE, nCores = 2, k.eigen = NULL) {
   type <- match.arg(type)
   if (object@options$mode == "single") {
     comparison <- "single"
@@ -734,8 +738,8 @@ netClustering <- function(object, slot.name = "netP", type = c("functional","str
       N <- nrow(data.use)
       kRange <- seq(2,min(N-1, 10),by = 1)
       if (do.parallel) {
-        future::plan("multisession", workers = nCores)
-        options(future.globals.maxSize = 1000 * 1024^2)
+        future::plan("multicore", workers = nCores)
+        options(future.globals.maxSize = 10000 * 1024^2)
       }
       my.sapply <- ifelse(
         test = future::nbrOfWorkers() == 1,
@@ -841,7 +845,7 @@ computeEigengap <- function(CM, tau = NULL, tol = 0.01){
   # truncate the ensemble consensus matrix
   CM[CM <= tau] <- 0;
   # normalize and make symmetric
-  CM <- (CM + t(CM))/2
+  CM <- (CM + MatrixExtra::t(CM))/2
   eigs <- computeLaplacian(CM, tol = tol)
 
   # compute the largest eigengap
@@ -2255,7 +2259,7 @@ netAnalysis_signalingRole_network <- function(object, signaling, slot.name = "ne
   for(i in 1:length(centr)) {
     centr0 <- centr[[i]]
     mat <- matrix(unlist(centr0), ncol = length(centr0), byrow = FALSE)
-    mat <- t(mat)
+    mat <- MatrixExtra::t(mat)
     rownames(mat) <- names(centr0); colnames(mat) <- names(centr0$outdeg)
     if (!is.null(measure)) {
       mat <- mat[measure,]
@@ -2506,8 +2510,8 @@ netAnalysis_diff_signalingRole_scatter <- function(object, color.use = NULL, com
       outgoing[,i] <- centr[[i]][[x.measure]]
       incoming[,i] <- centr[[i]][[y.measure]]
     }
-    mat.out <- t(outgoing)
-    mat.in <- t(incoming)
+    mat.out <- MatrixExtra::t(outgoing)
+    mat.in <- MatrixExtra::t(incoming)
 
     mat.all <- array(0, dim = c(length(signaling),ncol(mat.out),2))
     mat.t <-list(mat.out, mat.in)
@@ -2677,8 +2681,8 @@ netAnalysis_signalingChanges_scatter <- function(object, idents.use, color.use =
       outgoing[,i] <- centr[[i]][[x.measure]]
       incoming[,i] <- centr[[i]][[y.measure]]
     }
-    mat.out <- t(outgoing)
-    mat.in <- t(incoming)
+    mat.out <- MatrixExtra::t(outgoing)
+    mat.in <- MatrixExtra::t(incoming)
 
     mat.all <- array(0, dim = c(length(signaling),ncol(mat.out),2))
     mat.t <-list(mat.out, mat.in)
@@ -2822,13 +2826,13 @@ netAnalysis_signalingRole_heatmap <- function(object, signaling = NULL, pattern 
     incoming[,i] <- centr[[i]]$indeg
   }
   if (pattern == "outgoing") {
-    mat <- t(outgoing)
+    mat <- MatrixExtra::t(outgoing)
     legend.name <- "Outgoing"
   } else if (pattern == "incoming") {
-    mat <- t(incoming)
+    mat <- MatrixExtra::t(incoming)
     legend.name <- "Incoming"
   } else if (pattern == "all") {
-    mat <- t(outgoing+ incoming)
+    mat <- MatrixExtra::t(outgoing+ incoming)
     legend.name <- "Overall"
   }
   if (is.null(title)) {

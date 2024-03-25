@@ -4108,7 +4108,7 @@ barPlot <- function(object, features, group.by = NULL, split.by = NULL, color.us
       data = data.all[, group == group.levels[i], drop = FALSE]
       labels.use <- labels[group == group.levels[i]]
       dataavg <- aggregate(t(data[features, ]), list(labels.use) , FUN = FunMean)
-      dataavg <- t(dataavg[,-1])
+      dataavg <- MatrixExtra::t(dataavg[,-1])
       colnames(dataavg) <- levels(labels.use)
       dataavg <- as.data.frame(dataavg)
       dataavg$gene = rownames(dataavg)
@@ -4123,7 +4123,7 @@ barPlot <- function(object, features, group.by = NULL, split.by = NULL, color.us
   } else {
     data = data.all
     dataavg <- aggregate(t(data[features, ]), list(labels) , FUN = FunMean)
-    dataavg <- t(dataavg[,-1])
+    dataavg <- MatrixExtra::t(dataavg[,-1])
     colnames(dataavg) <- levels(labels)
     dataavg$gene = rownames(dataavg)
     df1 = reshape2::melt(dataavg, id.vars = c("gene"))
@@ -4456,7 +4456,7 @@ spatialFeaturePlot <- function(object, features = NULL, signaling = NULL, pairLR
       data.use <- data[feature.use, , drop = FALSE]
     } else if (length(intersect(feature.use, colnames(meta))) > 0) {
       feature.use <- feature.use[feature.use %in% colnames(meta)]
-      data.use <- t(meta[ ,feature.use, drop = FALSE])
+      data.use <- MatrixExtra::t(meta[ ,feature.use, drop = FALSE])
     } else {
       stop("Please check your input! ")
     }
