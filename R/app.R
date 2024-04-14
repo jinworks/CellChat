@@ -7,7 +7,7 @@
 #' @importFrom stringr str_split_1
 # #' @importFrom plotly subplot plot_ly ggplotly add_markers highlight highlight_key plotlyOutput layout
 # #' @importFrom bsicons bs_icon
-#' @import shiny bslib tidyverse
+#' @import shiny bslib
 #'
 runCellChatApp <- function(object,...) {
   # ##########################################################################
@@ -1264,8 +1264,8 @@ runCellChatApp <- function(object,...) {
   # ##########################################################################
   # Shiny App's UI
   # ##########################################################################
-  ui <- page_fluid(
-    theme = bs_theme(version = 5),
+  ui <- fluidPage(
+    theme =  bslib::bs_theme(version = 5),
     # ##########################################################################
     # meta info of the HTML pages
     # ##########################################################################
@@ -1296,8 +1296,8 @@ runCellChatApp <- function(object,...) {
       # Visualize cell groups and signaling expression
       h3(tags$i(class="bi bi-1-square-fill"),
          "Visualize cell groups and signaling expression",class="h3"),
-      card(
-        card_header(
+      bslib::card(
+        bslib::card_header(
           h6(tags$i(class="bi bi-bookmark"),
              "Dim Plot",class="h6")),
         layout_sidebar(
