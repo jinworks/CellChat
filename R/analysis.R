@@ -1135,7 +1135,6 @@ rankNet <- function(object, slot.name = "netP", measure = c("weight","count"), m
       if (measure == "count") {
         prob <- 1*(prob > 0)
       }
-      prob.list[[i]] <- prob
       if (!is.null(sources.use)) {
         if (is.character(sources.use)) {
           if (all(sources.use %in% dimnames(prob)[[1]])) {
@@ -1161,6 +1160,7 @@ rankNet <- function(object, slot.name = "netP", measure = c("weight","count"), m
       if (sum(prob) == 0) {
         stop("No inferred communications for the input!")
       }
+      prob.list[[i]] <- prob
       pSum.original[[i]] <- apply(prob, 3, sum)
       if (measure == "weight") {
         pSum[[i]] <- -1/log(pSum.original[[i]])
