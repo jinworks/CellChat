@@ -35,7 +35,7 @@ USER must input this data frame when datatype = "spatial". spatial.factors must 
 
 and another element named `tol`, which is the tolerance factor to increase the robustness when comparing the center-to-center distance against the `interaction.range`. This can be the half value of cell/spot size in the unit of um. If the cell/spot size is not known, we provide a function `computeCellDistance` to compute the cell center-to-center distance. `tol` can be the the half value of the minimum center-to-center distance. Of note, CellChat does not need an accurate tolerance factor, which is used for determining whether considering the cell-pair as spatially proximal if their distance is greater than `interaction.range` but smaller than "`interaction.range` + `tol`".}
 
-\item{assay}{Assay to use when the input is a Seurat object. NB: The data in the `integrated` assay is not suitable for CellChat analysis because it contains negative values.}
+\item{assay}{Assay to use when the input is a Seurat or SingleCellExperiment object. NB: The data in the `integrated` assay in Seurat is not suitable for CellChat analysis because it contains negative values.}
 
 \item{do.sparse}{whether use sparse format}
 }
