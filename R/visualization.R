@@ -1297,13 +1297,26 @@ netVisual_circle <-function(net, color.use = NULL,title.name = NULL, sources.use
   }
   net[is.na(net)] <- 0
 
-
+  if (is.null(color.use)) {
+    color.use = scPalette(nrow(net))
+    names(color.use) <- rownames(net)
+  } else {
+    if (is.null(names(color.use))) {
+      stop("The input `color.use` should be a named vector! \n")
+    }
+  }
   if (remove.isolate) {
     idx1 <- which(Matrix::rowSums(net) == 0)
     idx2 <- which(Matrix::colSums(net) == 0)
-    idx <- intersect(idx1, idx2)
-    net <- net[-idx, ]
-    net <- net[, -idx]
+    idx.isolate <- intersect(idx1, idx2)
+    if (length(idx.isolate) > 0) {
+      net <- net[-idx.isolate, ]
+      net <- net[, -idx.isolate]
+      color.use = color.use[-idx.isolate]
+      if (length(unique(vertex.weight)) > 1) {
+        vertex.weight <- vertex.weight[-idx.isolate]
+      }
+    }
   }
 
   g <- graph_from_adjacency_matrix(net, mode = "directed", weighted = T)
@@ -1314,9 +1327,7 @@ netVisual_circle <-function(net, color.use = NULL,title.name = NULL, sources.use
   }else{
     coords_scale<-coords
   }
-  if (is.null(color.use)) {
-    color.use = scPalette(length(igraph::V(g)))
-  }
+
   if (is.null(vertex.weight.max)) {
     vertex.weight.max <- max(vertex.weight)
   }
@@ -2848,8 +2859,9 @@ netVisual_chord_gene <- function(object, slot.name = "net", color.use = NULL,
     prob[pval > thresh] <- 0
     net <- reshape2::melt(prob, value.name = "prob")
     colnames(net)[1:3] <- c("source","target","interaction_name")
-
-    pairLR = dplyr::select(object@LR$LRsig, c("interaction_name_2", "pathway_name",  "ligand",  "receptor" ,"annotation","evidence"))
+    cols.default <- c("interaction_name_2", "pathway_name",  "ligand",  "receptor" ,"annotation","evidence")
+    cols.common <- intersect(cols.default,colnames(object@LR$LRsig))
+    pairLR = dplyr::select(object@LR$LRsig, cols.common)
     idx <- match(net$interaction_name, rownames(pairLR))
     temp <- pairLR[idx,]
     net <- cbind(net, temp)
