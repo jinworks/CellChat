@@ -95,7 +95,7 @@ setMethod(f = "show", signature = "CellChat", definition = function(object) {
 #' and another element named `tol`, which is the tolerance factor to increase the robustness when comparing the center-to-center distance against the `interaction.range`. This can be the half value of cell/spot size in the unit of um. If the cell/spot size is not known, we provide a function `computeCellDistance` to compute the cell center-to-center distance. `tol` can be the the half value of the minimum center-to-center distance. Of note, CellChat does not need an accurate tolerance factor, which is used for determining whether considering the cell-pair as spatially proximal if their distance is greater than `interaction.range` but smaller than "`interaction.range` + `tol`".
 #'
 #'
-#' @param assay Assay to use when the input is a Seurat object. NB: The data in the `integrated` assay is not suitable for CellChat analysis because it contains negative values.
+#' @param assay Assay to use when the input is a Seurat or SingleCellExperiment object. NB: The data in the `integrated` assay in Seurat is not suitable for CellChat analysis because it contains negative values.
 #' @param do.sparse whether use sparse format
 #'
 #' @return
@@ -189,11 +189,14 @@ createCellChat <- function(object, meta = NULL, group.by = NULL,
   # SingleCellExperiment object as input
   if (is(object,"SingleCellExperiment")) {
     print("Create a CellChat object from a SingleCellExperiment object")
-    if ("logcounts" %in% SummarizedExperiment::assayNames(object)) {
-      cat("The `logcounts` assay is used",'\n')
-      data <- SingleCellExperiment::logcounts(object)
+    if (is.null(assay)) {
+      assay = "logcounts"
+    }
+    if (assay %in% SummarizedExperiment::assayNames(object)) {
+      cat(paste0("The data in the ", assay, " assay is used! "),'\n')
+      data <- SummarizedExperiment::assay(object, assay)
     } else {
-      stop("SingleCellExperiment object must contain an assay named `logcounts`")
+      stop("SingleCellExperiment object must contain an assay named `logcounts` or the input assay name! Please check the available assaynames via `assayNames(object)`. \n")
     }
     if (is.null(meta)) {
       cat("The `colData` assay in the SingleCellExperiment object is used as cell meta information",'\n')
@@ -209,7 +212,7 @@ createCellChat <- function(object, meta = NULL, group.by = NULL,
   }
 
   if (!is.null(meta)) {
-    if (inherits(x = meta, what = c("matrix", "Matrix"))) {
+    if (inherits(x = meta, what = c("matrix", "Matrix","DataFrame"))) {
       meta <- as.data.frame(x = meta)
     }
     if (!is.data.frame(meta)) {
