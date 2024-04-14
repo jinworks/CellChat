@@ -363,7 +363,6 @@ subsetData <- function(object, features = NULL) {
 #' @importFrom pbapply pbsapply
 #' @importFrom future.apply future_sapply
 #' @importFrom stats sd wilcox.test p.adjust
-#' @importFrom presto wilcoxauc
 #'
 #' @return A CellChat object or a data frame. If returning a CellChat object, two new elements named 'features.name' and paste0(features.name, ".info") will be added into the list `object@var.features`
 #' `object@var.features[[features.name]]` is a vector consisting of the identified over-expressed signaling genes;
@@ -428,6 +427,16 @@ identifyOverExpressedGenes <- function(object, data.use = NULL, group.by = NULL,
     }
 
     if (do.fast) {
+      presto.check <- rlang::is_installed(c("presto"))
+      if (!presto.check) {
+        stop(
+          "For a faster implementation of the Wilcoxon Test, please install the presto package",
+          "\n--------------------------------------------",
+          "\n devtools::install_github('immunogenomics/presto')",
+          "\n--------------------------------------------",
+          "\n Otherwise, plase set `do.fast = FALSE` for running the standard Wilcoxon Test!\n"
+        )
+      }
       if (is.null(group.dataset)) {
         genes.de <- presto::wilcoxauc(data.use, labels, groups_use = level.use)
         colnames(genes.de) <- plyr::mapvalues(colnames(genes.de),from = c("group","feature","pval","logFC","pct_in","pct_out","padj"), to = c("clusters","features","pvalues","logFC","pct.1", "pct.2","pvalues.adj"), warn_missing = TRUE)
