@@ -41,9 +41,9 @@ Imports:
     ggpubr,
     ggnetwork, 
     BiocNeighbors,
-    plotly,shiny,bslib,presto,tidyverse
+    plotly,shiny,bslib
 LinkingTo: Rcpp, RcppEigen
 Suggests:
-    rmarkdown, knitr, roxygen2, Seurat (>= 4.0.0), SingleCellExperiment, SummarizedExperiment, purrr,uwot,gg.gap,wordcloud,bsicons,tidyr
-RoxygenNote: 7.2.3
+    rmarkdown, knitr, roxygen2, Seurat (>= 4.0.0), SingleCellExperiment, SummarizedExperiment, purrr,uwot,gg.gap,wordcloud,bsicons,presto,tidyverse,tidyr,rlang
+RoxygenNote: 7.3.1
 VignetteBuilder: knitr
