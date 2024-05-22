@@ -143,7 +143,7 @@ createCellChat <- function(object, meta = NULL, group.by = NULL,
                            assay = NULL, do.sparse = T) {
   datatype <- match.arg(datatype)
   # data matrix as input
-  if (inherits(x = object, what = c("matrix", "Matrix", "dgCMatrix"))) {
+  if (inherits(x = object, what = c("matrix", "Matrix", "Matrix"))) {
     print("Create a CellChat object from a data matrix")
     data <- object
     if (is.null(group.by)) {
@@ -208,7 +208,7 @@ createCellChat <- function(object, meta = NULL, group.by = NULL,
   }
 
   if (!inherits(x = data, what = c("dgCMatrix")) & do.sparse) {
-    data <- as(data, "dgCMatrix")
+    data <- as(data, "CsparseMatrix")
   }
 
   if (!is.null(meta)) {
