@@ -18,7 +18,7 @@ setClassUnion(name = 'AnyFactor', members = c("factor", "list"))
 #' @slot data normalized data matrix for CellChat analysis (Genes should be in rows and cells in columns)
 #' @slot data.signaling a subset of normalized matrix only containing signaling genes
 #' @slot data.scale scaled data matrix
-#' @slot data.project projected data
+#' @slot data.smooth smoothed data
 #' @slot images a list of information of spatial transcriptomics data
 #' @slot net a three-dimensional array P (K×K×N), where K is the number of cell groups and N is the number of ligand-receptor pairs. Each row of P indicates the communication probability originating from the sender cell group to other cell groups.
 #' @slot netP a three-dimensional array representing cel-cell communication networks on a signaling pathway level
@@ -39,7 +39,7 @@ CellChat <- methods::setClass("CellChat",
                                            data = 'AnyMatrix',
                                            data.signaling = "AnyMatrix",
                                            data.scale = "matrix",
-                                           data.project = "AnyMatrix",
+                                           data.smooth = "AnyMatrix",
                                            images = "list",
                                            net = "list",
                                            netP = "list",
@@ -143,7 +143,7 @@ createCellChat <- function(object, meta = NULL, group.by = NULL,
                            assay = NULL, do.sparse = T) {
   datatype <- match.arg(datatype)
   # data matrix as input
-  if (inherits(x = object, what = c("matrix", "Matrix", "dgCMatrix"))) {
+  if (inherits(x = object, what = c("matrix", "Matrix", "dgCMatrix", "dgRMatrix","CsparseMatrix"))) {
     print("Create a CellChat object from a data matrix")
     data <- object
     if (is.null(group.by)) {
@@ -208,6 +208,9 @@ createCellChat <- function(object, meta = NULL, group.by = NULL,
   }
 
   if (!inherits(x = data, what = c("dgCMatrix")) & do.sparse) {
+    if (inherits(x = data, what = c("dgRMatrix"))) {
+      data <- as(data, "CsparseMatrix")
+    }
     data <- as(data, "dgCMatrix")
   }
 
@@ -251,12 +254,12 @@ createCellChat <- function(object, meta = NULL, group.by = NULL,
 
   if (!is.null(meta) & nrow(meta) > 0) {
     if (!("samples" %in% colnames(meta))) {
-      warning("The 'meta' data does not have a column named `samples`. We now add this column and all cells are assumed to belong to `sample1`!")
+      warning("The 'meta' data does not have a column named `samples`. We now add this column and all cells are assumed to belong to `sample1`! \n")
       meta$samples <- "sample1"
       meta$samples <- factor(meta$samples)
       object@meta <- meta
     } else if (is.factor(meta$samples) == FALSE) {
-      warning("The 'meta$samples' is not a factor. We now force it as a factor!")
+      warning("The 'meta$samples' is not a factor. We now force it as a factor! \n")
       meta$samples <- factor(meta$samples)
       object@meta <- meta
     }
@@ -421,6 +424,8 @@ mergeCellChat <- function(object.list, add.names = NULL, merge.data = FALSE, cel
 #'
 #' version 2.1.2: the column `slices` in `object@meta` is renamed as `samples` in order to identify consistent signaling across samples for cell-cell communication analysis.
 #'
+#' version 2.1.3: the slot `object@data.project` is renamed as `object@data.smooth`.
+#'
 #' @param object CellChat object
 #'
 #' @return a updated CellChat object
@@ -474,13 +479,18 @@ updateCellChat <- function(object) {
       images$scale.factors <- NULL
     }
   }
+  if ("data.smooth" %in% methods::slotNames(object) == FALSE) {
+    data.smooth <- object@data.project
+  } else {
+    data.smooth <- object@data.smooth
+  }
   object.new <- methods::new(
     Class = "CellChat",
     data.raw = object@data.raw,
     data = object@data,
     data.signaling = object@data.signaling,
     data.scale = object@data.scale,
-    data.project = object@data.project,
+    data.smooth = data.smooth,
     images = images,
     net = net,
     netP = object@netP,
@@ -769,10 +779,10 @@ subsetCellChat <- function(object, cells.use = NULL, idents.use = NULL, group.by
   } else {
     data.subset <- matrix(0, nrow = 0, ncol = 0)
   }
-  if (nrow(object@data.project) > 0) {
-    data.project.subset <- object@data.project[, cells.use.index]
+  if (nrow(object@data.smooth) > 0) {
+    data.smooth.subset <- object@data.smooth[, cells.use.index]
   } else {
-    data.project.subset <- matrix(0, nrow = 0, ncol = 0)
+    data.smooth.subset <- matrix(0, nrow = 0, ncol = 0)
   }
   data.signaling.subset <- object@data.signaling[, cells.use.index]
 
@@ -936,7 +946,7 @@ subsetCellChat <- function(object, cells.use = NULL, idents.use = NULL, group.by
     Class = "CellChat",
     data = data.subset,
     data.signaling = data.signaling.subset,
-    data.project = data.project.subset,
+    data.smooth = data.smooth.subset,
     images = images.subset,
     net = net.subset,
     netP = netP.subset,
