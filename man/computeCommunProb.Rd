@@ -36,7 +36,7 @@ When setting `type = "truncatedMean"`, a value should be assigned to 'trim',  pr
 
 \item{LR.use}{A subset of ligand-receptor interactions used in inferring communication network}
 
-\item{raw.use}{Whether use the raw data (i.e., `object@data.signaling`) or the projected data (i.e., `object@data.project`).
+\item{raw.use}{Whether use the raw data (i.e., `object@data.signaling`) or the smoothed data (i.e., `object@data.smooth`).
 Set raw.use = FALSE to use the projected data when analyzing single-cell data with shallow sequencing depth because the projected data could help to reduce the dropout effects of signaling genes, in particular for possible zero expression of subunits of ligands/receptors.}
 
 \item{population.size}{Whether consider the proportion of cells in each group across all sequenced cells.

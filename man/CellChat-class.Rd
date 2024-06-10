@@ -19,7 +19,7 @@ The key slots used in the CellChat object are described below.
 
 \item{\code{data.scale}}{scaled data matrix}
 
-\item{\code{data.project}}{projected data}
+\item{\code{data.smooth}}{smoothed data}
 
 \item{\code{images}}{a list of information of spatial transcriptomics data}
 

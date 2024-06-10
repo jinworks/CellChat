@@ -15,7 +15,7 @@ netAnalysis_computeCentrality(
 \arguments{
 \item{object}{CellChat object; If object = NULL, USER must provide `net`}
 
-\item{slot.name}{the slot name of object that is used to compute centrality measures of signaling networks}
+\item{slot.name}{the slot name of object that is used to compute centrality measures of signaling networks. Setting slot.name = "netP" to compute the network centrality scores at the level of signaling pathways, and setting slot.name = "net" to compute the network centrality scores at the level of ligand-receptor pairs}
 
 \item{net}{compute the centrality measures on a specific signaling network given by a 2 or 3 dimemsional array net}
 

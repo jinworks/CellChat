@@ -24,7 +24,7 @@ netAnalysis_river(
 \arguments{
 \item{object}{CellChat object}
 
-\item{slot.name}{the slot name of object that is used to compute centrality measures of signaling networks}
+\item{slot.name}{the slot name of object: “netP” or “net”. Use “netP” to analyze cell-cell communication at the level of signaling pathways, and “net” to analyze cell-cell communication at the level of ligand-receptor pairs.}
 
 \item{pattern}{"outgoing" or "incoming"}
 

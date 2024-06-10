@@ -4,14 +4,16 @@
 \alias{normalizeData}
 \title{Normalize data using a scaling factor}
 \usage{
-normalizeData(data.raw, scale.factor = 10000, do.log = TRUE)
+normalizeData(data.raw, scale.factor = 10000, do.log = TRUE, do.sparse = TRUE)
 }
 \arguments{
 \item{data.raw}{input raw data}
 
 \item{scale.factor}{the scaling factor used for each cell}
 
-\item{do.log}{whether do log transformation with pseudocount 1}
+\item{do.log}{whether to do log transformation with pseudocount 1}
+
+\item{do.sparse}{whether to use sparse format}
 }
 \description{
 Normalize data using a scaling factor

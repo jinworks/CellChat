@@ -25,9 +25,9 @@ netAnalysis_signalingRole_heatmap(
 
 \item{signaling}{a character vector giving the names of signaling networks of interest}
 
-\item{pattern}{"outgoing", "incoming" or "all". When pattern = "all", it aggregates the outgoing and incoming signaling strength together}
+\item{pattern}{this parameter can be set as "outgoing", "incoming" or "all". When pattern = "all", CellChat aggregates the outgoing and incoming signaling strength together;}
 
-\item{slot.name}{the slot name of object that is used to compute centrality measures of signaling networks}
+\item{slot.name}{the slot name of object that is used to examine the signaling patterns at the level of signaling pathways (slot.name = "netP") or ligand-receptor pairs (slot.name = "net");}
 
 \item{color.use}{the character vector defining the color of each cell group}
 

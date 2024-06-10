@@ -27,4 +27,6 @@ version 2.1.0: a column named `slices` is added in `meta` data for spatial trans
 version 2.1.1: `images$scale.factors` is changed to `images$spatial.factors` for spatial transcriptomics data analysis.
 
 version 2.1.2: the column `slices` in `object@meta` is renamed as `samples` in order to identify consistent signaling across samples for cell-cell communication analysis.
+
+version 2.1.3: the slot `object@data.project` is renamed as `object@data.smooth`.
 }
