@@ -2,16 +2,20 @@
 #'
 #' @param data.raw input raw data
 #' @param scale.factor the scaling factor used for each cell
-#' @param do.log whether do log transformation with pseudocount 1
+#' @param do.log whether to do log transformation with pseudocount 1
+#' @param do.sparse whether to use sparse format
 #' @export
 #'
-normalizeData <- function(data.raw, scale.factor = 10000, do.log = TRUE) {
+normalizeData <- function(data.raw, scale.factor = 10000, do.log = TRUE, do.sparse = TRUE) {
   # Scale counts within a sample
   library.size <- Matrix::colSums(data.raw)
   #scale.factor <- median(library.size)
   expr <- Matrix::t(Matrix::t(data.raw) / library.size) * scale.factor
   if (do.log) {
     data.norm <-log1p(expr)
+  }
+  if (do.sparse) {
+    data.input <- as(data.norm, "dgCMatrix")
   }
   return(data.norm)
 }
@@ -810,23 +814,27 @@ identifyOverExpressedInteractions <- function(object, features.name = "features"
 }
 
 
-#' Project gene expression data onto a protein-protein interaction network
+#' Smooth the gene expression data
 #'
 #' A diffusion process is used to smooth genes’ expression values based on their neighbors’ defined in a high-confidence experimentally validated protein-protein network.
 #'
 #' This function is useful when analyzing single-cell data with shallow sequencing depth because the projection reduces the dropout effects of signaling genes, in particular for possible zero expression of subunits of ligands/receptors
 #'
 #' @param object  CellChat object
-#' @param adjMatrix adjacency matrix of protein-protein interaction network to use
+#' @param method When method = "netSmooth", smoothing a gene’s expression values based on its neighbors defined in a high-confidence experimentally validated protein-protein network.
+#' @param adj adjacency matrix of protein-protein interaction network to use
 #' @param alpha numeric in [0,1] alpha = 0: no smoothing; a larger value alpha results in increasing levels of smoothing.
 #' @param normalizeAdjMatrix    how to normalize the adjacency matrix
 #'                              possible values are 'rows' (in-degree)
 #'                              and 'columns' (out-degree)
-#' @return a projected gene expression matrix
+#' @return a smoothed gene expression matrix
 #' @export
 #'
 # This function is adapted from https://github.com/BIMSBbioinfo/netSmooth
-projectData <- function(object, adjMatrix, alpha=0.5, normalizeAdjMatrix=c('rows','columns')){
+smoothData <- function(object, method = c("netSmooth"), adj = NULL, alpha=0.5, normalizeAdjMatrix=c('rows','columns')){
+  if ("data.smooth" %in% methods::slotNames(object) == FALSE) {
+    stop("`object@data.smooth` is missing. Please update the CellChat object via `updateCellChat`! \n")
+  }
   data <- as.matrix(object@data.signaling)
   normalizeAdjMatrix <- match.arg(normalizeAdjMatrix)
   stopifnot(is(adjMatrix, 'matrix') || is(adjMatrix, 'sparseMatrix'))
@@ -839,7 +847,7 @@ projectData <- function(object, adjMatrix, alpha=0.5, normalizeAdjMatrix=c('rows
     }
     data.projected <- projectAndRecombine(data, adjMatrix, alpha,normalizeAdjMatrix=normalizeAdjMatrix)
   } else stop("unsupported alpha value: ", class(alpha))
-  object@data.project <- data.projected
+  object@data.smooth <- data.projected
   return(object)
 }
 
