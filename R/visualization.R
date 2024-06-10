@@ -3047,7 +3047,7 @@ netVisual_chord_gene <- function(object, slot.name = "net", color.use = NULL,
 #' Incoming patterns show how the target cells coordinate with each other as well as how they coordinate with certain signaling pathways to respond to incoming signaling.
 #'
 #' @param object CellChat object
-#' @param slot.name the slot name of object that is used to compute centrality measures of signaling networks
+#' @param slot.name the slot name of object: “netP” or “net”. Use “netP” to analyze cell-cell communication at the level of signaling pathways, and “net” to analyze cell-cell communication at the level of ligand-receptor pairs.
 #' @param pattern "outgoing" or "incoming"
 #' @param cutoff the threshold for filtering out weak links
 #' @param sources.use a vector giving the index or the name of source cell groups of interest
@@ -3396,7 +3396,7 @@ netAnalysis_dot <- function(object, slot.name = "netP", pattern = c("outgoing","
   gg <- gg + scale_y_discrete(limits = rev(levels(data3$CellGroup)))
   gg <- gg + scale_fill_manual(values = ggplot2::alpha(color.use, alpha = dot.alpha), drop = FALSE, na.value = "white")
   gg <- gg + scale_colour_manual(values = color.use, drop = FALSE, na.value = "white")
-  gg <- gg + guides(colour=FALSE) + guides(fill=FALSE)
+  gg <- gg + guides(colour="none") + guides(fill="none")
   gg <- gg + theme(legend.title = element_text(size = 10), legend.text = element_text(size = 8))
   gg
   return(gg)
@@ -4049,10 +4049,14 @@ modify_vlnplot<- function(object,
 
   p <- p + scale_y_continuous(labels = function(x) {
     idx0 = which(x == 0)
-    if (idx0 > 1) {
-      c(rep(x = "", times = idx0-1), "0",rep(x = "", times = length(x) -2-idx0), x[length(x) - 1], "")
+    if (length(idx0) > 0) {
+      if (idx0 > 1) {
+        c(rep(x = "", times = idx0-1), "0",rep(x = "", times = length(x) -2-idx0), x[length(x) - 1], "")
+      } else {
+        c("0", rep(x = "", times = length(x)-3), x[length(x) - 1], "")
+      }
     } else {
-      c("0", rep(x = "", times = length(x)-3), x[length(x) - 1], "")
+      c(as.character(min(x)), rep(x = "", times = length(x)-3), x[length(x) - 1], "")
     }
   })
   #  #c(rep(x = "", times = length(x)-2), x[length(x) - 1], ""))
