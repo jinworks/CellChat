@@ -9,7 +9,7 @@
 #' When setting `type = "truncatedMean"`, a value should be assigned to 'trim',  producing more interactions.
 #' @param trim the fraction (0 to 0.25) of observations to be trimmed from each end of x before the mean is computed
 #' @param LR.use A subset of ligand-receptor interactions used in inferring communication network
-#' @param raw.use Whether use the raw data (i.e., `object@data.signaling`) or the projected data (i.e., `object@data.project`).
+#' @param raw.use Whether use the raw data (i.e., `object@data.signaling`) or the smoothed data (i.e., `object@data.smooth`).
 #' Set raw.use = FALSE to use the projected data when analyzing single-cell data with shallow sequencing depth because the projected data could help to reduce the dropout effects of signaling genes, in particular for possible zero expression of subunits of ligands/receptors.
 #' @param population.size Whether consider the proportion of cells in each group across all sequenced cells.
 #' Set population.size = FALSE if analyzing sorting-enriched single cells, to remove the potential artifact of population size.
@@ -74,7 +74,7 @@ computeCommunProb <- function(object, type = c("triMean", "truncatedMean","thres
   if (raw.use) {
     data <- as.matrix(object@data.signaling)
   } else {
-    data <- object@data.project
+    data <- as.matrix(object@data.smooth)
   }
   if (is.null(LR.use)) {
     pairLR.use <- object@LR$LRsig
@@ -138,8 +138,7 @@ computeCommunProb <- function(object, type = c("triMean", "truncatedMean","thres
       ratio <- object@images$spatial.factors$ratio
       tol <- object@images$spatial.factors$tol
     } else {
-      ratio <- object@images$scale.factors$ratio
-      tol <- object@images$scale.factors$tol
+      stop("`object@images$spatial.factors` is missing. Please update the object via `updateCellChat`! \n")
     }
 
     meta.t = data.frame(group = group, samples = object@meta$samples, row.names = rownames(object@meta))
@@ -937,7 +936,10 @@ filterCommunication <- function(object, min.cells = 10, min.samples = NULL, rare
     if (object@options$parameter$raw.use == TRUE) {
       data <- as.matrix(object@data.signaling)
     } else {
-      data <- object@data.project
+      if ("data.smooth" %in% methods::slotNames(object) == FALSE) {
+        stop("`object@data.smooth` is missing. Please update the CellChat object via `updateCellChat`! \n")
+      }
+      data <- as.matrix(object@data.smooth)
     }
     data.use <- data/max(data)
     group <- object@idents
