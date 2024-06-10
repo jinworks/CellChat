@@ -186,7 +186,7 @@ netAnalysis_contribution <- function(object, signaling, signaling.name = NULL, s
 #' NB: This function was previously named as `netAnalysis_signalingRole`.  The previous function `netVisual_signalingRole` is now named as `netAnalysis_signalingRole_network`.
 #'
 #' @param object CellChat object; If object = NULL, USER must provide `net`
-#' @param slot.name the slot name of object that is used to compute centrality measures of signaling networks
+#' @param slot.name the slot name of object that is used to compute centrality measures of signaling networks. Setting slot.name = "netP" to compute the network centrality scores at the level of signaling pathways, and setting slot.name = "net" to compute the network centrality scores at the level of ligand-receptor pairs
 #' @param net compute the centrality measures on a specific signaling network given by a 2 or 3 dimemsional array net
 #' @param net.name a character vector giving the name of signaling networks
 #' @param thresh threshold of the p-value for determining significant interaction
@@ -1168,7 +1168,7 @@ rankNet <- function(object, slot.name = "netP", measure = c("weight","count"), m
         idx[[i]] <- which(is.infinite(pSum[[i]]) | pSum[[i]] < 0)
         pSum.original.all <- c(pSum.original.all, pSum.original[[i]][idx[[i]]])
       } else if (measure == "count") {
-        pSum[[i]] <- pSum.original[[i]]
+        pSum[[i]] <- pSum.original[[i]] # the prob is already binarized in line 1136
       }
       pair.name[[i]] <- names(pSum.original[[i]])
       object.names.comparison <- c(object.names.comparison, object.names[comparison[i]])
@@ -2258,8 +2258,11 @@ netAnalysis_signalingRole_network <- function(object, signaling, slot.name = "ne
     mat <- t(mat)
     rownames(mat) <- names(centr0); colnames(mat) <- names(centr0$outdeg)
     if (!is.null(measure)) {
-      mat <- mat[measure,]
+      mat <- mat[measure,,drop = FALSE]
       if (!is.null(measure.name)) {
+        if (length(measure.name) != length(measure)) {
+          stop("The length of `measure.name` is not the same as that of `measure`! Please modify it! \n")
+        }
         rownames(mat) <- measure.name
       }
     }
@@ -2388,9 +2391,9 @@ netAnalysis_signalingRole_scatter <- function(object, signaling = NULL, color.us
     labs(title = title, x = xlabel, y = ylabel) + theme(plot.title = element_text(size= font.size.title, face="plain"))+
     # theme(axis.text.x = element_blank(),axis.text.y = element_blank(),axis.ticks = element_blank()) +
     theme(axis.line.x = element_line(size = 0.25), axis.line.y = element_line(size = 0.25))
-  gg <- gg + scale_fill_manual(values = ggplot2::alpha(color.use, alpha = dot.alpha), drop = FALSE) + guides(fill=FALSE)
-  gg <- gg + scale_colour_manual(values = color.use, drop = FALSE) + guides(colour=FALSE)
-  # gg <- gg + scale_colour_manual(values = ggplot2::alpha(color.use, alpha = dot.alpha), drop = FALSE) + guides(colour=FALSE)
+  gg <- gg + scale_fill_manual(values = ggplot2::alpha(color.use, alpha = dot.alpha), drop = FALSE) + guides(fill="none")
+  gg <- gg + scale_colour_manual(values = color.use, drop = FALSE) + guides(colour="none")
+  # gg <- gg + scale_colour_manual(values = ggplot2::alpha(color.use, alpha = dot.alpha), drop = FALSE) + guides(colour="none")
   # gg <- gg + scale_shape_manual(values = point.shape[1:length(prob)])
   if (!is.null(group)) {
     gg <- gg + scale_shape_manual(values = point.shape[1:length(unique(df$Group))])
@@ -2560,8 +2563,8 @@ netAnalysis_diff_signalingRole_scatter <- function(object, color.use = NULL, com
     labs(title = title, x = xlabel, y = ylabel) + theme(plot.title = element_text(size= font.size.title, face="plain", hjust = 0.5))+
     # theme(axis.text.x = element_blank(),axis.text.y = element_blank(),axis.ticks = element_blank()) +
     theme(axis.line.x = element_line(size = 0.25), axis.line.y = element_line(size = 0.25))
-  gg <- gg + scale_fill_manual(values = ggplot2::alpha(color.use, alpha = dot.alpha), drop = FALSE) + guides(fill=FALSE)
-  gg <- gg + scale_colour_manual(values = color.use, drop = FALSE) + guides(colour=FALSE)
+  gg <- gg + scale_fill_manual(values = ggplot2::alpha(color.use, alpha = dot.alpha), drop = FALSE) + guides(fill="none")
+  gg <- gg + scale_colour_manual(values = color.use, drop = FALSE) + guides(colour="none")
   if (!is.null(group)) {
     gg <- gg + scale_shape_manual(values = point.shape[1:length(unique(df$Group))])
   }
@@ -2785,8 +2788,8 @@ netAnalysis_signalingChanges_scatter <- function(object, idents.use, color.use =
 #'
 #' @param object CellChat object
 #' @param signaling a character vector giving the names of signaling networks of interest
-#' @param pattern "outgoing", "incoming" or "all". When pattern = "all", it aggregates the outgoing and incoming signaling strength together
-#' @param slot.name the slot name of object that is used to compute centrality measures of signaling networks
+#' @param pattern this parameter can be set as "outgoing", "incoming" or "all". When pattern = "all", CellChat aggregates the outgoing and incoming signaling strength together;
+#' @param slot.name the slot name of object that is used to examine the signaling patterns at the level of signaling pathways (slot.name = "netP") or ligand-receptor pairs (slot.name = "net");
 #' @param color.use the character vector defining the color of each cell group
 #' @param color.heatmap a color name in brewer.pal
 #' @param title title name
