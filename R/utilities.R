@@ -837,15 +837,15 @@ smoothData <- function(object, method = c("netSmooth"), adj = NULL, alpha=0.5, n
   }
   data <- as.matrix(object@data.signaling)
   normalizeAdjMatrix <- match.arg(normalizeAdjMatrix)
-  stopifnot(is(adjMatrix, 'matrix') || is(adjMatrix, 'sparseMatrix'))
+  stopifnot(is(adj, 'matrix') || is(adj, 'sparseMatrix'))
   stopifnot((is.numeric(alpha) && (alpha > 0 && alpha < 1)))
-  if(sum(Matrix::rowSums(adjMatrix)==0)>0) stop("PPI cannot have zero rows/columns")
-  if(sum(Matrix::colSums(adjMatrix)==0)>0) stop("PPI cannot have zero rows/columns")
+  if(sum(Matrix::rowSums(adj)==0)>0) stop("PPI cannot have zero rows/columns")
+  if(sum(Matrix::colSums(adj)==0)>0) stop("PPI cannot have zero rows/columns")
   if(is.numeric(alpha)) {
     if(alpha<0 | alpha > 1) {
       stop('alpha must be between 0 and 1')
     }
-    data.projected <- projectAndRecombine(data, adjMatrix, alpha,normalizeAdjMatrix=normalizeAdjMatrix)
+    data.projected <- projectAndRecombine(data, adj, alpha,normalizeAdjMatrix=normalizeAdjMatrix)
   } else stop("unsupported alpha value: ", class(alpha))
   object@data.smooth <- data.projected
   return(object)
