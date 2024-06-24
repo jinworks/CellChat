@@ -57,7 +57,7 @@ ptm = Sys.time()
 # This is a combined data from two biological conditions: normal and diseases
 load("/Users/suoqinjin/Library/CloudStorage/OneDrive-Personal/works/CellChat/tutorial/data_humanSkin_CellChat.rda")
 data.input = data_humanSkin$data # normalized data matrix
-meta = data_humanSkin$meta # a dataframe with rownames containing cell mata data
+meta = data_humanSkin$meta # a dataframe with rownames containing cell meta data
 cell.use = rownames(meta)[meta$condition == "LS"] # extract the cell names from disease data
 
 # Subset the input data for CelChat analysis
@@ -131,7 +131,7 @@ meta <- as.data.frame(SingleCellExperiment::colData(sce)) #
 cellChat <- createCellChat(object = sce, group.by = "sce.clusters")
 ```
 
-If cell mata information is not added when creating CellChat object, USERS can also add it later using `addMeta`, and set the default cell identities using `setIdent`.
+If cell meta information is not added when creating CellChat object, USERS can also add it later using `addMeta`, and set the default cell identities using `setIdent`.
 ```{r eval = FALSE}
 cellchat <- addMeta(cellchat, meta = meta)
 cellchat <- setIdent(cellchat, ident.use = "labels") # set "labels" as default cell identity
