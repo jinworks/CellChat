@@ -9,6 +9,7 @@ Depends: R (>= 3.6.0),dplyr,igraph,ggplot2
 License: GPL-3
 Encoding: UTF-8
 LazyData: TRUE
+biocViews: Software, Visualization
 Imports:
     future,
     future.apply,
