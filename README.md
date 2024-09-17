@@ -16,7 +16,7 @@ CellChat v2 is an updated version that includes
 
 For the version history and detailed important changes, please see the [NEWS file](https://github.com/jinworks/CellChat/blob/master/NEWS.md).
 
-Please check the [CellChat v2 paper](https://biorxiv.org/cgi/content/short/2023.11.05.565674v1) for a comprehensive protocol of CellChat v2 that is used for both single-cell and spatially resolved transcriptomic data. 
+A step-by-step protocol for cell-cell communication analysis using CellChat is now available at [Jin et al., Nature Protocols 2024](https://www.nature.com/articles/s41596-024-01045-4). Please kindly cite this paper when using CellChat version >= 1.5. We greatly appreciate the users' support and suggestions that make it possible for us to update CellChat since we published the first version in the year of 2021. 
 
 ## Capabilities
 In addition to infer the intercellular communication from any given scRNA-seq data and spatially resolved transcriptomics data, CellChat provides functionality for further data exploration, analysis, and visualization. 
@@ -50,6 +50,7 @@ Some users might have issues when installing CellChat pacakge due to different o
 
 ## Tutorials
 Please check the tutorial directory of the repo. Example datasets are publicly available at [figshare](https://figshare.com/projects/Example_data_for_cell-cell_communication_analysis_using_CellChat/157272). 
+Please check the [Jin et al., Nature Protocols 2024](https://www.nature.com/articles/s41596-024-01045-4) for a comprehensive protocol of cell-cell communication analysis using CellChat. 
 
 
 ### Analysis of single-cell transcriptomics data
@@ -102,7 +103,7 @@ CellChat is an R package designed for inference, analysis, and visualization of 
 CellChatDB is a manually curated database of literature-supported ligand-receptor interactions in mutiple species, leading to a comprehensive recapitulation of known molecular interaction mechanisms including multi-subunit structure of ligand-receptor complexes and co-factors.
 
 If you use CellChat or CellChatDB in your research, please considering citing our papers: 
-- [Suoqin Jin et al., CellChat for systematic analysis of cell-cell communication from single-cell and spatially resolved transcriptomics, bioRxiv 2023](https://biorxiv.org/cgi/content/short/2023.11.05.565674v1) [CellChat v2]
+- [Suoqin Jin et al., CellChat for systematic analysis of cell–cell communication from single-cell transcriptomics, Nature Protocols 2024](https://www.nature.com/articles/s41596-024-01045-4) [CellChat v2] (Please kindly cite this paper when using CellChat version >= 1.5)
 - [Suoqin Jin et al., Inference and analysis of cell-cell communication using CellChat, Nature Communications 2021](https://www.nature.com/articles/s41467-021-21246-9) [CellChat v1]
 
 
