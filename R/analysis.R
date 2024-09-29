@@ -998,7 +998,8 @@ rankSimilarity <- function(object, slot.name = "netP", type = c("functional","st
 #' @param signaling a vector giving the signaling pathway to show
 #' @param pairLR a vector giving the names of L-R pairs to show (e.g, pairLR = c("IL1A_IL1R1_IL1RAP","IL1B_IL1R1_IL1RAP"))
 #' @param signaling.type a char giving the types of signaling from the three categories c("Secreted Signaling", "ECM-Receptor", "Cell-Cell Contact")
-#' @param do.stat whether do a paired Wilcoxon test to determine whether there is significant difference between two datasets. Default = FALSE
+#' @param do.stat whether do a Wilcoxon test to determine whether there is significant difference between two datasets. Default = FALSE
+#' @param paired.test a logical indicating whether you want a paired test. Paired test is applicable to compare two datasets with the same cellular compositions.
 #' @param cutoff.pvalue the cutoff of pvalue when doing Wilcoxon test; Default = 0.05
 #' @param tol a tolerance when considering the relative contribution being equal between two datasets. contribution.relative between 1-tol and 1+tol will be considered as equal contribution
 #' @param thresh threshold of the p-value for determining significant interaction
@@ -1022,7 +1023,7 @@ rankSimilarity <- function(object, slot.name = "netP", type = c("functional","st
 #' @export
 #'
 #' @examples
-rankNet <- function(object, slot.name = "netP", measure = c("weight","count"), mode = c("comparison", "single"), comparison = c(1,2), color.use = NULL, stacked = FALSE, sources.use = NULL, targets.use = NULL,  signaling = NULL, pairLR = NULL, signaling.type = NULL, do.stat = FALSE, cutoff.pvalue = 0.05, tol = 0.05, thresh = 0.05, show.raw = FALSE, return.data = FALSE, x.rotation = 90, title = NULL, bar.w = 0.75, font.size = 8,
+rankNet <- function(object, slot.name = "netP", measure = c("weight","count"), mode = c("comparison", "single"), comparison = c(1,2), color.use = NULL, stacked = FALSE, sources.use = NULL, targets.use = NULL,  signaling = NULL, pairLR = NULL, signaling.type = NULL, do.stat = FALSE, paired.test = TRUE, cutoff.pvalue = 0.05, tol = 0.05, thresh = 0.05, show.raw = FALSE, return.data = FALSE, x.rotation = 90, title = NULL, bar.w = 0.75, font.size = 8,
                     do.flip = TRUE, x.angle = NULL, y.angle = 0, x.hjust = 1,y.hjust = 1,
                     axis.gap = FALSE, ylim = NULL, segments = NULL, tick_width = NULL, rel_heights = c(0.9,0,0.1)) {
   measure <- match.arg(measure)
@@ -1273,7 +1274,9 @@ rankNet <- function(object, slot.name = "netP", measure = c("weight","count"), m
     if (do.stat & length(comparison) == 2) {
       for (i in 1:length(pair.name.all)) {
         if (nrow(prob.list[[j]]) != nrow(prob.list[[1]])) {
-          stop("Statistical test is not applicable to datasets with different cellular compositions! Please set `do.stat = FALSE`")
+          if (paired.test) {
+            stop("Paired test is not applicable to datasets with different cellular compositions! Please set `do.stat = FALSE` or `paired.test = FALSE`! \n")
+          }
         }
         prob.values <- matrix(0, nrow = nrow(prob.list[[1]]) * nrow(prob.list[[1]]), ncol = length(comparison))
         for (j in 1:length(comparison)) {
@@ -1285,7 +1288,7 @@ rankNet <- function(object, slot.name = "netP", measure = c("weight","count"), m
         }
         prob.values <- prob.values[rowSums(prob.values, na.rm = TRUE) != 0, , drop = FALSE]
         if (nrow(prob.values) >3 & sum(is.na(prob.values)) == 0) {
-          pvalues <- wilcox.test(prob.values[ ,1], prob.values[ ,2], paired = TRUE)$p.value
+          pvalues <- wilcox.test(prob.values[ ,1], prob.values[ ,2], paired = paired.test)$p.value
         } else {
           pvalues <- 0
         }
