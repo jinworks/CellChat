@@ -18,6 +18,7 @@ rankNet(
   pairLR = NULL,
   signaling.type = NULL,
   do.stat = FALSE,
+  paired.test = TRUE,
   cutoff.pvalue = 0.05,
   tol = 0.05,
   thresh = 0.05,
@@ -64,7 +65,9 @@ rankNet(
 
 \item{signaling.type}{a char giving the types of signaling from the three categories c("Secreted Signaling", "ECM-Receptor", "Cell-Cell Contact")}
 
-\item{do.stat}{whether do a paired Wilcoxon test to determine whether there is significant difference between two datasets. Default = FALSE}
+\item{do.stat}{whether do a Wilcoxon test to determine whether there is significant difference between two datasets. Default = FALSE}
+
+\item{paired.test}{a logical indicating whether you want a paired test. Paired test is applicable to compare two datasets with the same cellular compositions.}
 
 \item{cutoff.pvalue}{the cutoff of pvalue when doing Wilcoxon test; Default = 0.05}
 
