@@ -396,7 +396,6 @@ identifyOverExpressedGenes <- function(object, data.use = NULL, group.by = NULL,
 
   if (do.DE) {
     # select genes based on differential expression
-    data.use <- as.matrix(data.use)
 
     if (is.null(group.by)) {
       labels <- object@idents
@@ -495,7 +494,7 @@ identifyOverExpressedGenes <- function(object, data.use = NULL, group.by = NULL,
       object@var.features[[features.name]] <- markers.all
 
     } else {
-
+      data.use <- as.matrix(data.use)
       my.sapply <- ifelse(
         test = future::nbrOfWorkers() == 1,
         yes = pbapply::pbsapply,
