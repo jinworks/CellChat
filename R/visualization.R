@@ -84,7 +84,6 @@ scPalette <- function(n) {
 #' @param out.format the format of output figures: svg, png and pdf
 #'
 #' Parameters below are set for "spatial" diagram. Please also check the function `netVisual_spatial` for more parameters.
-#' @param sample.use the sample used for visualization, which should be the element in `object@meta$samples`.
 #' @param alpha.image the transparency of individual spots
 #' @param point.size the size of spots
 #'
@@ -118,7 +117,7 @@ netVisual <- function(object, signaling, signaling.name = NULL, color.use = NULL
                       weight.scale = TRUE, edge.weight.max.individual = NULL, edge.weight.max.aggregate = NULL, edge.width.max=8,
                       layout = c("circle","hierarchy","chord","spatial"), height = 5, thresh = 0.05, pt.title = 12, title.space = 6, vertex.label.cex = 0.8,from = NULL, to = NULL, bidirection = NULL,vertex.size = NULL,
                       out.format = c("svg","png"),
-                      sample.use = NULL, alpha.image = 0.15, point.size = 1.5,
+                      alpha.image = 0.15, point.size = 1.5,
                       group = NULL,cell.order = NULL,small.gap = 1, big.gap = 10, scale = FALSE, reduce = -1, show.legend = FALSE, legend.pos.x = 20,legend.pos.y = 20, nCol = NULL,
                       ...) {
   layout <- match.arg(layout)
@@ -308,8 +307,6 @@ netVisual <- function(object, signaling, signaling.name = NULL, color.use = NULL
   } else if (layout == "spatial") {
     coordinates <- object@images$coordinates
     labels <- object@idents
-    meta.t <- object@meta
-    meta.t$labels <- labels
     if (is.element("svg", out.format)) {
       svglite::svglite(file = paste0(signaling.name,"_", layout, "_individual.svg"), width = height, height = nRow*height)
       # par(mfrow=c(nRow,1))
@@ -318,7 +315,8 @@ netVisual <- function(object, signaling, signaling.name = NULL, color.use = NULL
         #signalName_i <- paste0(pairLR$ligand[i], "-",pairLR$receptor[i], sep = "")
         signalName_i <- pairLR$interaction_name_2[i]
         prob.i <- prob[,,i]
-        netVisual_spatial(prob.i, coordinates = coordinates, meta = meta.t, sample.use = sample.use, alpha.image = alpha.image, point.size = point.size, sources.use = sources.use, targets.use = targets.use, idents.use = idents.use, remove.isolate = remove.isolate, top = top, color.use = color.use, vertex.weight = vertex.weight, vertex.weight.max = vertex.weight.max, vertex.size.max = vertex.size.max, weight.scale = weight.scale, edge.weight.max = edge.weight.max, edge.width.max=edge.width.max,title.name = signalName_i, vertex.label.cex = vertex.label.cex,...)
+
+        netVisual_spatial(prob.i, coordinates = coordinates, labels = labels, alpha.image = alpha.image, point.size = point.size, sources.use = sources.use, targets.use = targets.use, idents.use = idents.use, remove.isolate = remove.isolate, top = top, color.use = color.use, vertex.weight = vertex.weight, vertex.weight.max = vertex.weight.max, vertex.size.max = vertex.size.max, weight.scale = weight.scale, edge.weight.max = edge.weight.max, edge.width.max=edge.width.max,title.name = signalName_i, vertex.label.cex = vertex.label.cex,...)
 
       }
       dev.off()
@@ -331,7 +329,7 @@ netVisual <- function(object, signaling, signaling.name = NULL, color.use = NULL
         #signalName_i <- paste0(pairLR$ligand[i], "-",pairLR$receptor[i], sep = "")
         signalName_i <- pairLR$interaction_name_2[i]
         prob.i <- prob[,,i]
-        netVisual_spatial(prob.i, coordinates = coordinates, meta = meta.t, sample.use = sample.use, alpha.image = alpha.image, point.size = point.size, sources.use = sources.use, targets.use = targets.use, idents.use = idents.use, remove.isolate = remove.isolate, top = top, color.use = color.use, vertex.weight = vertex.weight, vertex.weight.max = vertex.weight.max, vertex.size.max = vertex.size.max, weight.scale = weight.scale, edge.weight.max = edge.weight.max, edge.width.max=edge.width.max,title.name = signalName_i, vertex.label.cex = vertex.label.cex,...)
+        netVisual_spatial(prob.i, coordinates = coordinates, labels = labels, alpha.image = alpha.image, point.size = point.size, sources.use = sources.use, targets.use = targets.use, idents.use = idents.use, remove.isolate = remove.isolate, top = top, color.use = color.use, vertex.weight = vertex.weight, vertex.weight.max = vertex.weight.max, vertex.size.max = vertex.size.max, weight.scale = weight.scale, edge.weight.max = edge.weight.max, edge.width.max=edge.width.max,title.name = signalName_i, vertex.label.cex = vertex.label.cex,...)
 
       }
       dev.off()
@@ -345,7 +343,7 @@ netVisual <- function(object, signaling, signaling.name = NULL, color.use = NULL
         #signalName_i <- paste0(pairLR$ligand[i], "-",pairLR$receptor[i], sep = "")
         signalName_i <- pairLR$interaction_name_2[i]
         prob.i <- prob[,,i]
-        netVisual_spatial(prob.i, coordinates = coordinates, meta = meta.t, sample.use = sample.use, alpha.image = alpha.image, point.size = point.size, sources.use = sources.use, targets.use = targets.use, idents.use = idents.use, remove.isolate = remove.isolate, top = top, color.use = color.use, vertex.weight = vertex.weight, vertex.weight.max = vertex.weight.max, vertex.size.max = vertex.size.max, weight.scale = weight.scale, edge.weight.max = edge.weight.max, edge.width.max=edge.width.max,title.name = signalName_i, vertex.label.cex = vertex.label.cex,...)
+        netVisual_spatial(prob.i, coordinates = coordinates, labels = labels, alpha.image = alpha.image, point.size = point.size, sources.use = sources.use, targets.use = targets.use, idents.use = idents.use, remove.isolate = remove.isolate, top = top, color.use = color.use, vertex.weight = vertex.weight, vertex.weight.max = vertex.weight.max, vertex.size.max = vertex.size.max, weight.scale = weight.scale, edge.weight.max = edge.weight.max, edge.width.max=edge.width.max,title.name = signalName_i, vertex.label.cex = vertex.label.cex,...)
 
       }
       dev.off()
@@ -355,18 +353,18 @@ netVisual <- function(object, signaling, signaling.name = NULL, color.use = NULL
     #  prob.sum <-(prob.sum-min(prob.sum))/(max(prob.sum)-min(prob.sum))
     if (is.element("svg", out.format)) {
       svglite(file = paste0(signaling.name,"_", layout,  "_aggregate.svg"), width = height, height = 1*height)
-      netVisual_spatial(prob.sum, coordinates = coordinates, meta = meta.t, sample.use = sample.use, alpha.image = alpha.image, point.size = point.size, sources.use = sources.use, targets.use = targets.use, idents.use = idents.use, remove.isolate = remove.isolate, top = top, color.use = color.use, vertex.weight = vertex.weight, vertex.weight.max = vertex.weight.max, vertex.size.max = vertex.size.max, weight.scale = weight.scale, edge.weight.max = edge.weight.max, edge.width.max=edge.width.max,title.name = paste0(signaling.name, " signaling pathway network"), vertex.label.cex = vertex.label.cex,...)
+      netVisual_spatial(prob.sum, coordinates = coordinates, labels = labels, alpha.image = alpha.image, point.size = point.size, sources.use = sources.use, targets.use = targets.use, idents.use = idents.use, remove.isolate = remove.isolate, top = top, color.use = color.use, vertex.weight = vertex.weight, vertex.weight.max = vertex.weight.max, vertex.size.max = vertex.size.max, weight.scale = weight.scale, edge.weight.max = edge.weight.max, edge.width.max=edge.width.max,title.name = paste0(signaling.name, " signaling pathway network"), vertex.label.cex = vertex.label.cex,...)
       dev.off()
     }
     if (is.element("png", out.format)) {
       grDevices::png(paste0(signaling.name,"_", layout,  "_aggregate.png"), width = height, height = 1*height, units = "in",res = 300)
-      netVisual_spatial(prob.sum, coordinates = coordinates, meta = meta.t, sample.use = sample.use, alpha.image = alpha.image, point.size = point.size, sources.use = sources.use, targets.use = targets.use, idents.use = idents.use, remove.isolate = remove.isolate, top = top, color.use = color.use, vertex.weight = vertex.weight, vertex.weight.max = vertex.weight.max, vertex.size.max = vertex.size.max, weight.scale = weight.scale, edge.weight.max = edge.weight.max, edge.width.max=edge.width.max,title.name = paste0(signaling.name, " signaling pathway network"), vertex.label.cex = vertex.label.cex,...)
+      netVisual_spatial(prob.sum, coordinates = coordinates, labels = labels, alpha.image = alpha.image, point.size = point.size, sources.use = sources.use, targets.use = targets.use, idents.use = idents.use, remove.isolate = remove.isolate, top = top, color.use = color.use, vertex.weight = vertex.weight, vertex.weight.max = vertex.weight.max, vertex.size.max = vertex.size.max, weight.scale = weight.scale, edge.weight.max = edge.weight.max, edge.width.max=edge.width.max,title.name = paste0(signaling.name, " signaling pathway network"), vertex.label.cex = vertex.label.cex,...)
       dev.off()
     }
     if (is.element("pdf", out.format)) {
       # grDevices::pdf(paste0(signaling.name,"_", layout,  "_aggregate.pdf"), width = height, height = 1*height)
       grDevices::cairo_pdf(paste0(signaling.name,"_", layout,  "_aggregate.pdf"), width = height, height = 1*height)
-      netVisual_spatial(prob.sum, coordinates = coordinates, meta = meta.t, sample.use = sample.use, alpha.image = alpha.image, point.size = point.size, sources.use = sources.use, targets.use = targets.use, idents.use = idents.use, remove.isolate = remove.isolate, top = top, color.use = color.use, vertex.weight = vertex.weight, vertex.weight.max = vertex.weight.max, vertex.size.max = vertex.size.max, weight.scale = weight.scale, edge.weight.max = edge.weight.max, edge.width.max=edge.width.max,title.name = paste0(signaling.name, " signaling pathway network"), vertex.label.cex = vertex.label.cex,...)
+      netVisual_spatial(prob.sum, coordinates = coordinates, labels = labels, alpha.image = alpha.image, point.size = point.size, sources.use = sources.use, targets.use = targets.use, idents.use = idents.use, remove.isolate = remove.isolate, top = top, color.use = color.use, vertex.weight = vertex.weight, vertex.weight.max = vertex.weight.max, vertex.size.max = vertex.size.max, weight.scale = weight.scale, edge.weight.max = edge.weight.max, edge.width.max=edge.width.max,title.name = paste0(signaling.name, " signaling pathway network"), vertex.label.cex = vertex.label.cex,...)
       dev.off()
     }
   } else if (layout == "chord") {
@@ -482,7 +480,6 @@ netVisual <- function(object, signaling, signaling.name = NULL, color.use = NULL
 #' @param vertex.label.cex The label size of vertex in the network
 #'
 #' Parameters below are set for "spatial" diagram. Please also check the function `netVisual_spatial` for more parameters.
-#' @param sample.use the sample used for visualization, which should be the element in `object@meta$samples`.
 #' @param alpha.image the transparency of individual spots
 #' @param point.size the size of spots
 #'
@@ -502,7 +499,7 @@ netVisual <- function(object, signaling, signaling.name = NULL, color.use = NULL
 #' @importFrom grDevices recordPlot
 #'
 #' @return  an object of class "recordedplot" or ggplot
-#' @export
+#' @export add function to modify median point ,now is plot maximum 500 area which potin 
 #'
 #'
 netVisual_aggregate <- function(object, signaling, signaling.name = NULL, color.use = NULL, thresh = 0.05, vertex.receiver = NULL, sources.use = NULL, targets.use = NULL, idents.use = NULL, top = 1, remove.isolate = FALSE,
@@ -525,42 +522,42 @@ netVisual_aggregate <- function(object, signaling, signaling.name = NULL, color.
     }
   }
   pairLR <- searchPair(signaling = signaling, pairLR.use = object@LR$LRsig, key = "pathway_name", matching.exact = T, pair.only = T)
-
+  
   if (is.null(signaling.name)) {
     signaling.name <- signaling
   }
   net <- object@net
-
+  
   pairLR.use.name <- dimnames(net$prob)[[3]]
   pairLR.name <- intersect(rownames(pairLR), pairLR.use.name)
   pairLR <- pairLR[pairLR.name, ]
   prob <- net$prob
   pval <- net$pval
-
+  
   prob[pval > thresh] <- 0
   if (length(pairLR.name) > 1) {
     pairLR.name.use <- pairLR.name[apply(prob[,,pairLR.name], 3, sum) != 0]
   } else {
     pairLR.name.use <- pairLR.name[sum(prob[,,pairLR.name]) != 0]
   }
-
-
+  
+  
   if (length(pairLR.name.use) == 0) {
     stop(paste0('There is no significant communication of ', signaling.name))
   } else {
     pairLR <- pairLR[pairLR.name.use,]
   }
   nRow <- length(pairLR.name.use)
-
+  
   prob <- prob[,,pairLR.name.use]
   pval <- pval[,,pairLR.name.use]
-
+  
   if (length(dim(prob)) == 2) {
     prob <- replicate(1, prob, simplify="array")
     pval <- replicate(1, pval, simplify="array")
   }
   # prob <-(prob-min(prob))/(max(prob)-min(prob))
-
+  
   if (layout == "hierarchy") {
     prob.sum <- apply(prob, c(1,2), sum)
     # prob.sum <-(prob.sum-min(prob.sum))/(max(prob.sum)-min(prob.sum))
@@ -597,7 +594,7 @@ netVisual_aggregate <- function(object, signaling, signaling.name = NULL, color.
     meta.t <- object@meta
     meta.t$labels <- labels
     gg <- netVisual_spatial(prob.sum, coordinates = coordinates, meta = meta.t, sample.use = sample.use, alpha.image = alpha.image, point.size = point.size, sources.use = sources.use, targets.use = targets.use, idents.use = idents.use, remove.isolate = remove.isolate, top = top, color.use = color.use, vertex.weight = vertex.weight, vertex.weight.max = vertex.weight.max, vertex.size.max = vertex.size.max, weight.scale = weight.scale, edge.weight.max = edge.weight.max, edge.width.max=edge.width.max,title.name = paste0(signaling.name, " signaling pathway network"), vertex.label.cex = vertex.label.cex,...)
-
+    
   } else if (layout == "chord") {
     prob.sum <- apply(prob, c(1,2), sum)
     gg <- netVisual_chord_cell_internal(prob.sum, color.use = color.use, sources.use = sources.use, targets.use = targets.use, remove.isolate = remove.isolate,
@@ -606,9 +603,9 @@ netVisual_aggregate <- function(object, signaling, signaling.name = NULL, color.
                                         scale = scale, reduce = reduce,
                                         title.name = paste0(signaling.name, " signaling pathway network"), show.legend = show.legend, legend.pos.x = legend.pos.x, legend.pos.y= legend.pos.y)
   }
-
+  
   return(gg)
-
+  
 }
 
 
@@ -780,13 +777,11 @@ netVisual_individual <- function(object, signaling, signaling.name = NULL, pairL
     }
     coordinates <- object@images$coordinates
     labels <- object@idents
-    meta.t <- object@meta
-    meta.t$labels <- labels
     gg <- vector("list", length(pairLR.name.use))
     for (i in 1:length(pairLR.name.use)) {
       signalName_i <- pairLR$interaction_name_2[i]
       prob.i <- prob[,,i]
-      gg[[i]] <- netVisual_spatial(prob.i, coordinates = coordinates, meta = meta.t, sample.use = sample.use, alpha.image = alpha.image, point.size = point.size, sources.use = sources.use, targets.use = targets.use, idents.use = idents.use, remove.isolate = remove.isolate, top = top, color.use = color.use, vertex.weight = vertex.weight, vertex.weight.max = vertex.weight.max, vertex.size.max = vertex.size.max, weight.scale = weight.scale, edge.weight.max = edge.weight.max, edge.width.max=edge.width.max,title.name = signalName_i, vertex.label.cex = vertex.label.cex,...)
+      gg[[i]] <- netVisual_spatial(prob.i, coordinates = coordinates, labels = labels, alpha.image = alpha.image, point.size = point.size, sources.use = sources.use, targets.use = targets.use, idents.use = idents.use, remove.isolate = remove.isolate, top = top, color.use = color.use, vertex.weight = vertex.weight, vertex.weight.max = vertex.weight.max, vertex.size.max = vertex.size.max, weight.scale = weight.scale, edge.weight.max = edge.weight.max, edge.width.max=edge.width.max,title.name = signalName_i, vertex.label.cex = vertex.label.cex,...)
     }
   } else if (layout == "chord") {
     if (graphics.init) {
@@ -1297,26 +1292,13 @@ netVisual_circle <-function(net, color.use = NULL,title.name = NULL, sources.use
   }
   net[is.na(net)] <- 0
 
-  if (is.null(color.use)) {
-    color.use = scPalette(nrow(net))
-    names(color.use) <- rownames(net)
-  } else {
-    if (is.null(names(color.use))) {
-      stop("The input `color.use` should be a named vector! \n")
-    }
-  }
+
   if (remove.isolate) {
     idx1 <- which(Matrix::rowSums(net) == 0)
     idx2 <- which(Matrix::colSums(net) == 0)
-    idx.isolate <- intersect(idx1, idx2)
-    if (length(idx.isolate) > 0) {
-      net <- net[-idx.isolate, ]
-      net <- net[, -idx.isolate]
-      color.use = color.use[-idx.isolate]
-      if (length(unique(vertex.weight)) > 1) {
-        vertex.weight <- vertex.weight[-idx.isolate]
-      }
-    }
+    idx <- intersect(idx1, idx2)
+    net <- net[-idx, ]
+    net <- net[, -idx]
   }
 
   g <- graph_from_adjacency_matrix(net, mode = "directed", weighted = T)
@@ -1327,7 +1309,9 @@ netVisual_circle <-function(net, color.use = NULL,title.name = NULL, sources.use
   }else{
     coords_scale<-coords
   }
-
+  if (is.null(color.use)) {
+    color.use = scPalette(length(igraph::V(g)))
+  }
   if (is.null(vertex.weight.max)) {
     vertex.weight.max <- max(vertex.weight)
   }
@@ -1424,9 +1408,7 @@ mycircle <- function(coords, v=NULL, params) {
 #'
 #' @param net A weighted matrix representing the connections
 #' @param coordinates a data matrix in which each row gives the spatial locations/coordinates of each cell/spot
-#' @param meta a data frame with at least two columns named `labels` and `samples`.
-#' `meta$labels` is a vector giving the group label of each cell/spot. `meta$samples` is a factor vector defining the sample labels of each dataset. The length should be the same as the number of rows in `coordinates`.
-#' @param sample.use the sample used for visualization, which should be the element in `meta$samples`.
+#' @param labels a vector giving the group label of each cell/spot. The length should be the same as the number of rows in `coordinates`
 #' @param color.use Colors represent different cell groups
 #' @param title.name the name of the title
 #' @param sources.use a vector giving the index or the name of source cell groups
@@ -1462,6 +1444,8 @@ mycircle <- function(coords, v=NULL, params) {
 #' @importFrom ggnetwork geom_nodetext_repel
 #' @return  an object of ggplot
 #' @export
+
+#' @@export modify by solivehong to add print target potit dataframe 
 netVisual_spatial <-function(net, coordinates, meta, sample.use = NULL, color.use = NULL,title.name = NULL, sources.use = NULL, targets.use = NULL, idents.use = NULL, remove.isolate = FALSE, remove.loop = TRUE, top = 1,
                              weight.scale = FALSE, vertex.weight = 20, vertex.weight.max = NULL, vertex.size.max = NULL, vertex.label.cex = 5,vertex.label.color= "black",
                              edge.weight.max = NULL, edge.width.max=8, edge.curved=0.2, alpha.edge = 0.6, arrow.angle = 5, arrow.size = 0.2, alpha.image = 0.15, point.size = 1.5, legend.size = 5){
@@ -1488,12 +1472,59 @@ netVisual_spatial <-function(net, coordinates, meta, sample.use = NULL, color.us
   }
   num_cluster <- length(cells.level)
   node_coords <- matrix(0, nrow = num_cluster, ncol = 2)
+  # for (i in c(1:num_cluster)) {
+  #   node_coords[i,1] <- median(coordinates[as.character(labels) == cells.level[i], 1])
+  #   node_coords[i,2] <- median(coordinates[as.character(labels) == cells.level[i], 2])
+  # }
   for (i in c(1:num_cluster)) {
-    node_coords[i,1] <- median(coordinates[as.character(labels) == cells.level[i], 1])
-    node_coords[i,2] <- median(coordinates[as.character(labels) == cells.level[i], 2])
+    # 获取当前细胞类型的坐标
+    current_coords <- coordinates[as.character(labels) == cells.level[i], ]
+    
+    # 如果没有点，设置为 NA
+    if (nrow(current_coords) == 0) {
+      node_coords[i, 1] <- NA
+      node_coords[i, 2] <- NA
+      next
+    }
+    
+    # 创建一个临时数据框来存储所有点及其频次
+    freq_table <- data.frame(X1 = numeric(0), X2 = numeric(0), freq = integer(0))
+    
+    # 遍历当前细胞类型的所有点
+    for (j in 1:nrow(current_coords)) {
+      x_j <- current_coords[j, 1]
+      y_j <- current_coords[j, 2]
+      
+      # 计算距离小于500的点
+      nearby_points <- current_coords[(
+        (current_coords[, 1] - x_j)^2 + (current_coords[, 2] - y_j)^2) < 500^2, ]
+      
+      # 如果有附近点，更新频次表
+      if (nrow(nearby_points) > 0) {
+        for (k in 1:nrow(nearby_points)) {
+          freq_table <- rbind(freq_table, c(nearby_points[k, 1], nearby_points[k, 2], 1))
+        }
+      }
+    }
+    
+    # 统计频次
+    colnames(freq_table) <- c("X1", "X2", "freq")
+    freq_table <- freq_table %>%
+      group_by(X1, X2) %>%
+      summarise(freq = sum(as.integer(freq)), .groups = 'drop')
+    
+    # 找到频次最高的点
+    if (nrow(freq_table) > 0) {
+      most_frequent_point <- freq_table[which.max(freq_table$freq), ]
+      node_coords[i, 1] <- most_frequent_point$X1
+      node_coords[i, 2] <- most_frequent_point$X2
+    } else {
+      node_coords[i, 1] <- NA
+      node_coords[i, 2] <- NA
+    }
   }
   rownames(node_coords) <- cells.level
-
+  
   if (is.null(vertex.size.max)) {
     if (length(unique(vertex.weight)) == 1) {
       vertex.size.max <- 5
@@ -1504,7 +1535,7 @@ netVisual_spatial <-function(net, coordinates, meta, sample.use = NULL, color.us
   options(warn = -1)
   thresh <- stats::quantile(net, probs = 1-top)
   net[net < thresh] <- 0
-
+  
   if ((!is.null(sources.use)) | (!is.null(targets.use)) | (!is.null(idents.use)) ) {
     if (is.null(rownames(net))) {
       stop("The input weighted matrix should have rownames!")
@@ -1536,8 +1567,8 @@ netVisual_spatial <-function(net, coordinates, meta, sample.use = NULL, color.us
     net <- tapply(df.net[["value"]], list(df.net[["source"]], df.net[["target"]]), sum)
   }
   net[is.na(net)] <- 0
-
-
+  
+  
   if (remove.loop) {
     diag(net) <- 0
   }
@@ -1550,7 +1581,7 @@ netVisual_spatial <-function(net, coordinates, meta, sample.use = NULL, color.us
     node_coords <- node_coords[-idx, ]
     cells.level <- cells.level[-idx]
   }
-
+  
   g <- graph_from_adjacency_matrix(net, mode = "directed", weighted = T)
   edgelist <- get.edgelist(g)
   # loop_curve = c()
@@ -1560,7 +1591,7 @@ netVisual_spatial <-function(net, coordinates, meta, sample.use = NULL, color.us
   #   }
   # }
   # edgelist <- edgelist[-loop_curve,]
-
+  
   edges <- data.frame(node_coords[edgelist[,1],], node_coords[edgelist[,2],])
   colnames(edges) <- c("X1","Y1","X2","Y2")
   node_coords = data.frame(node_coords)
@@ -1583,7 +1614,7 @@ netVisual_spatial <-function(net, coordinates, meta, sample.use = NULL, color.us
   }else{
     igraph::E(g)$width<-0.3+edge.width.max*igraph::E(g)$weight
   }
-
+  
   gg <- ggplot(data=node_family,aes(X1, X2)) +
     geom_curve(aes(x=X1, y=Y1, xend = X2, yend = Y2), data=edges, size = igraph::E(g)$width, curvature = edge.curved, alpha = alpha.edge, arrow = arrow(angle = arrow.angle, type = "closed",length = unit(arrow.size, "inches")),colour=color.use[edgelist[,1]]) +
     geom_point(aes(X1, X2,colour = node_idents), data=node_family, size = vertex.weight,show.legend = TRUE) +scale_color_manual(values = color.use) +
@@ -1591,7 +1622,7 @@ netVisual_spatial <-function(net, coordinates, meta, sample.use = NULL, color.us
     xlab(NULL) + ylab(NULL)  +
     coord_fixed() + theme(aspect.ratio = 1)+ theme(legend.key = element_blank()) +
     theme(panel.background = element_blank(),axis.ticks = element_blank(), panel.border = element_blank(),axis.text=element_blank(),legend.title = element_blank())
-
+  
   gg <- gg + geom_point(aes(x_cent, y_cent), data = coordinates,colour = color.use[labels],alpha = alpha.image, size = point.size, show.legend = FALSE)
   gg <- gg + scale_y_reverse()
   if (vertex.label.cex > 0){
@@ -1600,10 +1631,11 @@ netVisual_spatial <-function(net, coordinates, meta, sample.use = NULL, color.us
   if (!is.null(title.name)){
     gg <- gg + ggtitle(title.name) + theme(plot.title = element_text(hjust = 0.5, vjust = 0))
   }
-
+  
   gg
+  print(node_family)
   return(gg)
-
+  
 }
 
 
@@ -1791,14 +1823,14 @@ netVisual_diffInteraction <- function(object, comparison = c(1,2), measure = c("
 
 #' Visualization of network using heatmap
 #'
-#' This heatmap can be used to 1) show differential number of interactions or interaction strength in the cell-cell communication network between two datasets;
-#' 2) the number of interactions or interaction strength in a single dataset;
-#' 3) the inferred cell-cell communication network in a single dataset, defined by `signaling`. Please see @Details below for detailed explanations of this heatmap plot.
+#' This heatmap can be used to show differential number of interactions or interaction strength in the cell-cell communication network between two datasets;
+#' the number of interactions or interaction strength in a single dataset
+#' the inferred cell-cell communication network in single dataset, defined by `signaling`
 #'
 #' When show differential number of interactions or interaction strength in the cell-cell communication network between two datasets, the width of edges represent the relative number of interactions or interaction strength.
 #' Red (or blue) colored edges represent increased (or decreased) signaling in the second dataset compared to the first one.
 #'
-#' The top colored bar plot represents the sum of absolute values displayed in each column of the heatmap. The right colored bar plot represents the sum of absolute values in each row.
+#' The top colored bar plot represents the sum of column of values displayed in the heatmap. The right colored bar plot represents the sum of row of values.
 #'
 #'
 #' @param object A merged CellChat object or a single CellChat object
@@ -1807,8 +1839,7 @@ netVisual_diffInteraction <- function(object, comparison = c(1,2), measure = c("
 #' @param signaling a character vector giving the name of signaling networks in a single CellChat object
 #' @param slot.name the slot name of object. Set is to be "netP" if input signaling is a pathway name; Set is to be "net" if input signaling is a ligand-receptor pair
 #' @param color.use the character vector defining the color of each cell group
-#' @param color.heatmap A vector of two colors corresponding to max/min values, or a color name in brewer.pal only when the data in the heatmap do not contain negative values.
-#' By default, color.heatmap = c('#2166ac','#b2182b') when taking a merged CellChat object as input; color.heatmap = "Reds" when taking a single CellChat object as input.
+#' @param color.heatmap A vector of two colors corresponding to max/min values, or a color name in brewer.pal only when the data in the heatmap do not contain negative values
 #' @param title.name the name of the title
 #' @param width width of heatmap
 #' @param height height of heatmap
@@ -1826,18 +1857,17 @@ netVisual_diffInteraction <- function(object, comparison = c(1,2), measure = c("
 #' @importFrom ComplexHeatmap Heatmap HeatmapAnnotation anno_barplot rowAnnotation
 #' @return  an object of ComplexHeatmap
 #' @export
-netVisual_heatmap <- function(object, comparison = c(1,2), measure = c("count", "weight"), signaling = NULL, slot.name = c("netP", "net"), color.use = NULL, color.heatmap = NULL,
+netVisual_heatmap <- function(object, comparison = c(1,2), measure = c("count", "weight"), signaling = NULL, slot.name = c("netP", "net"), color.use = NULL, color.heatmap = c("#2166ac","#b2182b"),
                               title.name = NULL, width = NULL, height = NULL, font.size = 8, font.size.title = 10, cluster.rows = FALSE, cluster.cols = FALSE,
                               sources.use = NULL, targets.use = NULL, remove.isolate = FALSE, row.show = NULL, col.show = NULL){
+  # obj1 <- object.list[[comparison[1]]]
+  # obj2 <- object.list[[comparison[2]]]
   if (!is.null(measure)) {
     measure <- match.arg(measure)
   }
   slot.name <- match.arg(slot.name)
   if (is.list(object@net[[1]])) {
     message("Do heatmap based on a merged object \n")
-    if (is.null(color.heatmap)) {
-      color.heatmap <- c('#2166ac','#b2182b')
-    }
     obj1 <- object@net[[comparison[1]]][[measure]]
     obj2 <- object@net[[comparison[2]]][[measure]]
     net.diff <- obj2 - obj1
@@ -1854,9 +1884,6 @@ netVisual_heatmap <- function(object, comparison = c(1,2), measure = c("count", 
     legend.name = "Relative values"
   } else {
     message("Do heatmap based on a single object \n")
-    if (is.null(color.heatmap)) {
-      color.heatmap <- "Reds"
-    }
     if (!is.null(signaling)) {
       net.diff <- slot(object, slot.name)$prob[,,signaling]
       if (is.null(title.name)) {
@@ -1879,6 +1906,7 @@ netVisual_heatmap <- function(object, comparison = c(1,2), measure = c("count", 
   }
 
   net <- net.diff
+
 
   if ((!is.null(sources.use)) | (!is.null(targets.use))) {
     df.net <- reshape2::melt(net, value.name = "value")
@@ -1904,38 +1932,28 @@ netVisual_heatmap <- function(object, comparison = c(1,2), measure = c("count", 
   }
   net[is.na(net)] <- 0
 
-  if (is.null(color.use)) {
-    color.use <- scPalette(ncol(net))
-  }
-  names(color.use) <- colnames(net)
-  color.use.row <- color.use
-  color.use.col <- color.use
   if (remove.isolate) {
     idx1 <- which(Matrix::rowSums(net) == 0)
     idx2 <- which(Matrix::colSums(net) == 0)
-    #idx <- intersect(idx1, idx2)
-    # if (length(idx) > 0) {
-    #   net <- net[-idx, ]
-    #   net <- net[, -idx]
-    # }
-    if (length(idx1) > 0) {
-      net <- net[-idx1, ]
-      color.use.row <- color.use.row[-idx1]
-    }
-    if (length(idx2) > 0) {
-      net <- net[, -idx2]
-      color.use.col <- color.use.col[-idx2]
+    idx <- intersect(idx1, idx2)
+    if (length(idx) > 0) {
+      net <- net[-idx, ]
+      net <- net[, -idx]
     }
   }
 
   mat <- net
+  if (is.null(color.use)) {
+    color.use <- scPalette(ncol(mat))
+  }
+  names(color.use) <- colnames(mat)
+
   if (!is.null(row.show)) {
     mat <- mat[row.show, ]
-    color.use.row <- color.use.row[row.show]
   }
   if (!is.null(col.show)) {
     mat <- mat[ ,col.show]
-    color.use.col <- color.use.col[col.show]
+    color.use <- color.use[col.show]
   }
 
 
@@ -1955,17 +1973,16 @@ netVisual_heatmap <- function(object, comparison = c(1,2), measure = c("count", 
   }
   # col_fun(as.vector(mat))
 
-  df.col<- data.frame(group = colnames(mat)); rownames(df.col) <- colnames(mat)
-  df.row<- data.frame(group = rownames(mat)); rownames(df.row) <- rownames(mat)
-  col_annotation <- HeatmapAnnotation(df = df.col, col = list(group = color.use.col),which = "column",
+  df<- data.frame(group = colnames(mat)); rownames(df) <- colnames(mat)
+  col_annotation <- HeatmapAnnotation(df = df, col = list(group = color.use),which = "column",
                                       show_legend = FALSE, show_annotation_name = FALSE,
                                       simple_anno_size = grid::unit(0.2, "cm"))
-  row_annotation <- HeatmapAnnotation(df = df.row, col = list(group = color.use.row), which = "row",
+  row_annotation <- HeatmapAnnotation(df = df, col = list(group = color.use), which = "row",
                                       show_legend = FALSE, show_annotation_name = FALSE,
                                       simple_anno_size = grid::unit(0.2, "cm"))
 
-  ha1 = rowAnnotation(Strength = anno_barplot(rowSums(abs(mat)), border = FALSE,gp = gpar(fill = color.use.row, col=color.use.row)), show_annotation_name = FALSE)
-  ha2 = HeatmapAnnotation(Strength = anno_barplot(colSums(abs(mat)), border = FALSE,gp = gpar(fill = color.use.col, col=color.use.col)), show_annotation_name = FALSE)
+  ha1 = rowAnnotation(Strength = anno_barplot(rowSums(abs(mat)), border = FALSE,gp = gpar(fill = color.use, col=color.use)), show_annotation_name = FALSE)
+  ha2 = HeatmapAnnotation(Strength = anno_barplot(colSums(abs(mat)), border = FALSE,gp = gpar(fill = color.use, col=color.use)), show_annotation_name = FALSE)
 
   if (sum(abs(mat) > 0) == 1) {
     color.heatmap.use = c("white", color.heatmap.use)
@@ -1976,7 +1993,7 @@ netVisual_heatmap <- function(object, comparison = c(1,2), measure = c("count", 
                 bottom_annotation = col_annotation, left_annotation =row_annotation, top_annotation = ha2, right_annotation = ha1,
                 cluster_rows = cluster.rows,cluster_columns = cluster.rows,
                 row_names_side = "left",row_names_rot = 0,row_names_gp = gpar(fontsize = font.size),column_names_gp = gpar(fontsize = font.size),
-                # width = unit(width, "cm"), height = unit(height, "cm"),
+               # width = unit(width, "cm"), height = unit(height, "cm"),
                 column_title = title.name,column_title_gp = gpar(fontsize = font.size.title),column_names_rot = 90,
                 row_title = "Sources (Sender)",row_title_gp = gpar(fontsize = font.size.title),row_title_rot = 90,
                 heatmap_legend_param = list(title_gp = gpar(fontsize = 8, fontface = "plain"),title_position = "leftcenter-rot",
@@ -2106,21 +2123,20 @@ netVisual_barplot <- function(object, comparison = c(1,2), measure = c("count", 
 #' @param thresh threshold of the p-value for determining significant interaction
 #' @param comparison a numerical vector giving the datasets for comparison in the merged object; e.g., comparison = c(1,2)
 #' @param group a numerical vector giving the group information of different datasets; e.g., group = c(1,2,2)
-#' @param remove.isolate whether to remove the entire empty columns, i.e., communication between certain cell groups
-#' @param max.dataset a scale, keeping the communications with highest probability in max.dataset (i.e., certrain condition)
-#' @param min.dataset a scale, keeping the communications with lowest probability in min.dataset (i.e., certrain condition)
+#' @param remove.isolate whether remove the entire empty column, i.e., communication between certain cell groups
+#' @param max.dataset a scale, keep the communications with highest probability in max.dataset (i.e., certrain condition)
+#' @param min.dataset a scale, keep the communications with lowest probability in min.dataset (i.e., certrain condition)
 #' @param min.quantile,max.quantile minimum and maximum quantile cutoff values for the colorbar, may specify quantile in [0,1]
-#' @param line.on whether to add vertical line when doing comparison analysis for the merged object
+#' @param line.on whether add vertical line when doing comparison analysis for the merged object
 #' @param line.size size of vertical line if added
-#' @param color.text.use whether to color the xtick labels according to the dataset origin when doing comparison analysis
+#' @param color.text.use whether color the xtick labels according to the dataset origin when doing comparison analysis
 #' @param color.text the colors for xtick labels according to the dataset origin when doing comparison analysis
-#' @param dot.size.min,dot.size.max Size of smallest and largest points
 #' @param title.name main title of the plot
 #' @param font.size,font.size.title font size of all the text and the title name
-#' @param show.legend whether to show legend
-#' @param grid.on,color.grid whether to add grid
+#' @param show.legend whether show legend
+#' @param grid.on,color.grid whether add grid
 #' @param angle.x,vjust.x,hjust.x parameters for adjusting the rotation of xtick labels
-#' @param return.data whether to return the data.frame for replotting
+#' @param return.data whether return the data.frame for replotting
 #'
 #' @return
 #' @export
@@ -2156,7 +2172,7 @@ netVisual_barplot <- function(object, comparison = c(1,2), measure = c("count", 
 #'}
 netVisual_bubble <- function(object, sources.use = NULL, targets.use = NULL, signaling = NULL, pairLR.use = NULL, sort.by.source = FALSE, sort.by.target = FALSE, sort.by.source.priority = TRUE, color.heatmap = c("Spectral","viridis"), n.colors = 10, direction = -1, thresh = 0.05,
                              comparison = NULL, group = NULL, remove.isolate = FALSE, max.dataset = NULL, min.dataset = NULL,
-                             min.quantile = 0, max.quantile = 1, line.on = TRUE, line.size = 0.2, color.text.use = TRUE, color.text = NULL, dot.size.min = NULL, dot.size.max = NULL,
+                             min.quantile = 0, max.quantile = 1, line.on = TRUE, line.size = 0.2, color.text.use = TRUE, color.text = NULL,
                              title.name = NULL, font.size = 10, font.size.title = 10, show.legend = TRUE,
                              grid.on = TRUE, color.grid = "grey90", angle.x = 90, vjust.x = NULL, hjust.x = NULL,
                              return.data = FALSE){
@@ -2360,10 +2376,10 @@ netVisual_bubble <- function(object, sources.use = NULL, targets.use = NULL, sig
         #idx.na <- c(which(is.na(values)), which(!(dataset.name[comparison] %in% df.i.j$dataset)))
         dataset.na <- c(df.i.j$dataset[is.na(values)], setdiff(dataset.name[comparison], df.i.j$dataset))
         if (length(idx.max) > 0) {
-          if (all(!(df.i.j$dataset[idx.max] %in% dataset.name[max.dataset]))) {
+          if (!(df.i.j$dataset[idx.max] %in% dataset.name[max.dataset])) {
             df.i.j$prob <- NA
-          } else if (all((idx.max != idx.min) & !is.null(min.dataset))) {
-            if (all(!(df.i.j$dataset[idx.min] %in% dataset.name[min.dataset]))) {
+          } else if ((idx.max != idx.min) & !is.null(min.dataset)) {
+            if (!(df.i.j$dataset[idx.min] %in% dataset.name[min.dataset])) {
               df.i.j$prob <- NA
             } else if (length(dataset.na) > 0 & sum(!(dataset.name[min.dataset] %in% dataset.na)) > 0) {
               df.i.j$prob <- NA
@@ -2433,13 +2449,7 @@ netVisual_bubble <- function(object, sources.use = NULL, targets.use = NULL, sig
     scale_x_discrete(position = "bottom")
 
   values <- c(1,2,3); names(values) <- c("p > 0.05", "0.01 < p < 0.05","p < 0.01")
-  if (is.null(dot.size.max)) {
-    dot.size.max = max(df$pval)
-  }
-  if (is.null(dot.size.min)) {
-    dot.size.min = min(df$pval)
-  }
-  g <- g + scale_radius(range = c(dot.size.min, dot.size.max), breaks = sort(unique(df$pval)),labels = names(values)[values %in% sort(unique(df$pval))], name = "p-value")
+  g <- g + scale_radius(range = c(min(df$pval), max(df$pval)), breaks = sort(unique(df$pval)),labels = names(values)[values %in% sort(unique(df$pval))], name = "p-value")
   #g <- g + scale_radius(range = c(1,3), breaks = values,labels = names(values), name = "p-value")
   if (min(df$prob, na.rm = T) != max(df$prob, na.rm = T)) {
     g <- g + scale_colour_gradientn(colors = colorRampPalette(color.use)(99), na.value = "white", limits=c(quantile(df$prob, 0,na.rm= T), quantile(df$prob, 1,na.rm= T)),
@@ -2859,9 +2869,8 @@ netVisual_chord_gene <- function(object, slot.name = "net", color.use = NULL,
     prob[pval > thresh] <- 0
     net <- reshape2::melt(prob, value.name = "prob")
     colnames(net)[1:3] <- c("source","target","interaction_name")
-    cols.default <- c("interaction_name_2", "pathway_name",  "ligand",  "receptor" ,"annotation","evidence")
-    cols.common <- intersect(cols.default,colnames(object@LR$LRsig))
-    pairLR = dplyr::select(object@LR$LRsig, cols.common)
+
+    pairLR = dplyr::select(object@LR$LRsig, c("interaction_name_2", "pathway_name",  "ligand",  "receptor" ,"annotation","evidence"))
     idx <- match(net$interaction_name, rownames(pairLR))
     temp <- pairLR[idx,]
     net <- cbind(net, temp)
@@ -3047,7 +3056,7 @@ netVisual_chord_gene <- function(object, slot.name = "net", color.use = NULL,
 #' Incoming patterns show how the target cells coordinate with each other as well as how they coordinate with certain signaling pathways to respond to incoming signaling.
 #'
 #' @param object CellChat object
-#' @param slot.name the slot name of object: “netP” or “net”. Use “netP” to analyze cell-cell communication at the level of signaling pathways, and “net” to analyze cell-cell communication at the level of ligand-receptor pairs.
+#' @param slot.name the slot name of object that is used to compute centrality measures of signaling networks
 #' @param pattern "outgoing" or "incoming"
 #' @param cutoff the threshold for filtering out weak links
 #' @param sources.use a vector giving the index or the name of source cell groups of interest
@@ -3396,7 +3405,7 @@ netAnalysis_dot <- function(object, slot.name = "netP", pattern = c("outgoing","
   gg <- gg + scale_y_discrete(limits = rev(levels(data3$CellGroup)))
   gg <- gg + scale_fill_manual(values = ggplot2::alpha(color.use, alpha = dot.alpha), drop = FALSE, na.value = "white")
   gg <- gg + scale_colour_manual(values = color.use, drop = FALSE, na.value = "white")
-  gg <- gg + guides(colour="none") + guides(fill="none")
+  gg <- gg + guides(colour=FALSE) + guides(fill=FALSE)
   gg <- gg + theme(legend.title = element_text(size = 10), legend.text = element_text(size = 8))
   gg
   return(gg)
@@ -3956,6 +3965,8 @@ dotPlot <- function(object, features, rotation = TRUE, colormap = "OrRd", color.
 #' @param colors.ggplot whether use ggplot color scheme; default: colors.ggplot = FALSE
 #' @param split.by Name of a metadata column to split plot by;
 #' @param idents Which classes to include in the plot (default is all)
+#' @param show.median whether show the median value
+#' @param median.size the shape size of the median
 #' @param show.text.y whther show y-axis text
 #' @param line.size line width in the violin plot
 #' @param pt.size size of the dots
@@ -3970,9 +3981,8 @@ dotPlot <- function(object, features, rotation = TRUE, colormap = "OrRd", color.
 #' @examples
 #' @import ggplot2
 #' @importFrom  patchwork wrap_plots
-# #' @importFrom Seurat VlnPlot
 StackedVlnPlot<- function(object, features, idents = NULL, split.by = NULL,
-                          color.use = NULL, colors.ggplot = FALSE,
+                          color.use = NULL, colors.ggplot = FALSE,show.median = FALSE, median.size = 1,
                           angle.x = 90, vjust.x = NULL, hjust.x = NULL, show.text.y = TRUE, line.size = NULL,
                           pt.size = 0,
                           plot.margin = margin(0, 0, 0, 0, "cm"),
@@ -3994,7 +4004,7 @@ StackedVlnPlot<- function(object, features, idents = NULL, split.by = NULL,
     hjust.x = hjust[angle == angle.x]
   }
 
-  plot_list<- purrr::map(features, function(x) modify_vlnplot(object = object, features = x, idents = idents, split.by = split.by, cols = color.use, pt.size = pt.size,
+  plot_list<- purrr::map(features, function(x) modify_vlnplot(object = object, features = x, idents = idents, split.by = split.by, cols = color.use, show.median = show.median, median.size = median.size, pt.size = pt.size,
                                                               show.text.y = show.text.y, line.size = line.size, ...))
 
   # Add back x-axis title to bottom plot. patchwork is going to support this?
@@ -4003,9 +4013,16 @@ StackedVlnPlot<- function(object, features, idents = NULL, split.by = NULL,
     theme(axis.text.x = element_text(angle = angle.x, hjust = hjust.x, vjust = vjust.x)) +
     theme(axis.text.x = element_text(size = 10))
 
-  p<- patchwork::wrap_plots(plotlist = plot_list, ncol = 1)
+  # change the y-axis tick to only max value
+  ymaxs<- purrr::map_dbl(plot_list, extract_max)
+  plot_list<- purrr::map2(plot_list, ymaxs, function(x,y) x +
+                            scale_y_continuous(breaks = c(y)) +
+                            expand_limits(y = y))
+
+  p<- patchwork::wrap_plots(plotlist = plot_list, ncol = 1) + patchwork::plot_layout(guides = "collect")
   return(p)
 }
+
 
 #' modified vlnplot
 #' @param object Seurat object
@@ -4013,19 +4030,22 @@ StackedVlnPlot<- function(object, features, idents = NULL, split.by = NULL,
 #' @param split.by Name of a metadata column to split plot by;
 #' @param idents Which classes to include in the plot (default is all)
 #' @param cols defining the color for each cell group
+#' @param show.median whether show the median value
+#' @param median.size the shape size of the median
 #' @param show.text.y whther show y-axis text
 #' @param line.size line width in the violin plot
 #' @param pt.size size of the dots
 #' @param plot.margin adjust the white space between each plot
 #' @param ... pass any arguments to VlnPlot in Seurat
 #' @import ggplot2
-# #' @importFrom Seurat VlnPlot
 #'
 modify_vlnplot<- function(object,
                           features,
                           idents = NULL,
                           split.by = NULL,
                           cols = NULL,
+                          show.median = FALSE,
+                          median.size = 1,
                           show.text.y = TRUE,
                           line.size = NULL,
                           pt.size = 0,
@@ -4034,11 +4054,13 @@ modify_vlnplot<- function(object,
   options(warn=-1)
   p<- Seurat::VlnPlot(object, features = features, cols = cols, pt.size = pt.size, idents = idents, split.by = split.by,  ... )  +
     xlab("") + ylab(features) + ggtitle("")
+  if (show.median) {
+    p <- p + stat_summary(fun.y=median, geom="point", shape=3, size=median.size)
+  }
   p <- p + theme(text = element_text(size = 10)) + theme(axis.line = element_line(size=line.size)) +
     theme(axis.text.x = element_text(size = 10), axis.text.y = element_text(size = 8), axis.line.x = element_line(colour = 'black', size=line.size),axis.line.y = element_line(colour = 'black', size= line.size))
   # theme(plot.title = element_text(size = 10, face = "bold", hjust = 0.5))
-  p <- p + theme(legend.position = "none",
-                 plot.title= element_blank(),
+  p <- p + theme(plot.title= element_blank(), # legend.position = "none",
                  axis.title.x = element_blank(),
                  axis.text.x = element_blank(),
                  axis.ticks.x = element_blank(),
@@ -4046,21 +4068,6 @@ modify_vlnplot<- function(object,
                  axis.text.y = element_text(size = rel(1)),
                  plot.margin = plot.margin ) +
     theme(axis.text.y = element_text(size = 8))
-
-  p <- p + scale_y_continuous(labels = function(x) {
-    idx0 = which(x == 0)
-    if (length(idx0) > 0) {
-      if (idx0 > 1) {
-        c(rep(x = "", times = idx0-1), "0",rep(x = "", times = length(x) -2-idx0), x[length(x) - 1], "")
-      } else {
-        c("0", rep(x = "", times = length(x)-3), x[length(x) - 1], "")
-      }
-    } else {
-      c(as.character(min(x)), rep(x = "", times = length(x)-3), x[length(x) - 1], "")
-    }
-  })
-  #  #c(rep(x = "", times = length(x)-2), x[length(x) - 1], ""))
-
   p <- p + theme(element_line(size=line.size))
 
   if (!show.text.y) {
@@ -4074,7 +4081,7 @@ modify_vlnplot<- function(object,
 #' @importFrom  ggplot2 ggplot_build
 extract_max<- function(p){
   ymax<- max(ggplot_build(p)$layout$panel_scales_y[[1]]$range$range)
-  return(signif(ymax,2))
+  return(ceiling(ymax))
 }
 
 
@@ -4103,7 +4110,7 @@ barPlot <- function(object, features, group.by = NULL, split.by = NULL, color.us
                     x.lab.rot = FALSE, ncol = 1, ...) {
   method <- match.arg(method)
   if (is.null(group.by)) {
-    labels = Seurat::Idents(object)
+    labels = Idents(object)
   } else {
     labels = object@meta.data[,group.by]
   }
@@ -4111,17 +4118,13 @@ barPlot <- function(object, features, group.by = NULL, split.by = NULL, color.us
                     truncatedMean = function(x) mean(x, trim = trim, na.rm = TRUE),
                     triMean = triMean,
                     median = function(x) median(x, na.rm = TRUE))
-  if (packageVersion("Seurat") < "5.0.0") {
-    data.all <- object[[assay]]@data
-  } else {
-    data.all <- object[[assay]]$data
-  }
+
   if (!is.null(split.by)) {
     group = object@meta.data[,split.by]
     group.levels <- levels(group)
     df <- data.frame()
     for (i in 1:length(group.levels)) {
-      data = data.all[, group == group.levels[i], drop = FALSE]
+      data = GetAssayData(object, slot = "data", assay = assay)[, group == group.levels[i]]
       labels.use <- labels[group == group.levels[i]]
       dataavg <- aggregate(t(data[features, ]), list(labels.use) , FUN = FunMean)
       dataavg <- t(dataavg[,-1])
@@ -4137,7 +4140,7 @@ barPlot <- function(object, features, group.by = NULL, split.by = NULL, color.us
     df$condition <- factor(df$condition, levels = group.levels)
 
   } else {
-    data = data.all
+    data = GetAssayData(object, slot = "data", assay = assay)
     dataavg <- aggregate(t(data[features, ]), list(labels) , FUN = FunMean)
     dataavg <- t(dataavg[,-1])
     colnames(dataavg) <- levels(labels)
@@ -4241,7 +4244,6 @@ barplot_internal <- function(df, x = "cellType", y = "value", fill = "condition"
 #' @param object cellchat object
 #' @param color.use defining the color for each cell group
 #' @param group.by Name of one metadata columns to group (color) cells. Default is the defined cell groups in CellChat object
-#' @param sample.use the sample name used for visualization, which should be the element in `object@meta$samples`.
 #' @param sources.use a vector giving the index or the name of source cell groups
 #' @param targets.use a vector giving the index or the name of target cell groups
 #' @param idents.use a vector giving the index or the name of cell groups of interest
@@ -4258,9 +4260,19 @@ barplot_internal <- function(df, x = "cellType", y = "value", fill = "condition"
 #' @export
 #'
 #' @examples
-spatialDimPlot <- function(object, color.use = NULL, group.by = NULL, sample.use = NULL, sources.use = NULL, targets.use = NULL, idents.use = NULL,
+spatialDimPlot <- function(object, color.use = NULL, group.by = NULL, sources.use = NULL, targets.use = NULL, idents.use = NULL,
                            alpha = 1, shape.by = 16, title.name = NULL, point.size = 2.4,
                            legend.size = 5, legend.text.size = 8, legend.position = "right", ncol = 1, byrow = FALSE){
+  coordinates <- object@images$coordinates
+  if (ncol(coordinates) == 2) {
+    colnames(coordinates) <- c("x_cent","y_cent")
+    temp_coordinates = coordinates
+    coordinates[,1] = temp_coordinates[,2]
+    coordinates[,2] = temp_coordinates[,1]
+  } else {
+    stop("Please check the input 'coordinates' and make sure it is a two column matrix.")
+  }
+
   if (is.null(group.by)) {
     labels <- object@idents
   } else {
@@ -4268,27 +4280,6 @@ spatialDimPlot <- function(object, color.use = NULL, group.by = NULL, sample.use
     labels <- factor(labels)
   }
   cells.level <- levels(labels)
-
-  coordinates <- object@images$coordinates
-  samples <- object@meta$samples
-  if (ncol(coordinates) == 2) {
-    colnames(coordinates) <- c("x_cent","y_cent")
-    if (length(unique(samples)) > 1) {
-      if (is.null(sample.use)) {
-        stop("`sample.use` should be provided for visualizing signaling on each individual sample.")
-      } else if (sample.use %in% unique(samples)) {
-        coordinates = coordinates[samples == sample.use, ]
-        labels = labels[samples == sample.use]
-      } else {
-        stop("Please check the input `sample.use`, which should be the element in `meta$samples`.")
-      }
-    }
-    temp_coordinates = coordinates
-    coordinates[,1] = temp_coordinates[,2]
-    coordinates[,2] = temp_coordinates[,1]
-  } else {
-    stop("Please check the input 'coordinates' and make sure it is a two column matrix.")
-  }
 
   if (!is.null(idents.use)) {
     if (is.numeric(idents.use)) {
@@ -4350,7 +4341,6 @@ spatialDimPlot <- function(object, color.use = NULL, group.by = NULL, sample.use
 #' @param features a char vector containing features to visualize. `features` can be genes or column names of `object@meta`.
 #' @param signaling signalling names to visualize
 #' @param pairLR.use a data frame consisting of one column named "interaction_name", defining the L-R pairs of interest
-#' @param sample.use the sample used for visualization, which should be the element in `object@meta$samples`.
 #' @param enriched.only  whether only return the identified enriched signaling genes in the database. Default = TRUE, returning the significantly enriched signaling interactions
 #' @param do.group set `do.group = TRUE` when only showing enriched signaling based on cell group-level communication; set `do.group = FALSE` when only showing enriched signaling based on individual cell-level communication
 #' @param thresh threshold of the p-value for determining significant interaction when visualizing links at the level of ligands/receptors;
@@ -4371,35 +4361,22 @@ spatialDimPlot <- function(object, color.use = NULL, group.by = NULL, sample.use
 #'
 #' @examples
 
-spatialFeaturePlot <- function(object, features = NULL, signaling = NULL, pairLR.use = NULL, sample.use = NULL, enriched.only = TRUE,thresh = 0.05, do.group = TRUE,
+spatialFeaturePlot <- function(object, features = NULL, signaling = NULL, pairLR.use = NULL, enriched.only = TRUE,thresh = 0.05, do.group = TRUE,
                                color.heatmap = "Spectral", n.colors = 8, direction = -1,
                                do.binary = FALSE, cutoff = NULL, color.use = NULL, alpha = 1,
                                point.size = 0.8, legend.size = 3, legend.text.size = 8, shape.by = 16, ncol = NULL,
                                show.legend = TRUE, show.legend.combined = FALSE){
-  data <- as.matrix(object@data)
-  meta <- object@meta
   coords <- object@images$coordinates
-  samples <- meta$samples
   if (ncol(coords) == 2) {
     colnames(coords) <- c("x_cent","y_cent")
-    if (length(unique(samples)) > 1) {
-      if (is.null(sample.use)) {
-        stop("`sample.use` should be provided for visualizing signaling on each individual sample.")
-      } else if (sample.use %in% unique(samples)) {
-        coords = coords[samples == sample.use, ]
-        meta = meta[samples == sample.use, ]
-        data = data[, samples == sample.use]
-      } else {
-        stop("Please check the input `sample.use`, which should be the element in `meta$samples`.")
-      }
-    }
-    temp_coords = coords
-    coords[,1] = temp_coords[,2]
-    coords[,2] = temp_coords[,1]
+    temp_coord = coords
+    coords[,1] = temp_coord[,2]
+    coords[,2] = temp_coord[,1]
   } else {
     stop("Please check the input 'coordinates' and make sure it is a two column matrix.")
   }
-
+  data <- as.matrix(object@data)
+  meta <- object@meta
   if (length(color.heatmap) == 1) {
     colormap <- tryCatch({
       RColorBrewer::brewer.pal(n = n.colors, name = color.heatmap)
