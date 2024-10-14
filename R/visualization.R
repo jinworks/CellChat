@@ -1810,8 +1810,9 @@ netVisual_diffInteraction <- function(object, comparison = c(1,2), measure = c("
 #' @param color.heatmap A vector of two colors corresponding to max/min values, or a color name in brewer.pal only when the data in the heatmap do not contain negative values.
 #' By default, color.heatmap = c('#2166ac','#b2182b') when taking a merged CellChat object as input; color.heatmap = "Reds" when taking a single CellChat object as input.
 #' @param title.name the name of the title
-#' @param width width of heatmap
-#' @param height height of heatmap
+#' @param legend.title the title of the heatmap legend
+#' @param width width of the heatmap bidy, should be a fixed `unit` object
+#' @param height height of the heatmap body, should be a fixed `unit` object
 #' @param font.size fontsize in heatmap
 #' @param font.size.title font size of the title
 #' @param cluster.rows whether cluster rows
@@ -1827,7 +1828,7 @@ netVisual_diffInteraction <- function(object, comparison = c(1,2), measure = c("
 #' @return  an object of ComplexHeatmap
 #' @export
 netVisual_heatmap <- function(object, comparison = c(1,2), measure = c("count", "weight"), signaling = NULL, slot.name = c("netP", "net"), color.use = NULL, color.heatmap = NULL,
-                              title.name = NULL, width = NULL, height = NULL, font.size = 8, font.size.title = 10, cluster.rows = FALSE, cluster.cols = FALSE,
+                              title.name = NULL, legend.title = NULL, width = NULL, height = NULL, font.size = 8, font.size.title = 10, cluster.rows = FALSE, cluster.cols = FALSE,
                               sources.use = NULL, targets.use = NULL, remove.isolate = FALSE, row.show = NULL, col.show = NULL){
   if (!is.null(measure)) {
     measure <- match.arg(measure)
@@ -1851,7 +1852,7 @@ netVisual_heatmap <- function(object, comparison = c(1,2), measure = c("count", 
         title.name = "Differential interaction strength"
       }
     }
-    legend.name = "Relative values"
+    if(is.null(legend.title)) legend.title <- "Relative values"
   } else {
     message("Do heatmap based on a single object \n")
     if (is.null(color.heatmap)) {
@@ -1862,7 +1863,7 @@ netVisual_heatmap <- function(object, comparison = c(1,2), measure = c("count", 
       if (is.null(title.name)) {
         title.name = paste0(signaling, " signaling network")
       }
-      legend.name <- "Communication Prob."
+      if(is.null(legend.title)) legend.title <- "Communication Prob."
     } else if (!is.null(measure)) {
       net.diff <- object@net[[measure]]
       if (measure == "count") {
@@ -1874,7 +1875,7 @@ netVisual_heatmap <- function(object, comparison = c(1,2), measure = c("count", 
           title.name = "Interaction strength"
         }
       }
-      legend.name <- title.name
+      if(is.null(legend.title)) legend.title <- title.name
     }
   }
 
@@ -1910,6 +1911,7 @@ netVisual_heatmap <- function(object, comparison = c(1,2), measure = c("count", 
   names(color.use) <- colnames(net)
   color.use.row <- color.use
   color.use.col <- color.use
+
   if (remove.isolate) {
     idx1 <- which(Matrix::rowSums(net) == 0)
     idx2 <- which(Matrix::colSums(net) == 0)
@@ -1957,31 +1959,35 @@ netVisual_heatmap <- function(object, comparison = c(1,2), measure = c("count", 
 
   df.col<- data.frame(group = colnames(mat)); rownames(df.col) <- colnames(mat)
   df.row<- data.frame(group = rownames(mat)); rownames(df.row) <- rownames(mat)
-  col_annotation <- HeatmapAnnotation(df = df.col, col = list(group = color.use.col),which = "column",
+  col_annotation <- HeatmapAnnotation(df = df.col, col = list(group = color.use.col), which = "column",
                                       show_legend = FALSE, show_annotation_name = FALSE,
                                       simple_anno_size = grid::unit(0.2, "cm"))
   row_annotation <- HeatmapAnnotation(df = df.row, col = list(group = color.use.row), which = "row",
                                       show_legend = FALSE, show_annotation_name = FALSE,
                                       simple_anno_size = grid::unit(0.2, "cm"))
 
-  ha1 = rowAnnotation(Strength = anno_barplot(rowSums(abs(mat)), border = FALSE,gp = gpar(fill = color.use.row, col=color.use.row)), show_annotation_name = FALSE)
-  ha2 = HeatmapAnnotation(Strength = anno_barplot(colSums(abs(mat)), border = FALSE,gp = gpar(fill = color.use.col, col=color.use.col)), show_annotation_name = FALSE)
+  ha1 = rowAnnotation(Strength = anno_barplot(rowSums(abs(mat)), border = FALSE, gp = gpar(fill = color.use.row, col = color.use.row)), show_annotation_name = FALSE)
+  ha2 = HeatmapAnnotation(Strength = anno_barplot(colSums(abs(mat)), border = FALSE, gp = gpar(fill = color.use.col, col = color.use.col)), show_annotation_name = FALSE)
 
   if (sum(abs(mat) > 0) == 1) {
     color.heatmap.use = c("white", color.heatmap.use)
   } else {
     mat[mat == 0] <- NA
   }
-  ht1 = Heatmap(mat, col = color.heatmap.use, na_col = "white", name = legend.name,
-                bottom_annotation = col_annotation, left_annotation =row_annotation, top_annotation = ha2, right_annotation = ha1,
-                cluster_rows = cluster.rows,cluster_columns = cluster.rows,
-                row_names_side = "left",row_names_rot = 0,row_names_gp = gpar(fontsize = font.size),column_names_gp = gpar(fontsize = font.size),
-                # width = unit(width, "cm"), height = unit(height, "cm"),
-                column_title = title.name,column_title_gp = gpar(fontsize = font.size.title),column_names_rot = 90,
-                row_title = "Sources (Sender)",row_title_gp = gpar(fontsize = font.size.title),row_title_rot = 90,
-                heatmap_legend_param = list(title_gp = gpar(fontsize = 8, fontface = "plain"),title_position = "leftcenter-rot",
+
+  # Create unique heatmap name
+  ht.name <- paste0(abbreviate(legend.title), sample(.Machine$integer.max, 1))
+
+  ht1 = Heatmap(mat, col = color.heatmap.use, na_col = "white", name = ht.name,
+                bottom_annotation = col_annotation, left_annotation = row_annotation, top_annotation = ha2, right_annotation = ha1,
+                cluster_rows = cluster.rows, cluster_columns = cluster.rows,
+                row_names_side = "left", row_names_rot = 0, row_names_gp = gpar(fontsize = font.size), column_names_gp = gpar(fontsize = font.size),
+                width = width, height = height,
+		column_title = title.name, column_title_gp = gpar(fontsize = font.size.title), column_names_rot = 90,
+                row_title = "Sources (Sender)", row_title_gp = gpar(fontsize = font.size.title), row_title_rot = 90,
+                heatmap_legend_param = list(title = legend.title, title_gp = gpar(fontsize = font.size, fontface = "plain"), title_position = "leftcenter-rot",
                                             border = NA, #at = colorbar.break,
-                                            legend_height = unit(20, "mm"),labels_gp = gpar(fontsize = 8),grid_width = unit(2, "mm"))
+                                            legend_height = unit(20, "mm"), labels_gp = gpar(fontsize = font.size), grid_width = unit(2, "mm"))
   )
   #  draw(ht1)
   return(ht1)
