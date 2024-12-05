@@ -1561,7 +1561,7 @@ netVisual_spatial <-function(net, coordinates, meta, sample.use = NULL, color.us
   # }
   # edgelist <- edgelist[-loop_curve,]
 
-  edges <- data.frame(node_coords[edgelist[,1],], node_coords[edgelist[,2],])
+  edges <- data.frame(node_coords[edgelist[,1],,drop =FALSE], node_coords[edgelist[,2],,drop =FALSE])
   colnames(edges) <- c("X1","Y1","X2","Y2")
   node_coords = data.frame(node_coords)
   node_idents = factor(cells.level, levels = cells.level)
@@ -1833,7 +1833,7 @@ netVisual_heatmap <- function(object, comparison = c(1,2), measure = c("count", 
     measure <- match.arg(measure)
   }
   slot.name <- match.arg(slot.name)
-  if (is.list(object@net[[1]])) {
+  if (class(object@net[[1]]) == "list") {
     message("Do heatmap based on a merged object \n")
     if (is.null(color.heatmap)) {
       color.heatmap <- c('#2166ac','#b2182b')
@@ -1858,7 +1858,11 @@ netVisual_heatmap <- function(object, comparison = c(1,2), measure = c("count", 
       color.heatmap <- "Reds"
     }
     if (!is.null(signaling)) {
-      net.diff <- slot(object, slot.name)$prob[,,signaling]
+        prob <- slot(object, slot.name)$prob
+        if (slot.name == "net") {
+          prob[object@net$pval > thresh] <- 0
+        }
+        net.diff <- prob[,,signaling]
       if (is.null(title.name)) {
         title.name = paste0(signaling, " signaling network")
       }
@@ -2841,7 +2845,7 @@ netVisual_chord_gene <- function(object, slot.name = "net", color.use = NULL,
                                  thresh = 0.05,
                                  ...){
   if (!is.null(pairLR.use)) {
-    if (!is.data.frame(pairLR.use)) {
+    if (!is.data.frame(pairLR.use) | sum(c("interaction_name","pathway_name") %in% colnames(pairLR.use) == 0)) {
       stop("pairLR.use should be a data frame with a signle column named either 'interaction_name' or 'pathway_name' ")
     } else if ("pathway_name" %in% colnames(pairLR.use)) {
       message("slot.name is set to be 'netP' when pairLR.use contains signaling pathways")
