@@ -1744,7 +1744,7 @@ extractEnrichedLR <- function(object, signaling, geneLR.return = FALSE, enriched
   net0 <- slot(object, "net")
   for (ii in 1:length(signaling)) {
     signaling.i <- signaling[ii]
-    if (!is.list(net0[[1]])) {
+    if (object@options$mode == "single") {
       net <- net0
       LR <- object@LR
       res <- extractEnrichedLR_internal(net, LR, DB, signaling = signaling.i, enriched.only = enriched.only, thresh = thresh)
