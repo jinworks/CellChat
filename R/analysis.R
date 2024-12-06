@@ -2852,14 +2852,14 @@ netAnalysis_signalingRole_heatmap <- function(object, signaling = NULL, pattern 
   }
   mat.ori <- mat
   mat <- sweep(mat, 1L, apply(mat, 1, max), '/', check.margin = FALSE)
-  mat[mat == 0] <- NA
+  #mat[mat == 0] <- NA
 
 
   if (is.null(color.use)) {
     color.use <- scPalette(length(colnames(mat)))
   }
-  color.heatmap.use = grDevices::colorRampPalette((RColorBrewer::brewer.pal(n = 9, name = color.heatmap)))(100)
-
+  #color.heatmap.use = grDevices::colorRampPalette((RColorBrewer::brewer.pal(n = 9, name = color.heatmap)))(100)
+  color.heatmap.use <- c("white", grDevices::colorRampPalette(RColorBrewer::brewer.pal(n = 9, name = color.heatmap))(100))
   df<- data.frame(group = colnames(mat)); rownames(df) <- colnames(mat)
   names(color.use) <- colnames(mat)
   col_annotation <- HeatmapAnnotation(df = df, col = list(group = color.use),which = "column",
