@@ -1934,11 +1934,11 @@ netVisual_heatmap <- function(object, comparison = c(1,2), measure = c("count", 
 
   mat <- net
   if (!is.null(row.show)) {
-    mat <- mat[row.show, ]
+    mat <- mat[row.show, , drop=FALSE]
     color.use.row <- color.use.row[row.show]
   }
   if (!is.null(col.show)) {
-    mat <- mat[ ,col.show]
+    mat <- mat[ ,col.show, drop=FALSE]
     color.use.col <- color.use.col[col.show]
   }
 
