@@ -1077,6 +1077,7 @@ runUMAP <- function(
     b = b,
     metric_kwds = metric_kwds,
     angular_rp_forest = angular_rp_forest,
+    random_state = seed.use,
     verbose = verbose
   )
   Rumap <- umap$fit_transform
