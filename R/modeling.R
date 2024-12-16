@@ -43,9 +43,8 @@
 #' @param n Parameter in Hill function
 #'
 #'
-#' @importFrom future nbrOfWorkers
 #' @importFrom future.apply future_sapply
-#' @importFrom pbapply pbsapply
+#' @importFrom progressr progressor
 #' @importFrom stats aggregate
 #' @importFrom Matrix crossprod
 #' @importFrom utils txtProgressBar setTxtProgressBar
@@ -61,7 +60,8 @@
 #' @export
 #'
 computeCommunProb <- function(object, type = c("triMean", "truncatedMean","thresholdedMean", "median"), trim = 0.1, LR.use = NULL, raw.use = TRUE, population.size = FALSE,
-                              distance.use = TRUE, interaction.range = 250, scale.distance = 0.01, k.min = 10, contact.dependent = TRUE, contact.range = NULL, contact.knn.k = NULL, contact.dependent.forced = FALSE, do.symmetric = TRUE,
+                              distance.use = TRUE, interaction.range = 250, scale.distance = 0.01, k.min = 10, 
+			      contact.dependent = TRUE, contact.range = NULL, contact.knn.k = NULL, contact.dependent.forced = FALSE, do.symmetric = TRUE,
                               nboot = 100, seed.use = 1L, Kh = 0.5, n = 1) {
   type <- match.arg(type)
   cat(type, "is used for calculating the average gene expression per cell group.", "\n")
@@ -88,11 +88,6 @@ computeCommunProb <- function(object, type = c("triMean", "truncatedMean","thres
   }
   complex_input <- object@DB$complex
   cofactor_input <- object@DB$cofactor
-  my.sapply <- ifelse(
-    test = future::nbrOfWorkers() == 1,
-    yes = sapply,
-    no = future.apply::future_sapply
-  )
 
   ptm = Sys.time()
 
@@ -205,14 +200,17 @@ computeCommunProb <- function(object, type = c("triMean", "truncatedMean","thres
 
   set.seed(seed.use)
   permutation <- replicate(nboot, sample.int(nC, size = nC))
-  data.use.avg.boot <- my.sapply(
+  p <- progressr::progressor(nboot)
+  data.use.avg.boot <- future.apply::future_sapply(
     X = 1:nboot,
     FUN = function(nE) {
+      p()
       groupboot <- group[permutation[, nE]]
       data.use.avgB <- aggregate(t(data.use), list(groupboot), FUN = FunMean)
       data.use.avgB <- t(data.use.avgB[,-1])
       return(data.use.avgB)
     },
+    future.seed = TRUE,
     simplify = FALSE
   )
   pb <- txtProgressBar(min = 0, max = nLR, style = 3, file = stderr())
@@ -257,10 +255,11 @@ computeCommunProb <- function(object, type = c("triMean", "truncatedMean","thres
 
       Pnull <- as.vector(Pnull)
 
-      #Pboot <- foreach(nE = 1:nboot) %dopar% {
-      Pboot <- sapply(
+      p <- progressr::progressor(nboot)
+      Pboot <- future.apply::future_sapply(
         X = 1:nboot,
         FUN = function(nE) {
+          p()
           data.use.avgB <- data.use.avg.boot[[nE]]
           dataLavgB <- computeExpr_LR(geneL[i], data.use.avgB, complex_input)
           dataRavgB <- computeExpr_LR(geneR[i], data.use.avgB, complex_input)
@@ -518,20 +517,17 @@ computeAveExpr <- function(object, features = NULL, group.by = NULL, type = c("t
 #' @param complex the names of complex
 #' @return
 #' @importFrom dplyr select starts_with
-#' @importFrom future nbrOfWorkers
 #' @importFrom future.apply future_sapply
-#' @importFrom pbapply pbsapply
+#' @importFrom progressr progressor
 #' @export
 computeExpr_complex <- function(complex_input, data.use, complex) {
   Rsubunits <- complex_input[complex,] %>% dplyr::select(starts_with("subunit"))
-  my.sapply <- ifelse(
-    test = future::nbrOfWorkers() == 1,
-    yes = sapply,
-    no = future.apply::future_sapply
-  )
-  data.complex = my.sapply(
-    X = 1:nrow(Rsubunits),
+  nrun <- nrow(Rsubunits)
+  p <- progressr::progressor(nrun)
+  data.complex <- future.apply::future_sapply(
+    X = 1:nrun,
     FUN = function(x) {
+      p()
       RsubunitsV <- unlist(Rsubunits[x,], use.names = F)
       RsubunitsV <- RsubunitsV[RsubunitsV != ""]
       return(geometricMean(data.use[RsubunitsV, , drop = FALSE]))
@@ -549,20 +545,17 @@ computeExpr_complex <- function(complex_input, data.use, complex) {
 # @param FunMean the function for computing mean expression per group
 # @return
 # @importFrom dplyr select starts_with
-# @importFrom future nbrOfWorkers
 # @importFrom future.apply future_sapply
-# @importFrom pbapply pbsapply
-# #' @export
+# @importFrom progressr progressor
+# @export
 .computeExprGroup_complex <- function(complex_input, data.use, complex, group, FunMean) {
   Rsubunits <- complex_input[complex,] %>% dplyr::select(starts_with("subunit"))
-  my.sapply <- ifelse(
-    test = future::nbrOfWorkers() == 1,
-    yes = pbapply::pbsapply,
-    no = future.apply::future_sapply
-  )
-  data.complex = my.sapply(
-    X = 1:nrow(Rsubunits),
+  nrun <- nrow(Rsubunits)
+  p <- progressr::progressor(nrun)
+  data.complex <- future.apply::future_sapply(
+    X = 1:nrun,
     FUN = function(x) {
+      p()
       RsubunitsV <- unlist(Rsubunits[x,], use.names = F)
       RsubunitsV <- RsubunitsV[RsubunitsV != ""]
       RsubunitsV <- intersect(RsubunitsV, rownames(data.use))
@@ -586,8 +579,8 @@ computeExpr_complex <- function(complex_input, data.use, complex) {
 #' @param geneLR a char vector giving a set of ligands or receptors
 #' @param data.use data matrix (row are genes and columns are cells or cell groups)
 #' @param complex_input the complex_input from CellChatDB
-# #' @param group a factor defining the cell groups; If NULL, compute the expression of ligands or receptors in individual cells; otherwise, compute the average expression of ligands or receptors per cell group
-# #' @param FunMean the function for computing average expression per cell group
+#' @param group a factor defining the cell groups; If NULL, compute the expression of ligands or receptors in individual cells; otherwise, compute the average expression of ligands or receptors per cell group
+#' @param FunMean the function for computing average expression per cell group
 #' @return
 #' @export
 computeExpr_LR <- function(geneLR, data.use, complex_input){
@@ -614,9 +607,8 @@ computeExpr_LR <- function(geneLR, data.use, complex_input){
 #' @param pairLRsig a data frame giving ligand-receptor interactions
 #' @param type when type == "A", computing expression of co-activation receptor; when type == "I", computing expression of co-inhibition receptor.
 #' @return
-#' @importFrom future nbrOfWorkers
 #' @importFrom future.apply future_sapply
-#' @importFrom pbapply pbsapply
+#' @importFrom progressr progressor
 #' @export
 computeExpr_coreceptor <- function(cofactor_input, data.use, pairLRsig, type = c("A", "I")) {
   type <- match.arg(type)
@@ -627,16 +619,14 @@ computeExpr_coreceptor <- function(cofactor_input, data.use, pairLRsig, type = c
   }
   index.coreceptor <- which(!is.na(coreceptor.all) & coreceptor.all != "")
   if (length(index.coreceptor) > 0) {
-    my.sapply <- ifelse(
-      test = future::nbrOfWorkers() == 1,
-      yes = sapply,
-      no = future.apply::future_sapply
-    )
     coreceptor <- coreceptor.all[index.coreceptor]
     coreceptor.ind <- cofactor_input[coreceptor, grepl("cofactor" , colnames(cofactor_input) )]
-    data.coreceptor.ind = my.sapply(
-      X = 1:nrow(coreceptor.ind),
+    nrun <- nrow(coreceptor.ind)
+    p <- progressr::progressor(nrun)
+    data.coreceptor.ind <- future.apply::future_sapply(
+      X = 1:nrun,
       FUN = function(x) {
+        p()
         coreceptor.indV <- unlist(coreceptor.ind[x,], use.names = F)
         coreceptor.indV <- coreceptor.indV[coreceptor.indV != ""]
         coreceptor.indV <- intersect(coreceptor.indV, rownames(data.use))
@@ -667,10 +657,9 @@ computeExpr_coreceptor <- function(cofactor_input, data.use, pairLRsig, type = c
 # @param group a factor defining the cell groups
 # @param FunMean the function for computing mean expression per group
 # @return
-# @importFrom future nbrOfWorkers
 # @importFrom future.apply future_sapply
-# @importFrom pbapply pbsapply
-# #' @export
+# @importFrom progressr progressor
+# @export
 .computeExprGroup_coreceptor <- function(cofactor_input, data.use, pairLRsig, type = c("A", "I"), group, FunMean) {
   type <- match.arg(type)
   if (type == "A") {
@@ -680,16 +669,14 @@ computeExpr_coreceptor <- function(cofactor_input, data.use, pairLRsig, type = c
   }
   index.coreceptor <- which(!is.na(coreceptor.all) & coreceptor.all != "")
   if (length(index.coreceptor) > 0) {
-    my.sapply <- ifelse(
-      test = future::nbrOfWorkers() == 1,
-      yes = pbapply::pbsapply,
-      no = future.apply::future_sapply
-    )
     coreceptor <- coreceptor.all[index.coreceptor]
     coreceptor.ind <- cofactor_input[coreceptor, grepl("cofactor" , colnames(cofactor_input) )]
-    data.coreceptor.ind = my.sapply(
-      X = 1:nrow(coreceptor.ind),
+    nrun <- nrow(coreceptor.ind)
+    p <- progressr::progressor(nrun)
+    data.coreceptor.ind <- future.apply::future_sapply(
+      X = 1:nrun,
       FUN = function(x) {
+        p()
         coreceptor.indV <- unlist(coreceptor.ind[x,], use.names = F)
         coreceptor.indV <- coreceptor.indV[coreceptor.indV != ""]
         coreceptor.indV <- intersect(coreceptor.indV, rownames(data.use))
@@ -697,7 +684,6 @@ computeExpr_coreceptor <- function(cofactor_input, data.use, pairLRsig, type = c
           data.avg <- aggregate(t(data.use[coreceptor.indV,]), list(group), FUN = FunMean)
           data.avg <- t(data.avg[,-1])
           return(apply(1 + data.avg, 2, prod))
-          # return(1 + apply(data.avg, 2, mean))
         } else if (length(coreceptor.indV) == 1) {
           data.avg <- aggregate(matrix(data.use[coreceptor.indV,], ncol = 1), list(group), FUN = FunMean)
           data.avg <- t(data.avg[,-1])
@@ -787,10 +773,10 @@ computeExprGroup_antagonist <- function(data.use, pairLRsig, cofactor_input, gro
 #' @param data.use data matrix
 #' @param cofactor_input the cofactor_input from CellChatDB
 #' @param pairLRsig the L-R interactions
-# #' @param group a factor defining the cell groups
+#' @param group a factor defining the cell groups
 #' @param index.agonist the index of agonist in the database
 #' @param Kh a parameter in Hill function
-# #' @param FunMean the function for computing mean expression per group
+#' @param FunMean the function for computing mean expression per group
 #' @param n Hill coefficient
 #' @return
 #' @export
@@ -823,11 +809,11 @@ computeExpr_agonist <- function(data.use, pairLRsig, cofactor_input, index.agoni
 #' @param data.use data matrix
 #' @param cofactor_input the cofactor_input from CellChatDB
 #' @param pairLRsig the L-R interactions
-# #' @param group a factor defining the cell groups
+#' @param group a factor defining the cell groups
 #' @param index.antagonist the index of antagonist in the database
 #' @param Kh a parameter in Hill function
 #' @param n Hill coefficient
-# #' @param FunMean the function for computing mean expression per group
+#' @param FunMean the function for computing mean expression per group
 #' @return
 #' @export
 #' @importFrom stats aggregate
@@ -885,7 +871,7 @@ triMean <- function(x, na.rm = TRUE) {
 #' @param na.rm whether remove na
 #' @return
 #' @importFrom Matrix nnzero
-# #' @export
+#' @export
 thresholdedMean <- function(x, trim = 0.1, na.rm = TRUE) {
   percent <- Matrix::nnzero(x)/length(x)
   if (percent < trim) {
