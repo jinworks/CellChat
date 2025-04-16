@@ -4380,7 +4380,7 @@ spatialFeaturePlot <- function(object, features = NULL, signaling = NULL, pairLR
                                do.binary = FALSE, cutoff = NULL, color.use = NULL, alpha = 1,
                                point.size = 0.8, legend.size = 3, legend.text.size = 8, shape.by = 16, ncol = NULL,
                                show.legend = TRUE, show.legend.combined = FALSE){
-  data <- as.matrix(object@data)
+  data <- object@data
   meta <- object@meta
   coords <- object@images$coordinates
   samples <- meta$samples
@@ -4634,7 +4634,3 @@ spatialFeaturePlot <- function(object, features = NULL, signaling = NULL, pairLR
   }
   return(gg)
 }
-
-
-
-
