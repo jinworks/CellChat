@@ -1900,9 +1900,8 @@ netVisual_heatmap <- function(object, comparison = c(1,2), measure = c("count", 
       }
       df.net <- subset(df.net, target %in% targets.use)
     }
-    cells.level <- rownames(net.diff)
-    df.net$source <- factor(df.net$source, levels = cells.level)
-    df.net$target <- factor(df.net$target, levels = cells.level)
+    df.net$source <- factor(df.net$source, levels = sources.use)
+    df.net$target <- factor(df.net$target, levels = targets.use)
     df.net$value[is.na(df.net$value)] <- 0
     net <- tapply(df.net[["value"]], list(df.net[["source"]], df.net[["target"]]), sum)
   }
