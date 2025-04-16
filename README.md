@@ -58,10 +58,9 @@ Please check the [Jin et al., Nature Protocols 2024](https://www.nature.com/arti
 - [Full tutorial for comparison analysis of multiple datasets](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/Comparison_analysis_of_multiple_datasets.html)
 - [Comparison analysis of multiple datasets with different cellular compositions](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/Comparison_analysis_of_multiple_datasets_with_different_cellular_compositions.html)
 
-### Analysis of spatially resolved omics data
+### Analysis of spatially resolved transcriptomics data
 - [Brief tutorial for CellChat analysis of a single spatially resolved transcriptomic dataset](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/CellChat_analysis_of_spatial_transcriptomics_data.html)
 - [Brief tutorial for CellChat analysis of multiple spatially resolved transcriptomic datasets](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/CellChat_analysis_of_multiple_spatial_transcriptomics_datasets.html)
-- [Brief tutorial for CellChat analysis of spatial multiomics data](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/CellChat_analysis_of_spatial_multiomics_data.html)
 - [Frequently Asked Questions when analyzing spatially resolved transcriptomics datasets](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/FAQ_on_applying_CellChat_to_spatial_transcriptomics_data.html)
 
 ### Additional utilities
