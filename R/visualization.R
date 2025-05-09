@@ -2293,15 +2293,16 @@ netVisual_bubble <- function(object, sources.use = NULL, targets.use = NULL, sig
       group.names <- paste0(group.names0, " (", dataset.name[comparison[ii]], ")")
 
       if (nrow(df.net) > 0) {
-        df.net$pval[df.net$pval > 0.05] = 1
-        df.net$pval[df.net$pval > 0.01 & df.net$pval <= 0.05] = 2
-        df.net$pval[df.net$pval <= 0.01] = 3
+        df.net$pval_categorie <- 1
+        df.net$pval_categorie[df.net$pval > 0.05] = 1
+        df.net$pval_categorie[df.net$pval > 0.01 & df.net$pval <= 0.05] = 2
+        df.net$pval_categorie[df.net$pval <= 0.01] = 3
         df.net$prob[df.net$prob == 0] <- NA
         df.net$prob.original <- df.net$prob
         df.net$prob <- -1/log(df.net$prob)
       } else {
         df.net <- as.data.frame(matrix(NA, nrow = length(group.names), ncol = 5))
-        colnames(df.net) <- c("interaction_name_2","source.target","prob","pval","prob.original")
+        colnames(df.net) <- c("interaction_name_2","source.target","prob","pval","prob.original", "pval_categorie")
         df.net$source.target <- group.names0
       }
       # df.net$group.names <- sub(paste0(' \\(',dataset.name[comparison[ii]],'\\)'),'',as.character(df.net$source.target))
@@ -2427,7 +2428,7 @@ netVisual_bubble <- function(object, sources.use = NULL, targets.use = NULL, sig
     }
   }
 
-  g <- ggplot(df, aes(x = source.target, y = interaction_name_2, color = prob, size = pval)) +
+  g <- ggplot(df, aes(x = source.target, y = interaction_name_2, color = prob, size = pval_categorie)) +
     geom_point(pch = 16) +
     theme_linedraw() + theme(panel.grid.major = element_blank()) +
     theme(axis.text.x = element_text(angle = angle.x, hjust= hjust.x, vjust = vjust.x),
@@ -2437,12 +2438,12 @@ netVisual_bubble <- function(object, sources.use = NULL, targets.use = NULL, sig
 
   values <- c(1,2,3); names(values) <- c("p > 0.05", "0.01 < p < 0.05","p < 0.01")
   if (is.null(dot.size.max)) {
-    dot.size.max = max(df$pval)
+    dot.size.max = max(df$pval_categorie)
   }
   if (is.null(dot.size.min)) {
-    dot.size.min = min(df$pval)
+    dot.size.min = min(df$pval_categorie)
   }
-  g <- g + scale_radius(range = c(dot.size.min, dot.size.max), breaks = sort(unique(df$pval)),labels = names(values)[values %in% sort(unique(df$pval))], name = "p-value")
+  g <- g + scale_radius(range = c(dot.size.min, dot.size.max), breaks = sort(unique(df$pval_categorie)),labels = names(values)[values %in% sort(unique(df$pval_categorie))], name = "p-value")
   #g <- g + scale_radius(range = c(1,3), breaks = values,labels = names(values), name = "p-value")
   if (min(df$prob, na.rm = T) != max(df$prob, na.rm = T)) {
     g <- g + scale_colour_gradientn(colors = colorRampPalette(color.use)(99), na.value = "white", limits=c(quantile(df$prob, 0,na.rm= T), quantile(df$prob, 1,na.rm= T)),
