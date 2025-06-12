@@ -258,7 +258,7 @@ draw(ht1 + ht2, ht_gap = unit(0.5, "cm"))
 
 ```
 
-# Part III: Identify the up-gulated and down-regulated signaling ligand-receptor pairs
+# Part III: Identify the up-regulated and down-regulated signaling ligand-receptor pairs
 ## Identify dysfunctional signaling by comparing the communication probabities  
 CellChat can compare the communication probabilities mediated by L-R pairs from certain cell groups to other cell groups. This can be done by setting `comparison` in the function `netVisual_bubble`.  
 ```{r, fig.width=6, fig.height = 4, fig.align = "center"}
