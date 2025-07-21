@@ -1337,7 +1337,7 @@ rankNet <- function(object, slot.name = "netP", measure = c("weight","count"), m
     }
 
     gg <- gg + theme(axis.text=element_text(size=font.size), axis.title.y = element_text(size=font.size))
-    gg <- gg + scale_fill_manual(name = "", values = setNames(color.use, levels(df$group)))
+    gg <- gg + scale_fill_manual(name = "", values = setNames(color.use, rev(levels(df$group))))
     gg <- gg + guides(fill = guide_legend(reverse = TRUE))
     gg <- gg + theme(axis.text.x = element_text(angle = x.angle, hjust=x.hjust),
                      axis.text.y = element_text(angle = y.angle, hjust=y.hjust))
