@@ -284,13 +284,33 @@ checkGeneSymbol <- function(geneSet, geneIfo) {
   return(FALSE)
 }
 
+#' Extract L-R pairs associated with a given gene set
+#'
+#' @param geneSet a vector of genes
+#' @param db one of the CellChatDB databases (e.g., CellChatDB.human, CellChatDB.mouse...)
+#' @export
+#'
+extractLRfromGenes <- function(geneSet, db) {
+  interaction_input <- db$interaction
+  complex_input <- db$complex
+  geneIfo <- db$geneInfo
+  geneSet1 <- intersect(geneSet, geneIfo$Symbol)
+  idx1 <- which(interaction_input$ligand %in% geneSet1)
+  idx2 <- which(interaction_input$receptor %in% geneSet1)
+  idx <- unique(c(idx1, idx2)); idx <- setdiff(idx,0)
+  LR.use <- interaction_input[idx,,drop = FALSE]
+  genes.use <- extractGeneSubsetFromPair(LR.use, complex_input = complex_input, geneInfo = geneIfo)
+  return(list(LR.use = LR.use, genes.use=genes.use))
+}
 
-#' Update CellChatDB by integrating new L-R pairs from other resources or utilizing a custom database
+
+#' Update CellChatDB by integrating new L-R pairs from other resources or adding more information
 #'
 #' @param db a data frame of the customized ligand-receptor database with at least two columns named as `ligand` and `receptor`. We highly suggest users to provide a column of pathway information named `pathway_name` associated with each L-R pair.
 #' Other optional columns include `interaction_name` and `interaction_name_2`. The default columns of CellChatDB can be checked via `colnames(CellChatDB.human$interaction)`.
 #' @param gene_info a data frame with at least one column named as `Symbol`. "When setting gene_info = NULL, the input `species_target` should be provided: either `human` or `mouse`.
 #' @param other_info a list consisting of other information including a dataframe named as `complex` and a dataframe named as `cofactor`. This additional information is not necessary. If other_info is provided, the `complex` and `cofactor` are dataframes with defined rownames.
+#' @param gene_info_columnNew a data frame with at least two columns named as `Symbol` and `AntibodyName`, which will add a new column named `AntibodyName` into `db$geneInfo`.
 #' @param trim.pathway whether to delete the interactions with missing pathway names when the column `pathway_name` is provided in `db`.
 #' @param merged whether merging the input database with the existing CellChatDB. setting merged = TRUE, the input `species_target` should be provided: either `human` or `mouse`.
 #' @param species_target the target species for output: either `human` or `mouse`.
@@ -304,11 +324,13 @@ checkGeneSymbol <- function(geneSet, geneIfo) {
 #' db.new <- updateCellChatDB(db = db.user, gene_info = NULL, species_target = "human")
 #' # Alternatively, users can integrate the customized L-R pairs into the built-in CellChatDB
 #' db.new <- updateCellChatDB(db = db.user, merged = TRUE, species_target = "human")
+#' # Add new columns (e.g., AntibodyName) into gene_info
+#' db.new.human <- updateCellChatDB(db = CellChatDB.human$interaction, gene_info = CellChatDB.human$geneInfo, other_info=list(complex = CellChatDB.human$complex, cofactor = CellChatDB.human$cofactor),gene_info_columnNew = gene_info_columnNew)
 #'
 #' # Users can now use this new database in CellChat analysis
 #' cellchat@DB <- db.new
 #'}
-updateCellChatDB <- function(db, gene_info = NULL, other_info = NULL, trim.pathway = FALSE, merged = FALSE, species_target = NULL) {
+updateCellChatDB <- function(db, gene_info = NULL, other_info = NULL, gene_info_columnNew = NULL, trim.pathway = FALSE, merged = FALSE, species_target = NULL) {
   db <- dplyr::mutate(db, across(everything(), as.character))
   if (all(c("ligand","receptor") %in% colnames(db)) == FALSE) {
     stop("The input `db` must contain at least two columns named as ligand,receptor")
@@ -468,6 +490,13 @@ updateCellChatDB <- function(db, gene_info = NULL, other_info = NULL, trim.pathw
     complex_input <- complex_input.merged
     cofactor_input <- cofactor_input.merged
   }
+
+  if (!is.null(gene_info_columnNew)) {
+    checkGeneSymbol(gene_info_columnNew$Symbol, geneInfo_input)
+    idx <- match(gene_info_columnNew$Symbol, geneInfo_input$Symbol)
+    geneInfo_input$AntibodyName <- NA
+    geneInfo_input$AntibodyName[idx[!is.na(idx)]] <- gene_info_columnNew$AntibodyName[!is.na(idx)]
+  }
   db.new <- list()
   db.new$interaction <- interaction_input
   db.new$complex <- complex_input
@@ -476,4 +505,3 @@ updateCellChatDB <- function(db, gene_info = NULL, other_info = NULL, trim.pathw
 
   return(db.new)
 }
-

@@ -2,12 +2,13 @@
 % Please edit documentation in R/database.R
 \name{updateCellChatDB}
 \alias{updateCellChatDB}
-\title{Update CellChatDB by integrating new L-R pairs from other resources or utilizing a custom database}
+\title{Update CellChatDB by integrating new L-R pairs from other resources or adding more information}
 \usage{
 updateCellChatDB(
   db,
   gene_info = NULL,
   other_info = NULL,
+  gene_info_columnNew = NULL,
   trim.pathway = FALSE,
   merged = FALSE,
   species_target = NULL
@@ -21,6 +22,8 @@ Other optional columns include `interaction_name` and `interaction_name_2`. The 
 
 \item{other_info}{a list consisting of other information including a dataframe named as `complex` and a dataframe named as `cofactor`. This additional information is not necessary. If other_info is provided, the `complex` and `cofactor` are dataframes with defined rownames.}
 
+\item{gene_info_columnNew}{a data frame with at least two columns named as `Symbol` and `AntibodyName`, which will add a new column named `AntibodyName` into `db$geneInfo`.}
+
 \item{trim.pathway}{whether to delete the interactions with missing pathway names when the column `pathway_name` is provided in `db`.}
 
 \item{merged}{whether merging the input database with the existing CellChatDB. setting merged = TRUE, the input `species_target` should be provided: either `human` or `mouse`.}
@@ -31,7 +34,7 @@ Other optional columns include `interaction_name` and `interaction_name_2`. The 
 a list consisting of the customized L-R database for further CellChat analysis
 }
 \description{
-Update CellChatDB by integrating new L-R pairs from other resources or utilizing a custom database
+Update CellChatDB by integrating new L-R pairs from other resources or adding more information
 }
 \examples{
 \dontrun{
@@ -40,6 +43,8 @@ db.new <- updateCellChatDB(db = db.user, gene_info = gene_info)
 db.new <- updateCellChatDB(db = db.user, gene_info = NULL, species_target = "human")
 # Alternatively, users can integrate the customized L-R pairs into the built-in CellChatDB
 db.new <- updateCellChatDB(db = db.user, merged = TRUE, species_target = "human")
+# Add new columns (e.g., AntibodyName) into gene_info
+db.new.human <- updateCellChatDB(db = CellChatDB.human$interaction, gene_info = CellChatDB.human$geneInfo, other_info=list(complex = CellChatDB.human$complex, cofactor = CellChatDB.human$cofactor),gene_info_columnNew = gene_info_columnNew)
 
 # Users can now use this new database in CellChat analysis
 cellchat@DB <- db.new
