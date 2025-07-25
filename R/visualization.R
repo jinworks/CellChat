@@ -2927,37 +2927,26 @@ netVisual_chord_gene <- function(object, slot.name = "net", color.use = NULL,
   }
 
   df$id <- 1:nrow(df)
-  # deal with duplicated sector names
-  ligand.uni <- unique(df$ligand)
-  for (i in 1:length(ligand.uni)) {
-    df.i <- df[df$ligand == ligand.uni[i], ]
-    source.uni <- unique(df.i$source)
-    for (j in 1:length(source.uni)) {
-      df.i.j <- df.i[df.i$source == source.uni[j], ]
-      df.i.j$ligand <- paste0(df.i.j$ligand, paste(rep(' ',j-1),collapse = ''))
-      df$ligand[df$id %in% df.i.j$id] <- df.i.j$ligand
-    }
-  }
-  receptor.uni <- unique(df$receptor)
-  for (i in 1:length(receptor.uni)) {
-    df.i <- df[df$receptor == receptor.uni[i], ]
-    target.uni <- unique(df.i$target)
-    for (j in 1:length(target.uni)) {
-      df.i.j <- df.i[df.i$target == target.uni[j], ]
-      df.i.j$receptor <- paste0(df.i.j$receptor, paste(rep(' ',j-1),collapse = ''))
-      df$receptor[df$id %in% df.i.j$id] <- df.i.j$receptor
-    }
-  }
 
   cell.order.sources <- levels(object@idents)[levels(object@idents) %in% sources.use]
   cell.order.targets <- levels(object@idents)[levels(object@idents) %in% targets.use]
 
   df$source <- factor(df$source, levels = cell.order.sources)
   df$target <- factor(df$target, levels = cell.order.targets)
-  # df.ordered.source <- df[with(df, order(source, target, -prob)), ]
-  # df.ordered.target <- df[with(df, order(target, source, -prob)), ]
-  df.ordered.source <- df[with(df, order(source, -prob)), ]
-  df.ordered.target <- df[with(df, order(target, -prob)), ]
+
+  df$ligand_std   <- toupper(gsub("_", "", df$ligand))
+  df$receptor_std <- toupper(gsub("_", "", df$receptor))
+
+  df.ordered.source <- df %>%
+      mutate(
+        ligand_std = toupper(gsub("_", "", ligand)),
+        receptor_std = toupper(gsub("_", "", receptor))
+      ) %>%
+  arrange(ligand_std, source, desc(prob))
+
+  df.ordered.target <- df.ordered.source %>%
+  arrange(receptor_std, target, desc(prob))
+  df.ordered.target <-  df.ordered.source %>% arrange(receptor, target, desc(prob))
 
   order.source <- unique(df.ordered.source[ ,c('ligand','source')])
   order.target <- unique(df.ordered.target[ ,c('receptor','target')])
@@ -2987,54 +2976,182 @@ netVisual_chord_gene <- function(object, slot.name = "net", color.use = NULL,
   grid.col <- c(as.character(grid.col.ligand), as.character(grid.col.receptor))
   names(grid.col) <- order.sector
 
-  df.plot <- df.ordered.source[ ,c('ligand','receptor','prob')]
-
   if (directional == 2) {
     link.arr.type = "triangle"
   } else {
     link.arr.type = "big.arrow"
   }
+
+  df_source <- df.ordered.source %>%
+      mutate(ligand_std = toupper(gsub("_", "", ligand))) %>%
+      group_by(ligand, source, receptor, target) %>%
+      summarise(cluster_value = sum(prob), .groups = "drop") %>%
+      group_by(ligand) %>%
+      mutate(fraction = cluster_value / sum(cluster_value)) %>%
+      ungroup() %>%
+      arrange(toupper(gsub("_", "", ligand)), receptor, source, target)
+
+  df_target <- df.ordered.source %>%
+      mutate(receptor_std = toupper(gsub("_", "", receptor))) %>%
+      group_by(ligand, source, receptor, target) %>%
+      summarise(cluster_value = sum(prob), .groups = "drop") %>%
+      group_by(receptor) %>%
+      mutate(fraction = cluster_value / sum(cluster_value)) %>%
+      ungroup() %>%
+      arrange(toupper(gsub("_", "", receptor)), ligand, source, target)
+
+  df.plot <- df.ordered.source[ ,c('source', 'target', 'ligand','receptor','prob')] %>%
+    arrange(ligand, source, receptor, target)
+
+
+  #sector order
+    order.source <- unique(df.ordered.source[, c("ligand", "source")])
+    order.target <- unique(df.ordered.target[, c("receptor", "target")])
+    
+    # This defines order grouped by source/target clusters
+    ligand_order <- order.source$ligand
+    receptor_order <- order.target$receptor
+    
+    order.sector <- c(ligand_order, receptor_order)
+
   circos.clear()
-  chordDiagram(df.plot,
+
+  grid::grid.newpage()
+  vp_main <- grid::viewport(x = 0.5, y = 0.5, width = 1, height = 1, name = "main_vp")
+  grid::pushViewport(vp_main)
+    
+  # Helper to define layout positions
+  #vplayout <- function(x, y) grid::viewport(layout.pos.row = x, layout.pos.col = y)
+
+  if (!is.null(title.name)) {
+      grid::grid.text(
+        label = title.name,
+        x = unit(0.5, "npc"),
+        y = unit(0.01, "npc"),
+        gp = grid::gpar(fontsize = 14, fontface = "bold")
+      )
+    }
+    
+  n <- length(unique(names(grid.col)))
+
+  # Small gaps within group, large gap between
+  small.gap <- 1
+  big.gap <- 8  # visibly separate source/target
+
+  gap.after <- c(
+      rep(small.gap, length(ligand_order) - 1),
+      big.gap,  # gap between ligand and receptor
+      rep(small.gap, length(receptor_order) - 1),
+      big.gap   # closing the circle
+    )
+
+  circos.par(
+    start.degree = 0,      # or whatever layout you prefer
+    #gap.after = gap.after,  # wider gaps at group breaks if needed
+    track.margin = c(0.01, 0.01),
+    canvas.xlim = c(-1.2, 1.2),
+    canvas.ylim = c(-1.2, 1.2)        # expand canvas to give room
+  )
+  
+  chordDiagram(df.plot[ ,c('ligand','receptor','prob')],
                order = order.sector,
                col = edge.color,
-               grid.col = grid.col,
-               transparency = transparency,
+               #grid.col = grid.col,
+               transparency = 0.4,
                link.border = link.border,
                directional = directional,
-               direction.type = c("diffHeight","arrows"),
+               direction.type = c("arrows"),
                link.arr.type = link.arr.type,
                annotationTrack = "grid",
-               annotationTrackHeight = annotationTrackHeight,
-               preAllocateTracks = list(track.height = max(strwidth(order.sector))),
-               small.gap = small.gap,
-               big.gap = big.gap,
-               link.visible = link.visible,
+               preAllocateTracks = list(track.height = 0.05),
+               link.visible = TRUE,
                scale = scale,
-               link.target.prop = link.target.prop,
-               reduce = reduce,
-               ...)
+               link.target.prop = TRUE,
+               reduce = -1)
+
+  circos.track(
+    ylim = c(0, 1),
+    track.index = 2,  # ← key change: force higher track level
+    bg.border = NA,
+    panel.fun = function(x, y) {
+      sector_name <- get.cell.meta.data("sector.index")
+      xlim <- get.cell.meta.data("xlim")
+
+      if ((xlim[2] - xlim[1]) < 1e-4) return(NULL)
+
+      if (sector_name %in% df_target$receptor) {
+        df_sector <- df_target[df_target$receptor == sector_name, ] %>% arrange(desc(row_number()))
+        x_start <- xlim[1]
+        x_end <- xlim[2]
+        width <- x_end - x_start
+
+        df_sector$fraction <- df_sector$fraction / sum(df_sector$fraction)
+
+        for (i in seq_len(nrow(df_sector))) {
+          xleft <- x_start
+          xright <- min(x_start + width * df_sector$fraction[i], x_end)
+          circos.rect(xleft, 0, xright, 1,
+                      col = custom_colors$discrete[as.character(df_sector$target[i])],
+                      border = NA)
+          x_start <- xright
+        }
+      }
+    }
+  )
+
+  circos.track(
+    ylim = c(0, 1),
+    track.index = 2,  # ← key change: force higher track level
+    bg.border = NA,
+    panel.fun = function(x, y) {
+      sector_name <- get.cell.meta.data("sector.index")
+      xlim <- get.cell.meta.data("xlim")
+
+      if ((xlim[2] - xlim[1]) < 1e-4) return(NULL)
+
+      if (sector_name %in% df_source$ligand) {
+        df_sector <- df_source[df_source$ligand == sector_name, ] %>% arrange(desc(receptor))
+        x_start <- xlim[1]
+        x_end <- xlim[2]
+        width <- x_end - x_start
+
+        df_sector$fraction <- df_sector$fraction / sum(df_sector$fraction)
+
+        for (i in seq_len(nrow(df_sector))) {
+          xleft <- x_start
+          xright <- min(x_start + width * df_sector$fraction[i], x_end)
+          circos.rect(xleft, 0, xright, 1,
+                      col = custom_colors$discrete[as.character(df_sector$source[i])],
+                      border = NA)
+          x_start <- xright
+        }
+      }
+    }
+  )
 
   circos.track(track.index = 1, panel.fun = function(x, y) {
-    xlim = get.cell.meta.data("xlim")
-    xplot = get.cell.meta.data("xplot")
-    ylim = get.cell.meta.data("ylim")
-    sector.name = get.cell.meta.data("sector.index")
-    circos.text(mean(xlim), ylim[1], sector.name, facing = "clockwise", niceFacing = TRUE, adj = c(0, 0.5),cex = lab.cex)
-  }, bg.border = NA)
+      xlim = get.cell.meta.data("xlim")
+      xplot = get.cell.meta.data("xplot")
+      ylim = get.cell.meta.data("ylim")
+      sector.name = get.cell.meta.data("sector.index")
+      circos.text(mean(xlim), ylim[1], sector.name, facing = "clockwise", niceFacing = TRUE, adj = c(0, 0.5),cex = lab.cex)
+    }, bg.border = NA)
 
-  # https://jokergoo.github.io/circlize_book/book/legends.html
   if (show.legend) {
-    lgd <- ComplexHeatmap::Legend(at = names(color.use), type = "grid", legend_gp = grid::gpar(fill = color.use), title = "Cell State")
-    ComplexHeatmap::draw(lgd, x = unit(1, "npc")-unit(legend.pos.x, "mm"), y = unit(legend.pos.y, "mm"), just = c("right", "bottom"))
-  }
-
+      lgd <- ComplexHeatmap::Legend(
+        at = names(color.use),
+        type = "grid",
+        legend_gp = grid::gpar(fill = color.use),
+        title = "Cell State"
+      )
+      ComplexHeatmap::draw(
+        lgd,
+        x = unit(1, "npc") - unit(5, "mm"),  # right side
+        y = unit(0.5, "npc"),                # centered vertically
+        just = c("right", "center")
+      )
+    }
   circos.clear()
-  if(!is.null(title.name)){
-    text(-0, 1.02, title.name, cex=1)
-  }
-  gg <- recordPlot()
-  return(gg)
 }
 
 
