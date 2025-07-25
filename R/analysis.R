@@ -1,4 +1,3 @@
-
 #' Compute and visualize the contribution of each ligand-receptor pair in the overall signaling pathways
 #'
 #' @param object CellChat object
@@ -1029,14 +1028,14 @@ rankNet <- function(object, slot.name = "netP", measure = c("weight","count"), m
   measure <- match.arg(measure)
   mode <- match.arg(mode)
   options(warn = -1)
-  object.names <- names(methods::slot(object, slot.name))
+  object1 <- methods::slot(object, slot.name)
+  object.names <- names(object1)
   if (measure == "weight") {
     ylabel = "Information flow"
   } else if (measure == "count") {
     ylabel = "Number of interactions"
   }
   if (mode == "single") {
-    object1 <- methods::slot(object, slot.name)
     prob = object1$prob
     prob[object1$pval > thresh] <- 0
     if (measure == "count") {
@@ -1071,12 +1070,8 @@ rankNet <- function(object, slot.name = "netP", measure = c("weight","count"), m
     pSum <- apply(prob, 3, sum)
     pSum.original <- pSum
     if (measure == "weight") {
-      pSum <- -1/log(pSum)
+      pSum <- log(1+pSum)
       pSum[is.na(pSum)] <- 0
-      idx1 <- which(is.infinite(pSum) | pSum < 0)
-      values.assign <- seq(max(pSum)*1.1, max(pSum)*1.5, length.out = length(idx1))
-      position <- sort(pSum.original[idx1], index.return = TRUE)$ix
-      pSum[idx1] <- values.assign[match(1:length(idx1), position)]
     } else if (measure == "count") {
       pSum <- pSum.original
     }
@@ -1087,12 +1082,7 @@ rankNet <- function(object, slot.name = "netP", measure = c("weight","count"), m
     idx <- with(df, order(df$contribution))
     df <- df[idx, ]
     df$name <- factor(df$name, levels = as.character(df$name))
-    for (i in 1:length(pair.name)) {
-      df.t <- df[df$name == pair.name[i], "contribution"]
-      if (sum(df.t) == 0) {
-        df <- df[-which(df$name == pair.name[i]), ]
-      }
-    }
+    df <- df[ave(df$contribution, df$name, FUN = sum) != 0, ]
 
     if (!is.null(signaling.type)) {
       LR <- subset(object@DB$interaction, annotation %in% signaling.type)
@@ -1163,38 +1153,32 @@ rankNet <- function(object, slot.name = "netP", measure = c("weight","count"), m
       }
       prob.list[[i]] <- prob
       pSum.original[[i]] <- apply(prob, 3, sum)
-      if (measure == "weight") {
-        pSum[[i]] <- -1/log(pSum.original[[i]])
+    }
+    # Step 1: Flatten both lists to a numeric vector
+    all_values <- unlist(pSum.original, use.names = FALSE)
+
+    # Step 2: Compute global min and max
+    global_min <- min(all_values, na.rm = TRUE)
+    global_max <- max(all_values, na.rm = TRUE)
+
+    for (i in 1:length(comparison)) {
+        if (measure == "weight") {
+        pSum[[i]] <- log(1+pSum.original[[i]])
         pSum[[i]][is.na(pSum[[i]])] <- 0
-        idx[[i]] <- which(is.infinite(pSum[[i]]) | pSum[[i]] < 0)
-        pSum.original.all <- c(pSum.original.all, pSum.original[[i]][idx[[i]]])
       } else if (measure == "count") {
         pSum[[i]] <- pSum.original[[i]] # the prob is already binarized in line 1136
       }
       pair.name[[i]] <- names(pSum.original[[i]])
       object.names.comparison <- c(object.names.comparison, object.names[comparison[i]])
     }
-    if (measure == "weight") {
-      values.assign <- seq(max(unlist(pSum))*1.1, max(unlist(pSum))*1.5, length.out = length(unlist(idx)))
-      position <- sort(pSum.original.all, index.return = TRUE)$ix
-      for (i in 1:length(comparison)) {
-        if (i == 1) {
-          pSum[[i]][idx[[i]]] <- values.assign[match(1:length(idx[[i]]), position)]
-        } else {
-          pSum[[i]][idx[[i]]] <- values.assign[match(length(unlist(idx[1:i-1]))+1:length(unlist(idx[1:i])), position)]
-        }
-      }
-    }
-
-
 
     pair.name.all <- as.character(unique(unlist(pair.name)))
-    df <- list()
-    for (i in 1:length(comparison)) {
-      df[[i]] <- data.frame(name = pair.name.all, contribution = 0, contribution.scaled = 0, group = object.names[comparison[i]], row.names = pair.name.all)
-      df[[i]][pair.name[[i]],3] <- pSum[[i]]
-      df[[i]][pair.name[[i]],2] <- pSum.original[[i]]
-    }
+    df <- lapply(seq_along(comparison), function(i) {
+      d <- data.frame(name = pair.name.all, contribution = 0, contribution.scaled = 0, group = object.names[comparison[i]], row.names = pair.name.all)
+      d[pair.name[[i]], "contribution.scaled"] <- pSum[[i]]
+      d[pair.name[[i]], "contribution"] <- pSum.original[[i]]
+      d
+    })
 
 
     # contribution.relative <- as.numeric(format(df[[length(comparison)]]$contribution/abs(df[[1]]$contribution), digits=1))
@@ -1214,23 +1198,13 @@ rankNet <- function(object, slot.name = "netP", measure = c("weight","count"), m
       contribution.relative[[i]][is.na(contribution.relative[[i]])] <- 0
     }
     names(contribution.relative) <- paste0("contribution.relative.", 1:length(contribution.relative))
-    for (i in 1:length(comparison)) {
-      for (j in 1:length(contribution.relative)) {
-        df[[i]][[names(contribution.relative)[j]]] <- contribution.relative[[j]]
-      }
+    for (j in seq_along(contribution.relative)) {
+      df <- lapply(df, function(x) { x[[names(contribution.relative)[j]]] <- contribution.relative[[j]]; x })
     }
     df[[1]]$contribution.data2 <- df[[length(comparison)]]$contribution
-    if (length(comparison) == 2) {
-      idx <- with(df[[1]], order(-contribution.relative.1, contribution, -contribution.data2))
-    } else if (length(comparison) == 3) {
-      idx <- with(df[[1]], order(-contribution.relative.1, -contribution.relative.2,contribution, -contribution.data2))
-    } else if (length(comparison) == 4) {
-      idx <- with(df[[1]], order(-contribution.relative.1, -contribution.relative.2, -contribution.relative.3, contribution, -contribution.data2))
-    } else {
-      idx <- with(df[[1]], order(-contribution.relative.1, -contribution.relative.2, -contribution.relative.3, -contribution.relative.4, contribution, -contribution.data2))
-    }
-
-
+    order_args <- c(paste0("-contribution.relative.", seq_along(contribution.relative)), "contribution", "-contribution.data2")
+    order_expr <- paste(order_args, collapse = ", ")
+    idx <- eval(parse(text = paste0("with(df[[1]], order(", order_expr, "))")))
 
     for (i in 1:length(comparison)) {
       df[[i]] <- df[[i]][idx, ]
@@ -1242,12 +1216,8 @@ rankNet <- function(object, slot.name = "netP", measure = c("weight","count"), m
     df$group <- factor(df$group, levels = object.names.comparison)
 
     if (is.null(color.use)) {
-      color.use =  ggPalette(length(comparison))
+    color.use <- ggPalette(length(levels(df$group)))
     }
-
-    # https://stackoverflow.com/questions/49448497/coord-flip-changes-ordering-of-bars-within-groups-in-grouped-bar-plot
-    df$group <- factor(df$group, levels = rev(levels(df$group)))
-    color.use <- rev(color.use)
 
     # perform statistical analysis
     # if (do.stat) {
@@ -1272,30 +1242,30 @@ rankNet <- function(object, slot.name = "netP", measure = c("weight","count"), m
     #   df$pvalues <- pvalues
     # }
     if (do.stat & length(comparison) == 2) {
-      for (i in 1:length(pair.name.all)) {
-        if (nrow(prob.list[[j]]) != nrow(prob.list[[1]])) {
-          if (paired.test) {
-            stop("Paired test is not applicable to datasets with different cellular compositions! Please set `do.stat = FALSE` or `paired.test = FALSE`! \n")
-          }
+        if (nrow(prob.list[[1]]) != nrow(prob.list[[2]])) {
+            if (paired.test) {
+              stop("Paired test is not applicable to datasets with different cellular compositions! Please set `do.stat = FALSE` or `paired.test = FALSE`! \n")
+            }
         }
-        prob.values <- matrix(0, nrow = nrow(prob.list[[1]]) * nrow(prob.list[[1]]), ncol = length(comparison))
-        for (j in 1:length(comparison)) {
-          if (pair.name.all[i] %in% pair.name[[j]]) {
-            prob.values[, j] <- as.vector(prob.list[[j]][ , , pair.name.all[i]])
+        for (i in 1:length(pair.name.all)) {
+          prob.values <- matrix(0, nrow = nrow(prob.list[[1]]) * nrow(prob.list[[1]]), ncol = length(comparison))
+          for (j in 1:length(comparison)) {
+            if (pair.name.all[i] %in% pair.name[[j]]) {
+              prob.values[, j] <- as.vector(prob.list[[j]][ , , pair.name.all[i]])
+            } else {
+              prob.values[, j] <- NA
+            }
+          }
+          prob.values <- prob.values[rowSums(prob.values, na.rm = TRUE) != 0, , drop = FALSE]
+          if (nrow(prob.values) >3 & sum(is.na(prob.values)) == 0) {
+            pvalues <- wilcox.test(prob.values[ ,1], prob.values[ ,2], paired = paired.test)$p.value
           } else {
-            prob.values[, j] <- NA
+            pvalues <- 0
           }
+          pvalues[is.na(pvalues)] <- 0
+          df$pvalues[df$name == pair.name.all[i]] <- pvalues
         }
-        prob.values <- prob.values[rowSums(prob.values, na.rm = TRUE) != 0, , drop = FALSE]
-        if (nrow(prob.values) >3 & sum(is.na(prob.values)) == 0) {
-          pvalues <- wilcox.test(prob.values[ ,1], prob.values[ ,2], paired = paired.test)$p.value
-        } else {
-          pvalues <- 0
-        }
-        pvalues[is.na(pvalues)] <- 0
-        df$pvalues[df$name == pair.name.all[i]] <- pvalues
       }
-    }
 
 
     if (length(comparison) == 2) {
@@ -1309,12 +1279,7 @@ rankNet <- function(object, slot.name = "netP", measure = c("weight","count"), m
       colors.text = NULL
     }
 
-    for (i in 1:length(pair.name.all)) {
-      df.t <- df[df$name == pair.name.all[i], "contribution"]
-      if (sum(df.t) == 0) {
-        df <- df[-which(df$name == pair.name.all[i]), ]
-      }
-    }
+    df <- df[ave(df$contribution, df$name, FUN = sum) != 0, ]
 
     if ((slot.name == "netP") && (!is.null(signaling))) {
       df <- subset(df, name %in% signaling)
@@ -1372,7 +1337,7 @@ rankNet <- function(object, slot.name = "netP", measure = c("weight","count"), m
     }
 
     gg <- gg + theme(axis.text=element_text(size=font.size), axis.title.y = element_text(size=font.size))
-    gg <- gg + scale_fill_manual(name = "", values = color.use)
+    gg <- gg + scale_fill_manual(name = "", values = setNames(color.use, rev(levels(df$group))))
     gg <- gg + guides(fill = guide_legend(reverse = TRUE))
     gg <- gg + theme(axis.text.x = element_text(angle = x.angle, hjust=x.hjust),
                      axis.text.y = element_text(angle = y.angle, hjust=y.hjust))
