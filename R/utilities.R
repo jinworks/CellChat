@@ -1281,10 +1281,11 @@ updateCCC_score <- function(object, net) {
 #'
 #' @param data.list a list consisting of multi-omics data (e.g., RNA & ADT)
 #' @param db one of the CellChatDB databases: CellChatDB.human, CellChatDB.mouse, CellChatDB.zebrafish
+#' @param cutoff the cutoff value of low protein expression
 #' @param do.sparse whether to use sparse format
 #' @export
 #'
-preProcMultiomics <- function(data.list, db, do.sparse = TRUE) {
+preProcMultiomics <- function(data.list, db, cutoff = 0.5, do.sparse = TRUE) {
   # normalize the data
   data.input.rna <- data.list[[1]]
   data.input.adt <- data.list[[2]]
@@ -1295,13 +1296,13 @@ preProcMultiomics <- function(data.list, db, do.sparse = TRUE) {
   for (i in 1:nrow(X)) {
     data.input.adt.temp[i,] = (X[i,]-min(X[i,]))/(max(X[i,])-min(X[i,]))
   }
-  data.input.adt[data.input.adt.temp < 0.5] <- 0
+  data.input.adt[data.input.adt.temp < cutoff] <- 0
   if (do.sparse) {
     data.input = rbind(data.input.rna, as(data.input.adt, "dgCMatrix"))
   } else {
     data.input = rbind(as.matrix(data.input.rna), as.matrix(data.input.adt))
   }
-
+  
   # create a new L-R database
   proteins <- rownames(data.input.adt)
   geneInfo.subset <- db$geneInfo[db$geneInfo$AntibodyName %in% proteins, ]
@@ -1315,13 +1316,13 @@ preProcMultiomics <- function(data.list, db, do.sparse = TRUE) {
   LR.use$ligand[!is.na(idx)] <- geneInfo.subset$AntibodyName[idx[!is.na(idx)]]
   idx <- match(LR.use$receptor, geneInfo.subset$Symbol)
   LR.use$receptor[!is.na(idx)] <- geneInfo.subset$AntibodyName[idx[!is.na(idx)]]
-
+  
   db.use <- db
   db.use$interaction <- LR.use
   db.use$geneInfo <- dplyr::add_row(db.use$geneInfo, Symbol = geneInfo.subset$AntibodyName)
-
+  
   return(list(data.input = data.input, db.use = db.use))
 }
 
 
-                    
+
