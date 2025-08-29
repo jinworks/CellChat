@@ -2202,6 +2202,12 @@ netVisual_bubble <- function(object, sources.use = NULL, targets.use = NULL, sig
 
   if (is.null(comparison)) {
     cells.level <- levels(object@idents)
+    if (is.null(sources.use)) {
+      sources.use <- cells.level
+    }
+    if (is.null(targets.use)) {
+      targets.use <- cells.level
+    }
     if (is.numeric(sources.use)) {
       sources.use <- cells.level[sources.use]
     }
@@ -2254,6 +2260,20 @@ netVisual_bubble <- function(object, sources.use = NULL, targets.use = NULL, sig
     df.net$source.target <- factor(df.net$source.target, levels = cells.order)
     df <- df.net
   } else {
+    cells.level <- levels(object@idents$joint)
+    if (is.null(sources.use)) {
+      sources.use <- cells.level
+    }
+    if (is.null(targets.use)) {
+      targets.use <- cells.level
+    }
+    if (is.numeric(sources.use)) {
+      sources.use <- cells.level[sources.use]
+    }
+    if (is.numeric(targets.use)) {
+      targets.use <- cells.level[targets.use]
+    }
+
     dataset.name <- names(object@net)
     df.net.all <- subsetCommunication(object, slot.name = "net",
                                       sources.use = sources.use, targets.use = targets.use,
@@ -2262,14 +2282,7 @@ netVisual_bubble <- function(object, sources.use = NULL, targets.use = NULL, sig
                                       thresh = thresh)
     df.all <- data.frame()
     for (ii in 1:length(comparison)) {
-      cells.level <- levels(object@idents[[comparison[ii]]])
-      if (is.numeric(sources.use)) {
-        sources.use <- cells.level[sources.use]
-      }
-      if (is.numeric(targets.use)) {
-        targets.use <- cells.level[targets.use]
-      }
-
+      #cells.level <- levels(object@idents[[comparison[ii]]])
       df.net <- df.net.all[[comparison[ii]]]
       df.net$interaction_name_2 <- as.character(df.net$interaction_name_2)
       df.net$source.target <- paste(df.net$source, df.net$target, sep = " -> ")
@@ -2504,6 +2517,8 @@ netVisual_bubble <- function(object, sources.use = NULL, targets.use = NULL, sig
   }
 
 }
+
+
 
 
 
@@ -3648,7 +3663,7 @@ netVisual_embeddingPairwise <- function(object, slot.name = "netP", type = c("fu
     for (i in 1:length(prob)) {
       probi <- prob[[i]]
       pathway.remove.idx <- which(paste0(dimnames(probi)[[3]],"--",object.names[i]) %in% pathway.remove)
-    #  pathway.remove.idx <- which(dimnames(probi)[[3]] %in% pathway.remove)
+      #  pathway.remove.idx <- which(dimnames(probi)[[3]] %in% pathway.remove)
       if (length(pathway.remove.idx) > 0) {
         probi <- probi[ , , -pathway.remove.idx]
       }
@@ -3686,7 +3701,22 @@ netVisual_embeddingPairwise <- function(object, slot.name = "netP", type = c("fu
   gg <- gg + scale_fill_manual(values = ggplot2::alpha(color.use, alpha = dot.alpha), drop = FALSE) #+ scale_alpha(group, range = c(0.1, 1))
   gg <- gg + scale_colour_manual(values = color.use, drop = FALSE)
   gg <- gg + scale_shape_manual(values = point.shape[1:length(prob)])
+
   if (do.label) {
+    if (is.null(pathway.labeled)) {
+      if (top.label < 1) {
+        if (length(comparison) == 2) {
+          g.t <- rankSimilarity(object, slot.name = slot.name, type = type, comparison1 = comparison)
+          pathway.labeled <- as.character(g.t$data$name[(nrow(g.t$data)-ceiling(top.label * nrow(g.t$data))+1):nrow(g.t$data) ])
+          data.label <- df[df$labels %in% pathway.labeled, , drop = FALSE]
+        }
+      } else {
+        data.label <- df
+      }
+
+    } else {
+      data.label <- df[df$labels %in% pathway.labeled, , drop = FALSE]
+    }
     gg <- gg + ggrepel::geom_text_repel(mapping = aes(label = labels, colour = clusters, alpha=group), size = label.size, show.legend = F,segment.size = 0.2, segment.alpha = 0.5) + scale_alpha_discrete(range = c(1, 0.6))
   }
 
@@ -3703,6 +3733,7 @@ netVisual_embeddingPairwise <- function(object, slot.name = "netP", type = c("fu
   }
   gg
 }
+
 
 
 
@@ -4634,3 +4665,7 @@ spatialFeaturePlot <- function(object, features = NULL, signaling = NULL, pairLR
   }
   return(gg)
 }
+
+
+
+
