@@ -239,6 +239,7 @@ createCellChat <- function(object, meta = NULL, group.by = NULL,
     if (is.null(spatial.factors) | !("ratio" %in% names(spatial.factors)) | !("tol" %in% names(spatial.factors))) {
       stop("spatial.factors with colnames `ratio` and `tol` should be provided!")
     } else {
+      coordinates <- as.matrix(coordinates)
       images = list("coordinates" = coordinates,
                     "spatial.factors" = spatial.factors)
     }
@@ -440,7 +441,7 @@ updateCellChat <- function(object) {
   #   DB$interaction <- interaction_input
   # }
   if (is.character(object@var.features)) {
-    message("Update slot 'var.features' from a vector to a list")
+    message("Update slot 'var.features' from a vector to a list!")
     var.features.new <- list(features = object@var.features)
   } else {
     var.features.new <- object@var.features
@@ -479,11 +480,12 @@ updateCellChat <- function(object) {
       images$scale.factors <- NULL
     }
   }
-  if ("data.smooth" %in% methods::slotNames(object) == FALSE) {
-    data.smooth <- object@data.project
-  } else {
-    data.smooth <- object@data.smooth
-  }
+  data.smooth <- tryCatch({
+    object@data.smooth
+  }, error = function(e) {
+    message("Rename the slot 'data.project' as `data.smooth`!")
+    object@data.project
+  })
   object.new <- methods::new(
     Class = "CellChat",
     data.raw = object@data.raw,
