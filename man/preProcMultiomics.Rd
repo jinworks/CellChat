@@ -4,12 +4,14 @@
 \alias{preProcMultiomics}
 \title{Preprocessing multi-omics data and preparing the L-R database}
 \usage{
-preProcMultiomics(data.list, db, do.sparse = TRUE)
+preProcMultiomics(data.list, db, cutoff = 0.5, do.sparse = TRUE)
 }
 \arguments{
 \item{data.list}{a list consisting of multi-omics data (e.g., RNA & ADT)}
 
 \item{db}{one of the CellChatDB databases: CellChatDB.human, CellChatDB.mouse, CellChatDB.zebrafish}
+
+\item{cutoff}{the cutoff value of low protein expression}
 
 \item{do.sparse}{whether to use sparse format}
 }
