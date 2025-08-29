@@ -688,6 +688,7 @@ netEmbedding <- function(object, slot.name = "netP", type = c("functional","stru
   }
   methods::slot(object, slot.name)$similarity[[type]]$dr[[comparison.name]] <- Y
   return(object)
+
 }
 
 
@@ -734,7 +735,7 @@ netClustering <- function(object, slot.name = "netP", type = c("functional","str
       N <- nrow(data.use)
       kRange <- seq(2,min(N-1, 10),by = 1)
       if (do.parallel) {
-        future::plan("multisession", workers = nCores)
+        with(future::plan("multisession", workers = nCores), local = TRUE)
         options(future.globals.maxSize = 1000 * 1024^2)
       }
       my.sapply <- ifelse(
@@ -1028,7 +1029,7 @@ rankNet <- function(object, slot.name = "netP", measure = c("weight","count"), m
                     axis.gap = FALSE, ylim = NULL, segments = NULL, tick_width = NULL, rel_heights = c(0.9,0,0.1)) {
   measure <- match.arg(measure)
   mode <- match.arg(mode)
-  options(warn = -1)
+  oopts <- options(warn = -1)
   object.names <- names(methods::slot(object, slot.name))
   if (measure == "weight") {
     ylabel = "Information flow"
@@ -1388,6 +1389,7 @@ rankNet <- function(object, slot.name = "netP", measure = c("weight","count"), m
   } else {
     return(gg)
   }
+  on.exit(options(oopts))
 }
 
 
