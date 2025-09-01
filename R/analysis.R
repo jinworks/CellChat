@@ -1979,20 +1979,36 @@ subsetCommunication <- function(object = NULL, net = NULL, slot.name = "net",
     if (is.null(net)) {
       net0 <- slot(object, "net")
       df.net <- vector("list", length(net0))
-      names(df.net) <- names(net0)
       for (i in 1:length(net0)) {
         net <- net0[[i]]
         LR <- object@LR[[i]]$LRsig
         cells.level <- levels(object@idents[[i]])
-
-        df.net[[i]] <- subsetCommunication_internal(net, LR, cells.level, slot.name = slot.name,
-                                                    sources.use = sources.use, targets.use = targets.use,
-                                                    signaling = signaling,
-                                                    pairLR.use = pairLR.use,
-                                                    thresh = thresh,
-                                                    datasets = datasets, ligand.pvalues = ligand.pvalues, ligand.logFC = ligand.logFC, ligand.pct.1 = ligand.pct.1, ligand.pct.2 = ligand.pct.2,
-                                                    receptor.pvalues = receptor.pvalues, receptor.logFC = receptor.logFC, receptor.pct.1 = receptor.pct.1, receptor.pct.2 =receptor.pct.2)
+        df.net[[i]] <- tryCatch({
+          subsetCommunication_internal(net, LR, cells.level, slot.name = slot.name,
+                                       sources.use = sources.use, targets.use = targets.use,
+                                       signaling = signaling,
+                                       pairLR.use = pairLR.use,
+                                       thresh = thresh,
+                                       datasets = datasets, ligand.pvalues = ligand.pvalues, ligand.logFC = ligand.logFC, ligand.pct.1 = ligand.pct.1, ligand.pct.2 = ligand.pct.2,
+                                       receptor.pvalues = receptor.pvalues, receptor.logFC = receptor.logFC, receptor.pct.1 = receptor.pct.1, receptor.pct.2 =receptor.pct.2)
+        }, error = function(e) {
+          NULL
+        })
       }
+      names(df.net) <- names(net0)
+      len <- sapply(df.net, length) > 0
+      idx <- which(sapply(df.net, length) > 0)
+      if (length(idx) == 0) {
+        stop(paste0("No significant signaling interactions are inferred in all conditions!"))
+      } else if (length(idx) < length(df.net)) {
+        for (i in setdiff(1:length(df.net), idx)) {
+          col.names <- colnames(df.net[[idx[1]]])
+          df.net[[i]] <- data.frame(matrix(nrow = 0, ncol = length(col.names)))
+          colnames(df.net[[i]]) <- col.names
+          warning(paste0("No significant signaling interactions are inferred in the condition ",names(net0)[i] ,"!"))
+        }
+      }
+
     } else {
       LR <- data.frame()
       for (i in 1:length(object@LR)) {
@@ -2215,14 +2231,6 @@ subsetCommunication_internal <- function(net, LR, cells.level, slot.name = "net"
   return(net)
 
 }
-
-
-
-
-
-
-
-
 
 
 #' Heatmap showing the centrality scores/importance of cell groups as senders, receivers, mediators and influencers in a single intercellular communication network
