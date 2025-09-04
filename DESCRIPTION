@@ -39,6 +39,7 @@ Imports:
     colorspace,
     plyr,
     ggpubr,
+    collapse,
     ggnetwork, 
     BiocNeighbors,
     plotly,shiny,bslib
