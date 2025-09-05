@@ -873,10 +873,11 @@ geometricMean <- function(x,na.rm=TRUE){
 #' @param x a numeric vector
 #' @param na.rm whether remove na
 #' @return
-#' @importFrom stats quantile
+#' @importFrom collapse fquantile
 #' @export
 triMean <- function(x, na.rm = TRUE) {
-  mean(stats::quantile(x, probs = c(0.25, 0.50, 0.50, 0.75), na.rm = na.rm))
+  q<- collapse::fquantile(x, probs = c(0.25, 0.50, 0.75), na.rm = na.rm)
+  (q[[1]]+2*q[[2]]+q[[3]])/4
 }
 
 #' Compute the average expression per cell group when the percent of expressing cells per cell group larger than a threshold
