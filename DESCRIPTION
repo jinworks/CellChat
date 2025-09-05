@@ -1,4 +1,4 @@
-Package: CellChat
+Package: CellChat_fq
 Type: Package
 Title: Inference and analysis of cell-cell communication from single-cell and spatially resolved transcriptomics data 
 Version: 2.2.0
