@@ -417,11 +417,11 @@ aggregateNet <- function(object, sources.use = NULL, targets.use = NULL, signali
                                   signaling = signaling,
                                   pairLR.use = pairLR.use,
                                   thresh = thresh)
-    df.net$source_target <- paste(df.net$source, df.net$target, sep = "_")
+    df.net$source_target <- paste(df.net$source, df.net$target, sep = "|")
     df.net2 <- df.net %>% group_by(source_target) %>% summarize(count = n(), .groups = 'drop')
     df.net3 <- df.net %>% group_by(source_target) %>% summarize(prob = sum(prob), .groups = 'drop')
     df.net2$prob <- df.net3$prob
-    a <- stringr::str_split(df.net2$source_target, "_", simplify = T)
+    a <- stringr::str_split(df.net2$source_target, "|", simplify = T)
     df.net2$source <- as.character(a[, 1])
     df.net2$target <- as.character(a[, 2])
     cells.level <- levels(object@idents)
