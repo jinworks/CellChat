@@ -2808,6 +2808,8 @@ netAnalysis_signalingChanges_scatter <- function(object, idents.use, color.use =
 #' @param title title name
 #' @param width width of heatmap
 #' @param height height of heatmap
+#' @param ylim.top set the range of the top barplot (e.g., ylim.top = c(0, 4))
+#' @param ylim.right set the range of the right barplot (e.g., ylim.right = c(0, 5))
 #' @param font.size fontsize in heatmap
 #' @param font.size.title font size of the title
 #' @param cluster.rows whether cluster rows
@@ -2822,8 +2824,8 @@ netAnalysis_signalingChanges_scatter <- function(object, idents.use, color.use =
 #' @export
 #'
 netAnalysis_signalingRole_heatmap <- function(object, signaling = NULL, pattern = c("outgoing", "incoming","all"), slot.name = "netP",
-                                              color.use = NULL, color.heatmap = "BuGn",
-                                              title = NULL, width = 10, height = 8, font.size = 8, font.size.title = 10, cluster.rows = FALSE, cluster.cols = FALSE){
+                                              color.use = NULL, color.heatmap = "BuGn", title = NULL,
+                                              width = 10, height = 8, ylim.top = NULL, ylim.right = NULL, font.size = 8, font.size.title = 10, cluster.rows = FALSE, cluster.cols = FALSE){
   pattern <- match.arg(pattern)
   if (length(slot(object, slot.name)$centr) == 0) {
     stop("Please run `netAnalysis_computeCentrality` to compute the network centrality scores! ")
@@ -2875,8 +2877,7 @@ netAnalysis_signalingRole_heatmap <- function(object, signaling = NULL, pattern 
   col_annotation <- HeatmapAnnotation(df = df, col = list(group = color.use),which = "column",
                                       show_legend = FALSE, show_annotation_name = FALSE,
                                       simple_anno_size = grid::unit(0.2, "cm"))
-  ha2 = HeatmapAnnotation(Strength = anno_barplot(colSums(mat.ori), border = FALSE,gp = gpar(fill = color.use, col=color.use)), show_annotation_name = FALSE)
-
+  ha2 = HeatmapAnnotation(Strength = anno_barplot(colSums(mat.ori), border = FALSE,gp = gpar(fill = color.use, col=color.use),add_numbers=FALSE,ylim = ylim.top), show_annotation_name = FALSE)
   pSum <- rowSums(mat.ori)
   pSum.original <- pSum
   pSum <- -1/log(pSum)
@@ -2888,7 +2889,7 @@ netAnalysis_signalingRole_heatmap <- function(object, signaling = NULL, pattern 
     pSum[idx1] <- values.assign[match(1:length(idx1), position)]
   }
 
-  ha1 = rowAnnotation(Strength = anno_barplot(pSum, border = FALSE), show_annotation_name = FALSE)
+  ha1 = rowAnnotation(Strength = anno_barplot(pSum, border = FALSE, add_numbers=FALSE,ylim = ylim.right), show_annotation_name = FALSE)
 
   if (min(mat, na.rm = T) == max(mat, na.rm = T)) {
     legend.break <- max(mat, na.rm = T)
