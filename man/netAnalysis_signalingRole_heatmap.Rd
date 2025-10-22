@@ -14,6 +14,8 @@ netAnalysis_signalingRole_heatmap(
   title = NULL,
   width = 10,
   height = 8,
+  ylim.top = NULL,
+  ylim.right = NULL,
   font.size = 8,
   font.size.title = 10,
   cluster.rows = FALSE,
@@ -38,6 +40,10 @@ netAnalysis_signalingRole_heatmap(
 \item{width}{width of heatmap}
 
 \item{height}{height of heatmap}
+
+\item{ylim.top}{set the range of the top barplot (e.g., ylim.top = c(0, 4))}
+
+\item{ylim.right}{set the range of the right barplot (e.g., ylim.right = c(0, 5))}
 
 \item{font.size}{fontsize in heatmap}
 

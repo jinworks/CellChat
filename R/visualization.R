@@ -1812,6 +1812,8 @@ netVisual_diffInteraction <- function(object, comparison = c(1,2), measure = c("
 #' @param title.name the name of the title
 #' @param width width of heatmap
 #' @param height height of heatmap
+#' @param ylim.top set the range of the top barplot (e.g., ylim.top = c(0, 4))
+#' @param ylim.right set the range of the right barplot (e.g., ylim.right = c(0, 5))
 #' @param font.size fontsize in heatmap
 #' @param font.size.title font size of the title
 #' @param cluster.rows whether cluster rows
@@ -1827,7 +1829,8 @@ netVisual_diffInteraction <- function(object, comparison = c(1,2), measure = c("
 #' @return  an object of ComplexHeatmap
 #' @export
 netVisual_heatmap <- function(object, comparison = c(1,2), measure = c("count", "weight"), signaling = NULL, slot.name = c("netP", "net"), color.use = NULL, color.heatmap = NULL,
-                              title.name = NULL, width = NULL, height = NULL, font.size = 8, font.size.title = 10, cluster.rows = FALSE, cluster.cols = FALSE,
+                              title.name = NULL, width = NULL, height = NULL, ylim.top = NULL, ylim.right = NULL,
+                              font.size = 8, font.size.title = 10, cluster.rows = FALSE, cluster.cols = FALSE,
                               sources.use = NULL, targets.use = NULL, remove.isolate = FALSE, row.show = NULL, col.show = NULL){
   if (!is.null(measure)) {
     measure <- match.arg(measure)
@@ -1968,8 +1971,8 @@ netVisual_heatmap <- function(object, comparison = c(1,2), measure = c("count", 
                                       show_legend = FALSE, show_annotation_name = FALSE,
                                       simple_anno_size = grid::unit(0.2, "cm"))
 
-  ha1 = rowAnnotation(Strength = anno_barplot(rowSums(abs(mat)), border = FALSE,gp = gpar(fill = color.use.row, col=color.use.row)), show_annotation_name = FALSE)
-  ha2 = HeatmapAnnotation(Strength = anno_barplot(colSums(abs(mat)), border = FALSE,gp = gpar(fill = color.use.col, col=color.use.col)), show_annotation_name = FALSE)
+  ha1 = rowAnnotation(Strength = anno_barplot(rowSums(abs(mat)), border = FALSE,gp = gpar(fill = color.use.row, col=color.use.row), add_numbers=FALSE,ylim = ylim.right), show_annotation_name = FALSE)
+  ha2 = HeatmapAnnotation(Strength = anno_barplot(colSums(abs(mat)), border = FALSE,gp = gpar(fill = color.use.col, col=color.use.col), add_numbers=FALSE,ylim = ylim.top), show_annotation_name = FALSE)
 
   if (sum(abs(mat) > 0) == 1) {
     color.heatmap.use = c("white", color.heatmap.use)
@@ -2517,10 +2520,6 @@ netVisual_bubble <- function(object, sources.use = NULL, targets.use = NULL, sig
   }
 
 }
-
-
-
-
 
 
 #' Chord diagram for visualizing cell-cell communication for a signaling pathway
