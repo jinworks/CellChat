@@ -258,7 +258,7 @@ computeCommunProb <- function(object, type = c("triMean", "truncatedMean","thres
       Pnull <- as.vector(Pnull)
 
       #Pboot <- foreach(nE = 1:nboot) %dopar% {
-      Pboot <- sapply(
+      Pboot <- my.sapply(
         X = 1:nboot,
         FUN = function(nE) {
           data.use.avgB <- data.use.avg.boot[[nE]]
