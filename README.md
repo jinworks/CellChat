@@ -2,13 +2,12 @@
   <img width="200"  src="https://github.com/jinworks/CellChat/blob/main/CellChat_Logo.png">
 </p>
 
-# CellChat v2
-## Version 2.1.0
-- CellChat v2 now enables the [inferrence of cell-cell communication from multiple spatially resolved transcriptomics datasets](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/CellChat_analysis_of_multiple_spatial_transcriptomics_datasets.html). Users should update the previously calculated individual CellChat object for spatial transcriptomics data analysis via `updateCellChat` function.
-- We add [Frequently Asked Questions (FAQ) when analyzing spatially resolved transcriptomics datasets](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/FAQ_on_applying_CellChat_to_spatial_transcriptomics_data.html), particularly on how to apply CellChat to different technologies of spatial transcriptomics data, including sequencing-based and in-situ imaging-based readouts. In addition, we redefine the `scale.factors` for easier interpretation when applying other spatial technologies. In version 2.1.1, we change `scale.factors` to `spatial.factors`, but users still can run the old CellChat object with `scale.factors`. Users can also update the old CellChat object.
-- In version 2.1.2, we change `object@meta$slices` to `object@meta$samples` in order to allow the identification of consistent communication across samples using the updated function `filterCommunication`. Users need to update the old CellChat object using `updateCellChat`. The ECM-Receptor signaling is assumed as diffusible signaling by default when analyzing spatial transcriptomics. 
+## Update
+CellChat v3 (Spatial CellChat) is an updated version that 
+- enables the [inference of cell-cell communication at single-cell resolution from spatial transcriptomics data](https://htmlpreview.github.io/?https://github.com/jinworks/SpatialCellChat/blob/master/tutorial/SpatialCellChat_analysis_of_spatial_transcriptomics_data.html). 
+- is applicable to diverse technologies of spatial transcriptomics data. We add [Frequently Asked Questions (FAQ) when analyzing spatially resolved transcriptomics datasets](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/FAQ_on_applying_CellChat_to_spatial_transcriptomics_data.html), particularly on how to apply Spatial CellChat to different technologies of spatial transcriptomics data, including sequencing-based and in-situ imaging-based readouts. 
 
-CellChat v2 is an updated version that includes
+CellChat v2 is a version that includes
 - inference of spatially proximal cell-cell communication between interacting cell groups from spatially resolved transcriptomics
 - expanded database CellChatDB v2 by including more than 1000 protein and non-protein interactions (e.g. metabolic and synaptic signaling) with rich annotations. A function named `updateCellChatDB` is also provided for easily updating CellChatDB. 
 - new functionalities enabling easily interface with other computational tools for single-cell data analysis and cell-cell communication analysis
@@ -16,7 +15,7 @@ CellChat v2 is an updated version that includes
 
 For the version history and detailed important changes, please see the [NEWS file](https://github.com/jinworks/CellChat/blob/master/NEWS.md).
 
-A step-by-step protocol for cell-cell communication analysis using CellChat is now available at [Jin et al., Nature Protocols 2024](https://www.nature.com/articles/s41596-024-01045-4). Please kindly cite this paper when using CellChat version >= 1.5. We greatly appreciate the users' support and suggestions that make it possible for us to update CellChat since we published the first version in the year of 2021. 
+A step-by-step protocol for cell-cell communication analysis using CellChat is available at [Jin et al., Nature Protocols 2024](https://www.nature.com/articles/s41596-024-01045-4). Please kindly cite this paper when using CellChat version >= 1.5. We greatly appreciate the users' support and suggestions that make it possible for us to update CellChat since we published the first version in the year of 2021. 
 
 ## Capabilities
 In addition to infer the intercellular communication from any given scRNA-seq data and spatially resolved transcriptomics data, CellChat provides functionality for further data exploration, analysis, and visualization. 
@@ -28,14 +27,26 @@ In addition to infer the intercellular communication from any given scRNA-seq da
 
 ## Installation
 
-CellChat R package can be easily installed from Github using devtools:  
+To ensure efficient and scalable inference of cell-cell communication at single-cell resolution from spatial transcriptomics data, Spatial CellChat optimizes the data structure within CellChat object. To enable users still can run their previously calculated CellChat v1/v2 object and smoothly upgrade to CellChat v3, we currently deposite the source codes and tutorials of Spatial CellChat at another [GitHub repository](https://github.com/jinworks/SpatialCellChat).
+
+CellChat v3 ([Spatial CellChat](https://github.com/jinworks/SpatialCellChat)) R package can be easily installed from Github using devtools:  
+
+```
+devtools::install_github("jinworks/SpatialCellChat")
+```
+Installation of other dependencies
+- Install [BiocNeighbors](https://bioconductor.org/packages//release/bioc/html/BiocNeighbors.html) using `BiocManager::install("BiocNeighbors")` if you encounter any issue.
+- Install [MERINGUE](https://github.com/JEFworks-Lab/MERINGUE) using `devtools::install_github("JEFworks-Lab/MERINGUE")` if you encounter any issue.
+- Install [ALRA](https://github.com/KlugerLab/ALRA) using `devtools::install_github("KlugerLab/ALRA")` if you encounter any issue.
+- Install [RcppML](https://github.com/zdebruine/RcppML) using `devtools::install_github("zdebruine/RcppML")` if you encounter any issue.
+
+
+CellChat v1/v2 R package can be easily installed from Github using devtools:  
 
 ```
 devtools::install_github("jinworks/CellChat")
 ```
-**Please make sure you have installed the correct version of `NMF` and `circlize` package**. See instruction below. 
-
-### Installation of other dependencies
+Installation of other dependencies
 - Install [NMF (>= 0.23.0)](http://renozao.github.io/NMF/devel/PAGE-INSTALLATION.html) using `install.packages('NMF')`. Please check [here](https://github.com/sqjin/CellChat/issues/16) for other solutions if you encounter any issue. You might can set `Sys.setenv(R_REMOTES_NO_ERRORS_FROM_WARNINGS=TRUE)` if it throws R version error. 
 - Install [circlize (>= 0.4.12)](https://github.com/jokergoo/circlize) using `devtools::install_github("jokergoo/circlize")` if you encounter any issue.
 - Install [ComplexHeatmap](https://github.com/jokergoo/ComplexHeatmap) using `devtools::install_github("jokergoo/ComplexHeatmap")` if you encounter any issue.
@@ -62,6 +73,7 @@ Please check the [Jin et al., Nature Protocols 2024](https://www.nature.com/arti
 - [Brief tutorial for CellChat analysis of a single spatially resolved transcriptomic dataset](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/CellChat_analysis_of_spatial_transcriptomics_data.html)
 - [Brief tutorial for CellChat analysis of multiple spatially resolved transcriptomic datasets](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/CellChat_analysis_of_multiple_spatial_transcriptomics_datasets.html)
 - [Brief tutorial for CellChat analysis of spatial multiomics data](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/CellChat_analysis_of_spatial_multiomics_data.html)
+- [Full tutorial for Spatial CellChat analysis of spatial transcriptomics data](https://htmlpreview.github.io/?https://github.com/jinworks/SpatialCellChat/blob/master/tutorial/SpatialCellChat_analysis_of_spatial_transcriptomics_data.html)
 - [Frequently Asked Questions when analyzing spatially resolved transcriptomics datasets](https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/FAQ_on_applying_CellChat_to_spatial_transcriptomics_data.html)
 
 ### Additional utilities
