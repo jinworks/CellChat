@@ -358,17 +358,17 @@ display: none;
 <h1 class="title toc-ignore">FAQ on applying CellChat to spatially
 resolved transcriptomics data</h1>
 <h4 class="author">Suoqin Jin</h4>
-<h4 class="date">22 February, 2024</h4>
 
 </div>
 
 <div id="TOC">
 <ul>
 <li><a href="#x-visium" id="toc-x-visium">10X Visium</a></li>
+<li><a href="#xeniumvisium-hdseqfishmerfishstarmap" id="toc-xeniumvisium-hdseqfishmerfishstarmap">Xenium/visium
+HD/seqFISH/merFISH/STARmap</a></li>
 <li><a href="#slide-seq" id="toc-slide-seq">Slide-seq</a></li>
 <li><a href="#cosmx" id="toc-cosmx">CosMx</a></li>
 <li><a href="#stereo-seq" id="toc-stereo-seq">Stereo-seq</a></li>
-<li><a href="#seqfishmerfishstarmap" id="toc-seqfishmerfishstarmap">seqFISH/merFISH/STARmap</a></li>
 <li><a href="#application-to-a-dataset-with-a-small-panel-of-genes" id="toc-application-to-a-dataset-with-a-small-panel-of-genes">Application
 to a dataset with a small panel of genes</a></li>
 <li><a href="#application-to-multiple-spatial-transcriptomics-datasets" id="toc-application-to-multiple-spatial-transcriptomics-datasets">Application
@@ -485,6 +485,20 @@ min(d.spatial[d.spatial!=0]) # this value should approximately equal 100um for 1
 coordinates and spatial.factors as inputs:</p>
 <pre class="r"><code>cellchat &lt;- createCellChat(object = data.input, meta = meta, group.by = &quot;labels&quot;,
                            datatype = &quot;spatial&quot;, coordinates = spatial.locs, spatial.factors = spatial.factors)</code></pre>
+<p>Alternatively, users can create a new Spatial CellChat object when
+runnng CellChat v3:</p>
+<pre class="r"><code>cellchat &lt;- createSpatialCellChat(object = data.input, meta = meta, group.by = &quot;labels&quot;,
+                           datatype = &quot;spatial&quot;, coordinates = spatial.locs, spatial.factors = spatial.factors)</code></pre>
+</div>
+<div id="xeniumvisium-hdseqfishmerfishstarmap" class="section level1">
+<h1>Xenium/visium HD/seqFISH/merFISH/STARmap</h1>
+<p>For single-cell/subcellular resolution spatial technologies like
+Xenium/visium HD/seqFISH/merFISH/STARmap data, the spatial coordinates
+are already in micrometers and thus the conversion factor is 1. The
+spot.size can be the typical human cell size (i.e., 10um).</p>
+<pre class="r"><code>conversion.factor = 1
+spot.size = 10 # use the typical human cell size
+spatial.factors = data.frame(ratio = conversion.factor, tol = spot.size/2)</code></pre>
 </div>
 <div id="slide-seq" class="section level1">
 <h1>Slide-seq</h1>
@@ -498,9 +512,13 @@ spatial.factors = data.frame(ratio = conversion.factor, tol = spot.size/2)</code
 </div>
 <div id="cosmx" class="section level1">
 <h1>CosMx</h1>
-<p>For CosMx data, the spatial coordinates are in pixels and the
+<p>On the NanoString blogpost Comparing AtoMx™ SIP flat files with the
+legacy format [<a href="https://nanostring-biostats.github.io/CosMx-Analysis-Scratch-Space/posts/flat-file-exports/flat-files-compare.html" class="uri">https://nanostring-biostats.github.io/CosMx-Analysis-Scratch-Space/posts/flat-file-exports/flat-files-compare.html</a>]
+they state: “The pixel edge length is 120 nm. Thus, to convert to
+microns multiply the pixel value by 0.12028 µm per pixel.”</p>
+<p>Thus, for CosMx data, the spatial coordinates are in pixels and the
 conversion factor of converting spatial coordinates from Pixels to
-Micrometers is 0.18. Because CosMx does not include the uniform cell
+Micrometers is 0.12028. Because CosMx does not include the uniform cell
 size like 10X Visium and Slide-seq, users can compute the minimum cell
 centroid-to-centroid distance via <code>computeCellDistance</code> and
 use its half value as the tolerance factor. Of note, CellChat does not
@@ -509,7 +527,7 @@ considering the cell-pair as spatially proximal if their distance is
 greater than <code>interaction.range</code> but smaller than
 “<code>interaction.range</code> + <code>tol</code>”.</p>
 <p>Thus, we set the <code>spatial.factors</code> as follows:</p>
-<pre class="r"><code>conversion.factor = 0.18
+<pre class="r"><code>conversion.factor = 0.12028
 d = computeCellDistance(spatial.locs)
 spot.size = min(d)*conversion.factor # converting the distance in Pixels to Micrometers
 spatial.factors = data.frame(ratio = conversion.factor, tol = spot.size/2)</code></pre>
@@ -517,16 +535,6 @@ spatial.factors = data.frame(ratio = conversion.factor, tol = spot.size/2)</code
 <div id="stereo-seq" class="section level1">
 <h1>Stereo-seq</h1>
 <p>For Stereo-seq data, please check the the post <a href="https://github.com/jinworks/CellChat/issues/6" class="uri">https://github.com/jinworks/CellChat/issues/6</a></p>
-</div>
-<div id="seqfishmerfishstarmap" class="section level1">
-<h1>seqFISH/merFISH/STARmap</h1>
-<p>For single-cell resolution spatial technologies like
-seqFISH/merFISH/STARmap data, the spatial coordinates are already in
-micrometers and thus the conversion factor is 1. The spot.size can be
-the typical human cell size (i.e., 10um).</p>
-<pre class="r"><code>conversion.factor = 1
-spot.size = 10 # use the typical human cell size
-spatial.factors = data.frame(ratio = conversion.factor, tol = spot.size/2)</code></pre>
 </div>
 <div id="application-to-a-dataset-with-a-small-panel-of-genes" class="section level1">
 <h1>Application to a dataset with a small panel of genes</h1>
@@ -547,9 +555,6 @@ users still need to create a CellChat object seperately for each
 condition. Please check the key steps of <a href="https://htmlpreview.github.io/?https://github.com/jinworks/CellChat/blob/master/tutorial/Comparison_analysis_of_multiple_datasets.html">applying
 CellChat to multiple non-spatial transcriptomics datasets</a> for
 detailed descriptions.</p>
-<p>The CellChat version used in this vignette:</p>
-<pre class="r"><code>packageVersion(&quot;CellChat&quot;)</code></pre>
-<pre><code>## [1] &#39;2.1.2&#39;</code></pre>
 </div>
 
 
