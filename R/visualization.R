@@ -2223,7 +2223,9 @@ netVisual_bubble <- function(object, sources.use = NULL, targets.use = NULL, sig
                                   pairLR.use = pairLR.use,
                                   thresh = thresh)
     df.net$source.target <- paste(df.net$source, df.net$target, sep = " -> ")
-    source.target <- paste(rep(sources.use, each = length(targets.use)), targets.use, sep = " -> ")
+    if (!(is.null(sources.use) || is.null(targets.use))){
+      source.target <- paste(rep(sources.use, each = length(targets.use)), targets.use, sep = " -> ")
+    }
     source.target.isolate <- setdiff(source.target, unique(df.net$source.target))
     if (length(source.target.isolate) > 0) {
       df.net.isolate <- as.data.frame(matrix(NA, nrow = length(source.target.isolate), ncol = ncol(df.net)))
