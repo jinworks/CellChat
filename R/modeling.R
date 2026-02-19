@@ -1282,7 +1282,7 @@ computeCellDistance <- function(coordinates, interaction.range = NULL, ratio = N
     stop("Please check the input 'coordinates' and make sure it is a two column matrix.")
   }
 
-  d.spatial <- stats::dist(coordinates)
+  d.spatial <- collapse::fdist(coordinates)
   if (!is.null(ratio)) {
     d.spatial <- d.spatial*ratio
   }
