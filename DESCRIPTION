@@ -41,7 +41,8 @@ Imports:
     ggpubr,
     ggnetwork, 
     BiocNeighbors,
-    plotly,shiny,bslib
+    plotly,shiny,bslib,
+    collapse
 LinkingTo: Rcpp, RcppEigen
 Suggests:
     rmarkdown, knitr, roxygen2, Seurat (>= 4.0.0), SingleCellExperiment, SummarizedExperiment, purrr,uwot,gg.gap,wordcloud,bsicons,presto,tidyverse,tidyr,rlang
