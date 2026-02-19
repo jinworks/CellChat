@@ -2859,7 +2859,7 @@ netVisual_chord_gene <- function(object, slot.name = "net", color.use = NULL,
                                  thresh = 0.05,
                                  ...){
   if (!is.null(pairLR.use)) {
-    if (!is.data.frame(pairLR.use) | sum(c("interaction_name","pathway_name") %in% colnames(pairLR.use) == 0)) {
+    if (!is.data.frame(pairLR.use) | sum(c("interaction_name","pathway_name") %in% colnames(pairLR.use)) == 0) {
       stop("pairLR.use should be a data frame with a signle column named either 'interaction_name' or 'pathway_name' ")
     } else if ("pathway_name" %in% colnames(pairLR.use)) {
       message("slot.name is set to be 'netP' when pairLR.use contains signaling pathways")
