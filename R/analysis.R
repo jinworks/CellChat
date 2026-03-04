@@ -1298,18 +1298,6 @@ rankNet <- function(object, slot.name = "netP", measure = c("weight","count"), m
       }
     }
 
-
-    if (length(comparison) == 2) {
-      if (do.stat) {
-        colors.text <- ifelse((df$contribution.relative < 1-tol) & (df$pvalues < cutoff.pvalue), color.use[2], ifelse((df$contribution.relative > 1+tol) & df$pvalues < cutoff.pvalue, color.use[1], "black"))
-      } else {
-        colors.text <- ifelse(df$contribution.relative < 1-tol, color.use[2], ifelse(df$contribution.relative > 1+tol, color.use[1], "black"))
-      }
-    } else {
-      message("The text on the y-axis will not be colored for the number of compared datasets larger than 3!")
-      colors.text = NULL
-    }
-
     for (i in 1:length(pair.name.all)) {
       df.t <- df[df$name == pair.name.all[i], "contribution"]
       if (sum(df.t) == 0) {
@@ -1328,6 +1316,17 @@ rankNet <- function(object, slot.name = "netP", measure = c("weight","count"), m
       stop("You need to set `slot.name == 'netP'` if showing specific signaling pathways ")
     }
 
+    if (length(comparison) == 2) {
+      if (do.stat) {
+        colors.text <- ifelse((df$contribution.relative < 1-tol) & (df$pvalues < cutoff.pvalue), color.use[2], ifelse((df$contribution.relative > 1+tol) & (df$pvalues < cutoff.pvalue), color.use[1], "black"))
+      } else {
+        colors.text <- ifelse(df$contribution.relative < 1-tol, color.use[2], ifelse(df$contribution.relative > 1+tol, color.use[1], "black"))
+      }
+    } else {
+      message("The text on the y-axis will not be colored for the number of compared datasets larger than 2!")
+      colors.text = NULL
+    }
+    
     if (stacked) {
       gg <- ggplot(df, aes(x=name, y=contribution, fill = group)) + geom_bar(stat="identity",width = bar.w, position ="fill") # +
       # xlab("") + ylab("Relative information flow") #+ theme(axis.text.x = element_blank(),axis.ticks.x = element_blank())
