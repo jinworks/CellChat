@@ -1333,7 +1333,7 @@ netVisual_circle <-function(net, color.use = NULL,title.name = NULL, sources.use
   }
   vertex.weight <- vertex.weight/vertex.weight.max*vertex.size.max+5
 
-  loop.angle<-ifelse(coords_scale[igraph::V(g),1]>0,-atan(coords_scale[igraph::V(g),2]/coords_scale[igraph::V(g),1]),pi-atan(coords_scale[igraph::V(g),2]/coords_scale[igraph::V(g),1]))
+  loop.angle<-ifelse(coords_scale[igraph::V(g),1]>0,-atan(coords_scale[igraph::V(g),2]/coords_scale[igraph::V(g),1]),pi-atan(coords_scale[igraph::V(g),2]/coords_scale[igraph::V(g),1])) * -1
   igraph::V(g)$size<-vertex.weight
   igraph::V(g)$color<-color.use[igraph::V(g)]
   igraph::V(g)$frame.color <- color.use[igraph::V(g)]
@@ -1736,7 +1736,7 @@ netVisual_diffInteraction <- function(object, comparison = c(1,2), measure = c("
   }
   vertex.weight <- vertex.weight/vertex.weight.max*vertex.size.max+5
 
-  loop.angle<-ifelse(coords_scale[igraph::V(g),1]>0,-atan(coords_scale[igraph::V(g),2]/coords_scale[igraph::V(g),1]),pi-atan(coords_scale[igraph::V(g),2]/coords_scale[igraph::V(g),1]))
+  loop.angle<-ifelse(coords_scale[igraph::V(g),1]>0,-atan(coords_scale[igraph::V(g),2]/coords_scale[igraph::V(g),1]),pi-atan(coords_scale[igraph::V(g),2]/coords_scale[igraph::V(g),1])) * -1
   igraph::V(g)$size<-vertex.weight
   igraph::V(g)$color<-color.use[igraph::V(g)]
   igraph::V(g)$frame.color <- color.use[igraph::V(g)]
