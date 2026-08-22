@@ -865,7 +865,7 @@ subsetCellChat <- function(object, cells.use = NULL, idents.use = NULL, group.by
       #   netP[[netP.j]] <- values.new
       # }
       netP = computeCommunProbPathway(net = net.subset[[i]], pairLR.use = object@LR[[i]]$LRsig, thresh = thresh)
-      netP$centr = netAnalysis_computeCentrality(net =  net.subset[[i]]$prob)
+      netP$centr = netAnalysis_computeCentrality(net =  netP$prob)
       netP.subset[[i]] <- netP
       idents.subset[[i]] <- idents[[i]][names(idents[[i]]) %in% cells.use]
       idents.subset[[i]] <- factor(idents.subset[[i]], levels = levels(idents[[i]])[levels(idents[[i]]) %in% level.use])
@@ -937,7 +937,7 @@ subsetCellChat <- function(object, cells.use = NULL, idents.use = NULL, group.by
     #   netP[[netP.j]] <- values.new
     # }
     netP = computeCommunProbPathway(net = net.subset, pairLR.use = object@LR$LRsig, thresh = thresh)
-    netP$centr = netAnalysis_computeCentrality(net = net.subset$prob)
+    netP$centr = netAnalysis_computeCentrality(net = netP$prob)
     netP.subset <- netP
     idents.subset <- object@idents[cells.use.index]
     idents.subset <- factor(idents.subset, levels = level.use)
