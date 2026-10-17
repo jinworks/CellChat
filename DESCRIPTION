@@ -45,6 +45,6 @@ Imports:
     collapse
 LinkingTo: Rcpp, RcppEigen
 Suggests:
-    rmarkdown, knitr, roxygen2, Seurat (>= 4.0.0), SingleCellExperiment, SummarizedExperiment, purrr,uwot,gg.gap,wordcloud,bsicons,presto,tidyverse,tidyr,rlang
+    rmarkdown, knitr, roxygen2, Seurat (>= 4.0.0), SingleCellExperiment, SummarizedExperiment, purrr,uwot,gg.gap,wordcloud,bsicons,presto,tidyverse,tidyr,rlang,limma
 RoxygenNote: 7.3.1
 VignetteBuilder: knitr

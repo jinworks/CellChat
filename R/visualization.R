@@ -6,6 +6,9 @@
 #' @examples
 #' @importFrom ggplot2 theme_classic element_rect theme element_blank element_line element_text
 CellChat_theme_opts <- function() {
+  if (usePublicationStyle()) {
+    return(theme_cellchat())
+  }
   theme(strip.background = element_rect(colour = "white", fill = "white")) +
     theme_classic() +
     theme(panel.border = element_blank()) +
@@ -17,6 +20,138 @@ CellChat_theme_opts <- function() {
     theme(legend.key = element_blank()) + theme(plot.title = element_text(size = 10, face = "bold", hjust = 0.5))
 }
 
+
+#' Publication-ready ggplot theme used in CellChat
+#'
+#' A sober theme for figures in scientific articles: black text, thin axis lines and ticks, no background grid, compact legends.
+#' It is used by default by the comparison plots of CellChat (e.g., `rankNet`, `compareInteractions`, `netVisual_bubble`, the signaling role scatter plots).
+#' Set `options(CellChat.publication = FALSE)` to go back to the original CellChat style.
+#'
+#' @param base_size base font size in pt; 7-8 pt is the usual size of the text in a printed figure
+#' @param base_family base font family
+#' @param border whether to draw a panel border instead of the x and y axis lines
+#' @return a ggplot2 theme
+#' @importFrom ggplot2 theme_classic theme element_text element_line element_rect element_blank margin %+replace%
+#' @importFrom grid unit
+#' @export
+#' @examples
+#' \dontrun{
+#' gg <- rankNet(cellchat, comparison = c(1,2,3)) + theme_cellchat(base_size = 7)
+#' ggplot2::ggsave("rankNet.pdf", gg, width = 85, height = 90, units = "mm")
+#' }
+theme_cellchat <- function(base_size = 8, base_family = "", border = FALSE) {
+  line.width <- 0.3
+  el_line <- function(...) {
+    if (utils::packageVersion("ggplot2") >= "3.4.0") element_line(linewidth = line.width, ...) else element_line(size = line.width, ...)
+  }
+  el_rect <- function(...) {
+    if (utils::packageVersion("ggplot2") >= "3.4.0") element_rect(linewidth = line.width * 1.5, ...) else element_rect(size = line.width * 1.5, ...)
+  }
+  th <- theme_classic(base_size = base_size, base_family = base_family) %+replace%
+    theme(text = element_text(colour = "black", size = base_size, family = base_family),
+          axis.text = element_text(colour = "black", size = base_size),
+          axis.title = element_text(colour = "black", size = base_size + 1),
+          axis.line = el_line(colour = "black"),
+          axis.ticks = el_line(colour = "black"),
+          axis.ticks.length = grid::unit(2, "pt"),
+          panel.background = element_blank(),
+          plot.background = element_blank(),
+          panel.grid = element_blank(),
+          strip.background = element_blank(),
+          strip.text = element_text(colour = "black", size = base_size + 1, face = "bold", margin = margin(b = 3)),
+          legend.background = element_blank(),
+          legend.key = element_blank(),
+          legend.key.size = grid::unit(3, "mm"),
+          legend.title = element_text(colour = "black", size = base_size, hjust = 0),
+          legend.text = element_text(colour = "black", size = base_size - 1),
+          plot.title = element_text(colour = "black", size = base_size + 2, face = "bold", hjust = 0.5, margin = margin(b = 6)),
+          plot.margin = margin(5, 5, 5, 5))
+  if (border) {
+    th <- th + theme(axis.line = element_blank(), panel.border = el_rect(colour = "black", fill = NA))
+  }
+  th
+}
+
+#' Whether the publication style of the figures is used
+#'
+#' The publication style (`theme_cellchat` and the colorblind-friendly `datasetPalette`) is used by default.
+#' Set `options(CellChat.publication = FALSE)` to use the original CellChat style.
+#' @return a logical value
+#' @keywords internal
+usePublicationStyle <- function() {
+  isTRUE(getOption("CellChat.publication", TRUE))
+}
+
+#' Apply the publication theme or the original theme of a plot
+#' @param default.theme the original theme
+#' @param base_size,border see `theme_cellchat`
+#' @keywords internal
+themeCellChatOr <- function(default.theme, base_size = 8, border = FALSE) {
+  if (usePublicationStyle()) theme_cellchat(base_size = base_size, border = border) else default.theme
+}
+
+#' Colorblind-friendly colors for datasets/conditions
+#'
+#' Colors from the Okabe-Ito palette, distinguishable by people with color vision deficiencies and readable in grayscale prints.
+#' They are used by default for the datasets in the comparison plots; `ggPalette` is used instead when `options(CellChat.publication = FALSE)`.
+#'
+#' @param n number of colors
+#' @return a vector of colors
+#' @importFrom grDevices colorRampPalette
+#' @export
+datasetPalette <- function(n) {
+  if (!usePublicationStyle()) {
+    return(ggPalette(n))
+  }
+  colorSpace <- c("#0072B2", "#D55E00", "#009E73", "#CC79A7", "#E69F00", "#56B4E9", "#F0E442", "#999999")
+  if (n <= length(colorSpace)) {
+    colorSpace[seq_len(n)]
+  } else {
+    grDevices::colorRampPalette(colorSpace)(n)
+  }
+}
+
+#' Unique names for the heatmaps returned by CellChat
+#'
+#' ComplexHeatmap merges the legends and annotations that share the same name when heatmaps are concatenated with `+`,
+#' so each heatmap gets a unique name.
+#' @param prefix a prefix
+#' @keywords internal
+uniqueHeatmapName <- function(prefix = "heatmap") {
+  n <- getOption("CellChat.heatmap.counter", 0) + 1
+  options(CellChat.heatmap.counter = n)
+  # only letters, digits and underscores: ComplexHeatmap builds viewport names from the heatmap names
+  prefix <- gsub("^_+|_+$", "", gsub("[^A-Za-z0-9]+", "_", prefix))
+  paste0(ifelse(nchar(prefix) > 0, prefix, "heatmap"), "_", n)
+}
+
+#' Convert a ComplexHeatmap object into a patchwork element
+#'
+#' The returned object can be combined with other heatmaps or ggplot2 plots using `+` or `|` from patchwork
+#' (each heatmap keeps its own clustering and legend), and saved with `ggplot2::ggsave`.
+#' @param ht a Heatmap or HeatmapList object
+#' @param ... other parameters passed to `ComplexHeatmap::draw`
+#' @return a patchwork-compatible ggplot object
+#' @export
+#' @examples
+#' \dontrun{
+#' gg1 <- heatmapToGgplot(netVisual_heatmap(cellchat))
+#' gg2 <- heatmapToGgplot(netVisual_heatmap(cellchat, measure = "weight"))
+#' gg1 + gg2
+#' }
+heatmapToGgplot <- function(ht, ...) {
+  # Under Jupyter (IRkernel loaded), ComplexHeatmap::draw() wraps the drawing in its own grid.grabExpr();
+  # nested in the grid.grabExpr() below, the viewports are lost ("Viewport 'GRID.VP.xx' was not found").
+  # ComplexHeatmap skips its Jupyter mode when its internal flag IS_UNDER_JUPYTER_IGNORE is TRUE.
+  ch.env <- tryCatch(get(".ENV", envir = asNamespace("ComplexHeatmap")), error = function(e) NULL)
+  if (is.environment(ch.env) && !is.null(ch.env$IS_UNDER_JUPYTER_IGNORE)) {
+    old.flag <- ch.env$IS_UNDER_JUPYTER_IGNORE
+    ch.env$IS_UNDER_JUPYTER_IGNORE <- TRUE
+    on.exit(ch.env$IS_UNDER_JUPYTER_IGNORE <- old.flag, add = TRUE)
+  }
+  grob <- grid::grid.grabExpr(ComplexHeatmap::draw(ht, ...), wrap.grobs = TRUE)
+  patchwork::wrap_elements(full = grob)
+}
 
 #' Generate ggplot2 colors
 #'
@@ -1673,6 +1808,7 @@ netVisual_diffInteraction <- function(object, comparison = c(1,2), measure = c("
                                       arrow.width=1,arrow.size = 0.2){
   options(warn = -1)
   measure <- match.arg(measure)
+  checkPairwiseComparison(comparison, length(object@net))
   obj1 <- object@net[[comparison[1]]][[measure]]
   obj2 <- object@net[[comparison[2]]][[measure]]
   net.diff <- obj2 - obj1
@@ -1822,6 +1958,9 @@ netVisual_diffInteraction <- function(object, comparison = c(1,2), measure = c("
 #' @param targets.use a vector giving the index or the name of target cell groups.
 #' @param remove.isolate whether remove the isolate nodes in the communication network
 #' @param row.show,col.show a vector giving the index or the name of row or columns to show in the heatmap
+#' @param as.ggplot whether to return a patchwork-compatible object (see `heatmapToGgplot`) instead of a ComplexHeatmap object.
+#' With as.ggplot = TRUE, `gg1 + gg2` shows two independent heatmaps side by side (each one with its own clustering and legend) and the result can be saved with `ggplot2::ggsave`;
+#' with the default ComplexHeatmap object, `ht1 + ht2` concatenates the heatmaps, the rows of the second one following the first one.
 #' @importFrom methods slot
 #' @importFrom grDevices colorRampPalette
 #' @importFrom RColorBrewer brewer.pal
@@ -1831,7 +1970,7 @@ netVisual_diffInteraction <- function(object, comparison = c(1,2), measure = c("
 netVisual_heatmap <- function(object, comparison = c(1,2), measure = c("count", "weight"), signaling = NULL, slot.name = c("netP", "net"), color.use = NULL, color.heatmap = NULL,
                               title.name = NULL, width = NULL, height = NULL, ylim.top = NULL, ylim.right = NULL,
                               font.size = 8, font.size.title = 10, cluster.rows = FALSE, cluster.cols = FALSE,
-                              sources.use = NULL, targets.use = NULL, remove.isolate = FALSE, row.show = NULL, col.show = NULL){
+                              sources.use = NULL, targets.use = NULL, remove.isolate = FALSE, row.show = NULL, col.show = NULL, as.ggplot = FALSE){
   if (!is.null(measure)) {
     measure <- match.arg(measure)
   }
@@ -1841,6 +1980,7 @@ netVisual_heatmap <- function(object, comparison = c(1,2), measure = c("count", 
     if (is.null(color.heatmap)) {
       color.heatmap <- c('#2166ac','#b2182b')
     }
+    checkPairwiseComparison(comparison, length(object@net))
     obj1 <- object@net[[comparison[1]]][[measure]]
     obj2 <- object@net[[comparison[2]]][[measure]]
     net.diff <- obj2 - obj1
@@ -1903,9 +2043,8 @@ netVisual_heatmap <- function(object, comparison = c(1,2), measure = c("count", 
       }
       df.net <- subset(df.net, target %in% targets.use)
     }
-    cells.level <- rownames(net.diff)
-    df.net$source <- factor(df.net$source, levels = cells.level)
-    df.net$target <- factor(df.net$target, levels = cells.level)
+    df.net$source <- factor(df.net$source, levels = sources.use)
+    df.net$target <- factor(df.net$target, levels = targets.use)
     df.net$value[is.na(df.net$value)] <- 0
     net <- tapply(df.net[["value"]], list(df.net[["source"]], df.net[["target"]]), sum)
   }
@@ -1964,33 +2103,45 @@ netVisual_heatmap <- function(object, comparison = c(1,2), measure = c("count", 
 
   df.col<- data.frame(group = colnames(mat)); rownames(df.col) <- colnames(mat)
   df.row<- data.frame(group = rownames(mat)); rownames(df.row) <- rownames(mat)
-  col_annotation <- HeatmapAnnotation(df = df.col, col = list(group = color.use.col),which = "column",
-                                      show_legend = FALSE, show_annotation_name = FALSE,
-                                      simple_anno_size = grid::unit(0.2, "cm"))
-  row_annotation <- HeatmapAnnotation(df = df.row, col = list(group = color.use.row), which = "row",
-                                      show_legend = FALSE, show_annotation_name = FALSE,
-                                      simple_anno_size = grid::unit(0.2, "cm"))
 
-  ha1 = rowAnnotation(Strength = anno_barplot(rowSums(abs(mat)), border = FALSE,gp = gpar(fill = color.use.row, col=color.use.row), add_numbers=FALSE,ylim = ylim.right), show_annotation_name = FALSE)
-  ha2 = HeatmapAnnotation(Strength = anno_barplot(colSums(abs(mat)), border = FALSE,gp = gpar(fill = color.use.col, col=color.use.col), add_numbers=FALSE,ylim = ylim.top), show_annotation_name = FALSE)
+  # unique names, so that the legends and annotations are not merged when heatmaps are concatenated with `+`
+  ht.name <- uniqueHeatmapName(title.name)
+  colnames(df.col) <- colnames(df.row) <- paste0(ht.name, "_group")
+  col.anno <- list(color.use.col); names(col.anno) <- colnames(df.col)
+  row.anno <- list(color.use.row); names(row.anno) <- colnames(df.row)
+  col_annotation <- HeatmapAnnotation(df = df.col, col = col.anno, which = "column",
+                                      show_legend = FALSE, show_annotation_name = FALSE,
+                                      simple_anno_size = grid::unit(0.2, "cm"))
+  row_annotation <- HeatmapAnnotation(df = df.row, col = row.anno, which = "row",
+                                      show_legend = FALSE, show_annotation_name = FALSE,
+                                      simple_anno_size = grid::unit(0.2, "cm"))
+  legend.size <- ifelse(usePublicationStyle(), font.size, 8)
+  axis.param <- list(gp = gpar(fontsize = ifelse(usePublicationStyle(), max(6, 0.6 * font.size), 8)))
+  bar.right <- anno_barplot(rowSums(abs(mat)), which = "row", border = FALSE,gp = gpar(fill = color.use.row, col=color.use.row), add_numbers=FALSE,ylim = ylim.right, axis_param = axis.param)
+  bar.top <- anno_barplot(colSums(abs(mat)), border = FALSE,gp = gpar(fill = color.use.col, col=color.use.col), add_numbers=FALSE,ylim = ylim.top, axis_param = axis.param)
+  ha1 = do.call(rowAnnotation, c(stats::setNames(list(bar.right), paste0(ht.name, "_strength_rows")), list(show_annotation_name = FALSE)))
+  ha2 = do.call(HeatmapAnnotation, c(stats::setNames(list(bar.top), paste0(ht.name, "_strength_columns")), list(show_annotation_name = FALSE)))
 
   if (sum(abs(mat) > 0) == 1) {
     color.heatmap.use = c("white", color.heatmap.use)
   } else {
     mat[mat == 0] <- NA
   }
-  ht1 = Heatmap(mat, col = color.heatmap.use, na_col = "white", name = legend.name,
+  ht1 = Heatmap(mat, col = color.heatmap.use, na_col = "white", name = ht.name,
                 bottom_annotation = col_annotation, left_annotation =row_annotation, top_annotation = ha2, right_annotation = ha1,
-                cluster_rows = cluster.rows,cluster_columns = cluster.rows,
+                cluster_rows = cluster.rows,cluster_columns = cluster.cols,
                 row_names_side = "left",row_names_rot = 0,row_names_gp = gpar(fontsize = font.size),column_names_gp = gpar(fontsize = font.size),
                 # width = unit(width, "cm"), height = unit(height, "cm"),
                 column_title = title.name,column_title_gp = gpar(fontsize = font.size.title),column_names_rot = 90,
                 row_title = "Sources (Sender)",row_title_gp = gpar(fontsize = font.size.title),row_title_rot = 90,
-                heatmap_legend_param = list(title_gp = gpar(fontsize = 8, fontface = "plain"),title_position = "leftcenter-rot",
+                heatmap_legend_param = list(title = legend.name, title_gp = gpar(fontsize = legend.size, fontface = "plain"),title_position = "leftcenter-rot",
                                             border = NA, #at = colorbar.break,
-                                            legend_height = unit(20, "mm"),labels_gp = gpar(fontsize = 8),grid_width = unit(2, "mm"))
+                                            legend_height = unit(max(20, 2.5 * legend.size), "mm"),labels_gp = gpar(fontsize = legend.size),grid_width = unit(2, "mm"))
   )
   #  draw(ht1)
+  if (as.ggplot) {
+    return(heatmapToGgplot(ht1))
+  }
   return(ht1)
 }
 
@@ -2020,6 +2171,7 @@ netVisual_barplot <- function(object, comparison = c(1,2), measure = c("count", 
   slot.name <- match.arg(slot.name)
   if (is.list(object@net[[1]])) {
     message("Show differential number of interactions based on a merged object \n")
+    checkPairwiseComparison(comparison, length(object@net))
     obj1 <- object@net[[comparison[1]]][[measure]]
     obj2 <- object@net[[comparison[2]]][[measure]]
     net.diff <- obj2 - obj1
@@ -2116,6 +2268,8 @@ netVisual_barplot <- function(object, comparison = c(1,2), measure = c("count", 
 #' @param remove.isolate whether to remove the entire empty columns, i.e., communication between certain cell groups
 #' @param max.dataset a scale, keeping the communications with highest probability in max.dataset (i.e., certrain condition)
 #' @param min.dataset a scale, keeping the communications with lowest probability in min.dataset (i.e., certrain condition)
+#' @param min.fc a minimum fold change of the communication probability between the datasets (highest vs. second highest one) when doing comparison analysis, e.g., min.fc = 1.5.
+#' The communications that are similar between datasets are removed, as well as the L-R pairs without any remaining communication. Default = NULL (no filtering)
 #' @param min.quantile,max.quantile minimum and maximum quantile cutoff values for the colorbar, may specify quantile in [0,1]
 #' @param line.on whether to add vertical line when doing comparison analysis for the merged object
 #' @param line.size size of vertical line if added
@@ -2162,11 +2316,15 @@ netVisual_barplot <- function(object, comparison = c(1,2), measure = c("count", 
 #' netVisual_bubble(cellchat, sources.use = 4, targets.use = c(5:8), remove.isolate = TRUE, max.dataset = 1)
 #'}
 netVisual_bubble <- function(object, sources.use = NULL, targets.use = NULL, signaling = NULL, pairLR.use = NULL, sort.by.source = FALSE, sort.by.target = FALSE, sort.by.source.priority = TRUE, color.heatmap = c("Spectral","viridis"), n.colors = 10, direction = -1, thresh = 0.05,
-                             comparison = NULL, group = NULL, remove.isolate = FALSE, max.dataset = NULL, min.dataset = NULL,
+                             comparison = NULL, group = NULL, remove.isolate = FALSE, max.dataset = NULL, min.dataset = NULL, min.fc = NULL,
                              min.quantile = 0, max.quantile = 1, line.on = TRUE, line.size = 0.2, color.text.use = TRUE, color.text = NULL, dot.size.min = NULL, dot.size.max = NULL,
                              title.name = NULL, font.size = 10, font.size.title = 10, show.legend = TRUE,
                              grid.on = TRUE, color.grid = "grey90", angle.x = 90, vjust.x = NULL, hjust.x = NULL,
                              return.data = FALSE){
+  if (missing(color.heatmap) && usePublicationStyle()) {
+    # perceptually uniform and colorblind-friendly color scale
+    color.heatmap <- "viridis"
+  }
   color.heatmap <- match.arg(color.heatmap)
   if (is.list(object@net[[1]])) {
     message("Comparing communications on a merged object \n")
@@ -2239,9 +2397,9 @@ netVisual_bubble <- function(object, sources.use = NULL, targets.use = NULL, sig
       df.net <- rbind(df.net, df.net.isolate)
     }
 
-    df.net$pval[df.net$pval > 0.05] = 1
-    df.net$pval[df.net$pval > 0.01 & df.net$pval <= 0.05] = 2
-    df.net$pval[df.net$pval <= 0.01] = 3
+    df.net$pval_categorie <- 1
+    df.net$pval_categorie[df.net$pval > 0.01 & df.net$pval <= 0.05] = 2
+    df.net$pval_categorie[df.net$pval <= 0.01] = 3
     df.net$prob[df.net$prob == 0] <- NA
     df.net$prob.original <- df.net$prob
     df.net$prob <- -1/log(df.net$prob)
@@ -2249,7 +2407,7 @@ netVisual_bubble <- function(object, sources.use = NULL, targets.use = NULL, sig
     idx1 <- which(is.infinite(df.net$prob) | df.net$prob < 0)
     if (sum(idx1) > 0) {
       values.assign <- seq(max(df.net$prob, na.rm = T)*1.1, max(df.net$prob, na.rm = T)*1.5, length.out = length(idx1))
-      position <- sort(prob.original[idx1], index.return = TRUE)$ix
+      position <- sort(df.net$prob.original[idx1], index.return = TRUE)$ix
       df.net$prob[idx1] <- values.assign[match(1:length(idx1), position)]
     }
     # rownames(df.net) <- df.net$interaction_name_2
@@ -2286,6 +2444,7 @@ netVisual_bubble <- function(object, sources.use = NULL, targets.use = NULL, sig
                                       pairLR.use = pairLR.use,
                                       thresh = thresh)
     df.all <- data.frame()
+    group.names.all <- c()
     for (ii in 1:length(comparison)) {
       #cells.level <- levels(object@idents[[comparison[ii]]])
       df.net <- df.net.all[[comparison[ii]]]
@@ -2309,25 +2468,31 @@ netVisual_bubble <- function(object, sources.use = NULL, targets.use = NULL, sig
       df.net$target <- factor(df.net$target, levels = cells.level[cells.level %in% unique(df.net$target)])
       group.names <- paste(rep(levels(df.net$source), each = length(levels(df.net$target))), levels(df.net$target), sep = " -> ")
       group.names0 <- group.names
+      group.names.all <- union(group.names.all, group.names0)
       group.names <- paste0(group.names0, " (", dataset.name[comparison[ii]], ")")
 
       if (nrow(df.net) > 0) {
-        df.net$pval[df.net$pval > 0.05] = 1
-        df.net$pval[df.net$pval > 0.01 & df.net$pval <= 0.05] = 2
-        df.net$pval[df.net$pval <= 0.01] = 3
+        df.net$pval_categorie <- 1
+        df.net$pval_categorie[df.net$pval > 0.01 & df.net$pval <= 0.05] = 2
+        df.net$pval_categorie[df.net$pval <= 0.01] = 3
         df.net$prob[df.net$prob == 0] <- NA
         df.net$prob.original <- df.net$prob
         df.net$prob <- -1/log(df.net$prob)
       } else {
-        df.net <- as.data.frame(matrix(NA, nrow = length(group.names), ncol = 5))
-        colnames(df.net) <- c("interaction_name_2","source.target","prob","pval","prob.original")
+        # keep the same columns as the other datasets so that they can be combined
+        df.net <- df.net[rep(NA_integer_, length(group.names0)), , drop = FALSE]
+        rownames(df.net) <- NULL
         df.net$source.target <- group.names0
+        df.net$prob.original <- df.net$prob
+        df.net$pval_categorie <- rep(1, nrow(df.net))
       }
       # df.net$group.names <- sub(paste0(' \\(',dataset.name[comparison[ii]],'\\)'),'',as.character(df.net$source.target))
-      df.net$group.names <- as.character(df.net$source.target)
-      df.net$source.target <- paste0(df.net$source.target, " (", dataset.name[comparison[ii]], ")")
-      df.net$dataset <- dataset.name[comparison[ii]]
-      df.all <- rbind(df.all, df.net)
+      if (nrow(df.net) > 0) {
+        df.net$group.names <- as.character(df.net$source.target)
+        df.net$source.target <- paste0(df.net$source.target, " (", dataset.name[comparison[ii]], ")")
+        df.net$dataset <- dataset.name[comparison[ii]]
+        df.all <- rbind(df.all, df.net)
+      }
     }
     if (nrow(df.all) == 0) {
       stop("No interactions are detected. Please consider changing the cell groups for analysis. ")
@@ -2346,6 +2511,8 @@ netVisual_bubble <- function(object, sources.use = NULL, targets.use = NULL, sig
     df <- with(df, df[order(interaction_name_2),])
     df$interaction_name_2 <- factor(df$interaction_name_2, levels = unique(df$interaction_name_2))
 
+    # cell pairs from all datasets, so that the order does not depend on the last compared dataset
+    group.names0 <- group.names.all
     cells.order <- c()
     dataset.name.order <- c()
     for (i in 1:length(group.names0)) {
@@ -2366,6 +2533,27 @@ netVisual_bubble <- function(object, sources.use = NULL, targets.use = NULL, sig
   if (remove.isolate) {
     df <- df[!is.na(df$prob), ]
     line.on <- FALSE
+  }
+  if (!is.null(min.fc)) {
+    if (is.null(comparison) || length(comparison) < 2) {
+      message("`min.fc` is only used when comparing datasets with `comparison`")
+    } else {
+      # fold change between the highest and the second highest communication probability of each L-R pair and cell pair
+      prob.raw <- df$prob.original
+      prob.raw[is.na(prob.raw)] <- 0
+      key <- paste(df$interaction_name_2, df$group.names, sep = "__")
+      fc <- tapply(prob.raw, key, function(x) {
+        x <- sort(c(x, rep(0, max(0, length(comparison) - length(x)))), decreasing = TRUE)
+        x[1]/x[2]
+      })
+      keep <- fc[key] >= min.fc
+      df$prob[is.na(keep) | !keep] <- NA
+      df <- df[df$interaction_name_2 %in% unique(df$interaction_name_2[!is.na(df$prob)]), , drop = FALSE]
+      if (nrow(df) == 0) {
+        stop("No communications with a fold change larger than `min.fc` between datasets. Please consider decreasing `min.fc`. ")
+      }
+      df$interaction_name_2 <- droplevels(df$interaction_name_2)
+    }
   }
   if (!is.null(max.dataset)) {
     # line.on <- FALSE
@@ -2446,9 +2634,9 @@ netVisual_bubble <- function(object, sources.use = NULL, targets.use = NULL, sig
     }
   }
 
-  g <- ggplot(df, aes(x = source.target, y = interaction_name_2, color = prob, size = pval)) +
+  g <- ggplot(df, aes(x = source.target, y = interaction_name_2, color = prob, size = pval_categorie)) +
     geom_point(pch = 16) +
-    theme_linedraw() + theme(panel.grid.major = element_blank()) +
+    themeCellChatOr(theme_linedraw() + theme(panel.grid.major = element_blank()), base_size = font.size, border = TRUE) +
     theme(axis.text.x = element_text(angle = angle.x, hjust= hjust.x, vjust = vjust.x),
           axis.title.x = element_blank(),
           axis.title.y = element_blank()) +
@@ -2456,12 +2644,12 @@ netVisual_bubble <- function(object, sources.use = NULL, targets.use = NULL, sig
 
   values <- c(1,2,3); names(values) <- c("p > 0.05", "0.01 < p < 0.05","p < 0.01")
   if (is.null(dot.size.max)) {
-    dot.size.max = max(df$pval)
+    dot.size.max = max(df$pval_categorie)
   }
   if (is.null(dot.size.min)) {
-    dot.size.min = min(df$pval)
+    dot.size.min = min(df$pval_categorie)
   }
-  g <- g + scale_radius(range = c(dot.size.min, dot.size.max), breaks = sort(unique(df$pval)),labels = names(values)[values %in% sort(unique(df$pval))], name = "p-value")
+  g <- g + scale_radius(range = c(dot.size.min, dot.size.max), breaks = sort(unique(df$pval_categorie)),labels = names(values)[values %in% sort(unique(df$pval_categorie))], name = "p-value")
   #g <- g + scale_radius(range = c(1,3), breaks = values,labels = names(values), name = "p-value")
   if (min(df$prob, na.rm = T) != max(df$prob, na.rm = T)) {
     g <- g + scale_colour_gradientn(colors = colorRampPalette(color.use)(99), na.value = "white", limits=c(quantile(df$prob, 0,na.rm= T), quantile(df$prob, 1,na.rm= T)),
@@ -2473,7 +2661,7 @@ netVisual_bubble <- function(object, sources.use = NULL, targets.use = NULL, sig
   }
 
   g <- g + theme(text = element_text(size = font.size),plot.title = element_text(size=font.size.title)) +
-    theme(legend.title = element_text(size = 8), legend.text = element_text(size = 6))
+    theme(legend.title = element_text(size = ifelse(usePublicationStyle(), font.size, 8)), legend.text = element_text(size = ifelse(usePublicationStyle(), font.size - 1, 6)))
 
   if (grid.on) {
     if (length(unique(df$source.target)) > 1) {
@@ -2489,8 +2677,12 @@ netVisual_bubble <- function(object, sources.use = NULL, targets.use = NULL, sig
 
   if (!is.null(comparison)) {
     if (line.on) {
-      xintercept = seq(0.5+length(dataset.name[comparison]), length(group.names0)*length(dataset.name[comparison]), by = length(dataset.name[comparison]))
-      g <- g + geom_vline(xintercept = xintercept, linetype="dashed", color = "grey60", size = line.size)
+      # separate the cell pairs, whatever the number of datasets in which each cell pair is shown
+      pair.names <- sub(" \\([^()]*\\)$", "", levels(df$source.target))
+      xintercept <- which(pair.names[-1] != pair.names[-length(pair.names)]) + 0.5
+      if (length(xintercept) > 0) {
+        g <- g + geom_vline(xintercept = xintercept, linetype="dashed", color = "grey60", size = line.size)
+      }
     }
     if (color.text.use) {
       if (is.null(group)) {
@@ -2498,7 +2690,7 @@ netVisual_bubble <- function(object, sources.use = NULL, targets.use = NULL, sig
         names(group) <- dataset.name[comparison]
       }
       if (is.null(color.text)) {
-        color <- ggPalette(length(unique(group)))
+        color <- datasetPalette(length(unique(group)))
       } else {
         color <- color.text
       }
@@ -2843,8 +3035,10 @@ netVisual_chord_cell_internal <- function(net, color.use = NULL, group = NULL, c
 #' @param show.legend whether show the figure legend
 #' @param legend.pos.x,legend.pos.y adjust the legend position
 #' @param thresh threshold of the p-value for determining significant interaction when visualizing links at the level of ligands/receptors;
+#' @param merge.genes whether to show each ligand and each receptor as a single sector. Default = TRUE: the grid track of each gene is then split and colored by the proportion of each source (for ligands) or target (for receptors) cell group, links are colored by the source cell groups, and ligands and receptors are separated by `big.gap`.
+#' Set merge.genes = FALSE to show one sector per gene and per cell group (the original behavior).
 #' @param ... other parameters to chordDiagram
-#' @importFrom circlize circos.clear chordDiagram circos.track circos.text get.cell.meta.data
+#' @importFrom circlize circos.clear chordDiagram circos.track circos.text get.cell.meta.data circos.rect
 #' @importFrom dplyr select %>% group_by summarize
 #' @importFrom grDevices recordPlot
 #' @importFrom stringr str_split
@@ -2858,7 +3052,7 @@ netVisual_chord_gene <- function(object, slot.name = "net", color.use = NULL,
                                  link.visible = TRUE, scale = FALSE, directional = 1, link.target.prop = TRUE, reduce = -1,
                                  transparency = 0.4, link.border = NA,
                                  title.name = NULL, legend.pos.x = 20, legend.pos.y = 20, show.legend = TRUE,
-                                 thresh = 0.05,
+                                 thresh = 0.05, merge.genes = TRUE,
                                  ...){
   if (!is.null(pairLR.use)) {
     if (!is.data.frame(pairLR.use) | sum(c("interaction_name","pathway_name") %in% colnames(pairLR.use)) == 0) {
@@ -2943,43 +3137,14 @@ netVisual_chord_gene <- function(object, slot.name = "net", color.use = NULL,
   }
 
   df$id <- 1:nrow(df)
-  # deal with duplicated sector names
-  ligand.uni <- unique(df$ligand)
-  for (i in 1:length(ligand.uni)) {
-    df.i <- df[df$ligand == ligand.uni[i], ]
-    source.uni <- unique(df.i$source)
-    for (j in 1:length(source.uni)) {
-      df.i.j <- df.i[df.i$source == source.uni[j], ]
-      df.i.j$ligand <- paste0(df.i.j$ligand, paste(rep(' ',j-1),collapse = ''))
-      df$ligand[df$id %in% df.i.j$id] <- df.i.j$ligand
-    }
-  }
-  receptor.uni <- unique(df$receptor)
-  for (i in 1:length(receptor.uni)) {
-    df.i <- df[df$receptor == receptor.uni[i], ]
-    target.uni <- unique(df.i$target)
-    for (j in 1:length(target.uni)) {
-      df.i.j <- df.i[df.i$target == target.uni[j], ]
-      df.i.j$receptor <- paste0(df.i.j$receptor, paste(rep(' ',j-1),collapse = ''))
-      df$receptor[df$id %in% df.i.j$id] <- df.i.j$receptor
-    }
-  }
+  df$ligand <- as.character(df$ligand)
+  df$receptor <- as.character(df$receptor)
 
   cell.order.sources <- levels(object@idents)[levels(object@idents) %in% sources.use]
   cell.order.targets <- levels(object@idents)[levels(object@idents) %in% targets.use]
 
   df$source <- factor(df$source, levels = cell.order.sources)
   df$target <- factor(df$target, levels = cell.order.targets)
-  # df.ordered.source <- df[with(df, order(source, target, -prob)), ]
-  # df.ordered.target <- df[with(df, order(target, source, -prob)), ]
-  df.ordered.source <- df[with(df, order(source, -prob)), ]
-  df.ordered.target <- df[with(df, order(target, -prob)), ]
-
-  order.source <- unique(df.ordered.source[ ,c('ligand','source')])
-  order.target <- unique(df.ordered.target[ ,c('receptor','target')])
-
-  # define sector order
-  order.sector <- c(order.source$ligand, order.target$receptor)
 
   # define cell type color
   if (is.null(color.use)){
@@ -2991,45 +3156,158 @@ netVisual_chord_gene <- function(object, slot.name = "net", color.use = NULL,
     color.use <- color.use[levels(object@idents) %in% as.character(union(df$source,df$target))]
   }
 
-  # define edge color
-  edge.color <- color.use[as.character(df.ordered.source$source)]
-  names(edge.color) <- as.character(df.ordered.source$source)
-
-  # define grid colors
-  grid.col.ligand <- color.use[as.character(order.source$source)]
-  names(grid.col.ligand) <- as.character(order.source$source)
-  grid.col.receptor <- color.use[as.character(order.target$target)]
-  names(grid.col.receptor) <- as.character(order.target$target)
-  grid.col <- c(as.character(grid.col.ligand), as.character(grid.col.receptor))
-  names(grid.col) <- order.sector
-
-  df.plot <- df.ordered.source[ ,c('ligand','receptor','prob')]
-
   if (directional == 2) {
     link.arr.type = "triangle"
   } else {
     link.arr.type = "big.arrow"
   }
-  circos.clear()
-  chordDiagram(df.plot,
-               order = order.sector,
-               col = edge.color,
-               grid.col = grid.col,
-               transparency = transparency,
-               link.border = link.border,
-               directional = directional,
-               direction.type = c("diffHeight","arrows"),
-               link.arr.type = link.arr.type,
-               annotationTrack = "grid",
-               annotationTrackHeight = annotationTrackHeight,
-               preAllocateTracks = list(track.height = max(strwidth(order.sector))),
-               small.gap = small.gap,
-               big.gap = big.gap,
-               link.visible = link.visible,
-               scale = scale,
-               link.target.prop = link.target.prop,
-               reduce = reduce,
-               ...)
+
+  if (!merge.genes) {
+    # one sector per ligand (resp. receptor) and per source (resp. target) cell group
+    # deal with duplicated sector names
+    ligand.uni <- unique(df$ligand)
+    for (i in 1:length(ligand.uni)) {
+      df.i <- df[df$ligand == ligand.uni[i], ]
+      source.uni <- unique(df.i$source)
+      for (j in 1:length(source.uni)) {
+        df.i.j <- df.i[df.i$source == source.uni[j], ]
+        df.i.j$ligand <- paste0(df.i.j$ligand, paste(rep(' ',j-1),collapse = ''))
+        df$ligand[df$id %in% df.i.j$id] <- df.i.j$ligand
+      }
+    }
+    receptor.uni <- unique(df$receptor)
+    for (i in 1:length(receptor.uni)) {
+      df.i <- df[df$receptor == receptor.uni[i], ]
+      target.uni <- unique(df.i$target)
+      for (j in 1:length(target.uni)) {
+        df.i.j <- df.i[df.i$target == target.uni[j], ]
+        df.i.j$receptor <- paste0(df.i.j$receptor, paste(rep(' ',j-1),collapse = ''))
+        df$receptor[df$id %in% df.i.j$id] <- df.i.j$receptor
+      }
+    }
+
+    df.ordered.source <- df[with(df, order(source, -prob)), ]
+    df.ordered.target <- df[with(df, order(target, -prob)), ]
+
+    order.source <- unique(df.ordered.source[ ,c('ligand','source')])
+    order.target <- unique(df.ordered.target[ ,c('receptor','target')])
+
+    # define sector order
+    order.sector <- c(order.source$ligand, order.target$receptor)
+
+    # define edge color
+    edge.color <- color.use[as.character(df.ordered.source$source)]
+    names(edge.color) <- as.character(df.ordered.source$source)
+
+    # define grid colors
+    grid.col.ligand <- color.use[as.character(order.source$source)]
+    names(grid.col.ligand) <- as.character(order.source$source)
+    grid.col.receptor <- color.use[as.character(order.target$target)]
+    names(grid.col.receptor) <- as.character(order.target$target)
+    grid.col <- c(as.character(grid.col.ligand), as.character(grid.col.receptor))
+    names(grid.col) <- order.sector
+
+    df.plot <- df.ordered.source[ ,c('ligand','receptor','prob')]
+
+    circos.clear()
+    chordDiagram(df.plot,
+                 order = order.sector,
+                 col = edge.color,
+                 grid.col = grid.col,
+                 transparency = transparency,
+                 link.border = link.border,
+                 directional = directional,
+                 direction.type = c("diffHeight","arrows"),
+                 link.arr.type = link.arr.type,
+                 annotationTrack = "grid",
+                 annotationTrackHeight = annotationTrackHeight,
+                 preAllocateTracks = list(track.height = max(strwidth(order.sector))),
+                 small.gap = small.gap,
+                 big.gap = big.gap,
+                 link.visible = link.visible,
+                 scale = scale,
+                 link.target.prop = link.target.prop,
+                 reduce = reduce,
+                 ...)
+  } else {
+    # one sector per ligand and per receptor; the cell groups expressing each gene are shown in the grid track
+    # receptors sharing their name with a ligand (e.g., homophilic interactions) get a distinct sector name
+    ligand.uni <- unique(df$ligand)
+    receptor.uni <- unique(df$receptor)
+    receptor.sector <- receptor.uni
+    while (any(receptor.sector %in% ligand.uni)) {
+      idx.dup <- receptor.sector %in% ligand.uni
+      receptor.sector[idx.dup] <- paste0(receptor.sector[idx.dup], " ")
+    }
+    df$receptor <- receptor.sector[match(df$receptor, receptor.uni)]
+
+    # order the genes by the cell group contributing the most to their signaling, then alphabetically
+    gene.order <- function(gene, cell) {
+      flow <- tapply(df$prob, list(gene, cell), sum)
+      flow[is.na(flow)] <- 0
+      flow <- flow[, colSums(flow) > 0, drop = FALSE]
+      cell.main <- match(colnames(flow)[max.col(flow, ties.method = "first")], levels(cell))
+      gene.std <- toupper(gsub("_", "", rownames(flow)))
+      rownames(flow)[order(cell.main, gene.std)]
+    }
+    ligand.order <- gene.order(df$ligand, df$source)
+    receptor.order <- gene.order(df$receptor, df$target)
+    order.sector <- c(ligand.order, receptor.order)
+    group.sector <- factor(c(rep("ligand", length(ligand.order)), rep("receptor", length(receptor.order))), levels = c("ligand", "receptor"))
+    names(group.sector) <- order.sector
+
+    # order the links so that they are aligned with the cell groups shown in the grid track
+    df.plot <- df[with(df, order(match(ligand, ligand.order), source, match(receptor, receptor.order), target)), ]
+    edge.color <- color.use[as.character(df.plot$source)]
+
+    # contribution of each cell group to the signaling of each gene
+    composition.source <- stats::aggregate(prob ~ ligand + source, data = df.plot, FUN = sum)
+    composition.target <- stats::aggregate(prob ~ receptor + target, data = df.plot, FUN = sum)
+    colnames(composition.source) <- colnames(composition.target) <- c("gene", "cell", "prob")
+
+    grid.col <- rep("grey80", length(order.sector))
+    names(grid.col) <- order.sector
+
+    circos.clear()
+    chordDiagram(df.plot[ ,c('ligand','receptor','prob')],
+                 group = group.sector,
+                 col = edge.color,
+                 grid.col = grid.col,
+                 transparency = transparency,
+                 link.border = link.border,
+                 directional = directional,
+                 direction.type = c("diffHeight","arrows"),
+                 link.arr.type = link.arr.type,
+                 annotationTrack = "grid",
+                 annotationTrackHeight = annotationTrackHeight,
+                 preAllocateTracks = list(track.height = max(strwidth(order.sector))),
+                 small.gap = small.gap,
+                 big.gap = big.gap,
+                 link.visible = link.visible,
+                 scale = scale,
+                 link.target.prop = link.target.prop,
+                 reduce = reduce,
+                 ...)
+
+    # color the grid track of each gene by the proportion of each cell group
+    circos.track(track.index = 2, panel.fun = function(x, y) {
+      sector.name <- get.cell.meta.data("sector.index")
+      xlim <- get.cell.meta.data("xlim")
+      ylim <- get.cell.meta.data("ylim")
+      if (sector.name %in% ligand.order) {
+        composition <- composition.source[composition.source$gene == sector.name, , drop = FALSE]
+      } else {
+        composition <- composition.target[composition.target$gene == sector.name, , drop = FALSE]
+      }
+      composition <- composition[order(composition$cell), , drop = FALSE]
+      if (nrow(composition) == 0 || sum(composition$prob) == 0) {
+        return(invisible(NULL))
+      }
+      breaks <- xlim[1] + (xlim[2] - xlim[1]) * c(0, cumsum(composition$prob)/sum(composition$prob))
+      circos.rect(breaks[-length(breaks)], ylim[1], breaks[-1], ylim[2],
+                  col = color.use[as.character(composition$cell)], border = NA)
+    }, bg.border = NA)
+  }
 
   circos.track(track.index = 1, panel.fun = function(x, y) {
     xlim = get.cell.meta.data("xlim")
@@ -4231,7 +4509,7 @@ barplot_internal <- function(df, x = "cellType", y = "value", fill = "condition"
   gg <- ggplot(df, aes_string(x=x, y=y, fill = fill, color = fill)) + geom_bar(stat="identity", width=width, position=position_dodge()) +
     theme_classic() + scale_x_discrete(limits = (levels(df$x))) + theme(axis.text.x = element_text(angle = 45, hjust = 1,size=10))
 
-  gg <- gg + ylab(ylabel) + xlab(xlabel) + theme_classic() +
+  gg <- gg + ylab(ylabel) + xlab(xlabel) + themeCellChatOr(theme_classic()) +
     labs(title = title.name) +  theme(plot.title = element_text(size = 10, face = "bold", hjust = 0.5)) +
     theme(text = element_text(size = size.text), axis.text = element_text(colour="black"))
   if (!is.null(color.use)) {

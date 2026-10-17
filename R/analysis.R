@@ -1,4 +1,3 @@
-
 #' Compute and visualize the contribution of each ligand-receptor pair in the overall signaling pathways
 #'
 #' @param object CellChat object
@@ -965,7 +964,7 @@ rankSimilarity <- function(object, slot.name = "netP", type = c("functional","st
   df$name <- factor(df$name, levels = as.character(df$name))
 
   gg <- ggplot(df, aes(x=name, y=dist)) + geom_bar(stat="identity",width = bar.w) +
-    theme_classic() + theme(text=element_text(size=font.size),axis.text.x = element_blank(), axis.ticks.x = element_blank(), axis.title.y = element_text(size=font.size)) +
+    themeCellChatOr(theme_classic(), base_size = font.size) + theme(text=element_text(size=font.size),axis.text.x = element_blank(), axis.ticks.x = element_blank(), axis.title.y = element_text(size=font.size)) +
     xlab("") + ylab("Pathway distance") + coord_flip()#+
   if (!is.null(title)) {
     gg <- gg + ggtitle(title)+ theme(plot.title = element_text(hjust = 0.5))
@@ -991,18 +990,26 @@ rankSimilarity <- function(object, slot.name = "netP", type = c("functional","st
 #' @param slot.name the slot name of object that is used to compute centrality measures of signaling networks
 #' @param measure "weight" or "count". "weight": comparing the total interaction weights (strength); "count": comparing the number of interactions;
 #' @param mode "single","comparison"
-#' @param comparison a numerical vector giving the datasets for comparison; a single value means ranking for only one dataset and two values means ranking comparison for two datasets
-#' @param color.use defining the color for each cell group
+#' @param comparison a numerical vector giving the datasets for comparison; a single value means ranking for only one dataset and two or more values (e.g., comparison = c(1,2,3)) means ranking comparison for these datasets.
+#' When more than two datasets are compared, signaling are grouped by the dataset showing the highest information flow (first dataset on top) and the y-axis text is colored by this dataset.
+#' @param color.use defining the color for each dataset, in the order of `comparison` (or a vector named by the dataset names)
 #' @param stacked whether plot the stacked bar plot
 #' @param sources.use a vector giving the index or the name of source cell groups
 #' @param targets.use a vector giving the index or the name of target cell groups.
 #' @param signaling a vector giving the signaling pathway to show
 #' @param pairLR a vector giving the names of L-R pairs to show (e.g, pairLR = c("IL1A_IL1R1_IL1RAP","IL1B_IL1R1_IL1RAP"))
 #' @param signaling.type a char giving the types of signaling from the three categories c("Secreted Signaling", "ECM-Receptor", "Cell-Cell Contact")
-#' @param do.stat whether do a Wilcoxon test to determine whether there is significant difference between two datasets. Default = FALSE
-#' @param paired.test a logical indicating whether you want a paired test. Paired test is applicable to compare two datasets with the same cellular compositions.
-#' @param cutoff.pvalue the cutoff of pvalue when doing Wilcoxon test; Default = 0.05
-#' @param tol a tolerance when considering the relative contribution being equal between two datasets. contribution.relative between 1-tol and 1+tol will be considered as equal contribution
+#' @param do.stat whether do a statistical test to determine whether there is significant difference between datasets. Default = FALSE.
+#' A Wilcoxon test is used for two datasets; for more than two datasets, a Friedman test (paired.test = TRUE) or a Kruskal-Wallis test (paired.test = FALSE) is used.
+#' @param paired.test a logical indicating whether you want a paired test. Paired test is applicable to compare datasets with the same cellular compositions.
+#' @param cutoff.pvalue the cutoff of the adjusted p-values (see `p.adjust.method`) when doing statistical test; Default = 0.05
+#' @param p.adjust.method the method used to correct the p-values for the number of tested signaling (see `stats::p.adjust`); Default = "BH". Set p.adjust.method = "none" to use the raw p-values as in the previous versions.
+#' The returned data contain the raw (`pvalues`) and adjusted (`pvalues.adj`) p-values; signaling detected in only some of the datasets (no communication in at least one dataset) cannot be tested (`pvalues` = NA, `specific` = TRUE) and are considered as different.
+#' NB: the tests compare the communication probabilities of the cell group pairs between datasets, i.e. cell group pairs are the observations, not biological replicates.
+#' @param tol a tolerance when considering the relative contribution being equal between datasets. contribution.relative between 1-tol and 1+tol will be considered as equal contribution.
+#' For more than two datasets, the y-axis text is colored only when the highest information flow is larger than (1+tol) times the second highest one.
+#' @param min.fc a minimum fold change of the information flow (highest vs. second highest dataset) used to remove the signaling that are similar between datasets, e.g., min.fc = 1.5. Default = NULL (all signaling are shown)
+#' @param signif.only whether to only show the signaling that are significantly different between datasets (requires do.stat = TRUE). Default = FALSE
 #' @param thresh threshold of the p-value for determining significant interaction
 #'
 #' @param do.flip whether flip the x-y axis
@@ -1024,20 +1031,22 @@ rankSimilarity <- function(object, slot.name = "netP", type = c("functional","st
 #' @export
 #'
 #' @examples
-rankNet <- function(object, slot.name = "netP", measure = c("weight","count"), mode = c("comparison", "single"), comparison = c(1,2), color.use = NULL, stacked = FALSE, sources.use = NULL, targets.use = NULL,  signaling = NULL, pairLR = NULL, signaling.type = NULL, do.stat = FALSE, paired.test = TRUE, cutoff.pvalue = 0.05, tol = 0.05, thresh = 0.05, show.raw = FALSE, return.data = FALSE, x.rotation = 90, title = NULL, bar.w = 0.75, font.size = 8,
+rankNet <- function(object, slot.name = "netP", measure = c("weight","count"), mode = c("comparison", "single"), comparison = c(1,2), color.use = NULL, stacked = FALSE, sources.use = NULL, targets.use = NULL,  signaling = NULL, pairLR = NULL, signaling.type = NULL, do.stat = FALSE, paired.test = TRUE, cutoff.pvalue = 0.05, p.adjust.method = "BH", tol = 0.05, min.fc = NULL, signif.only = FALSE, thresh = 0.05, show.raw = FALSE, return.data = FALSE, x.rotation = 90, title = NULL, bar.w = 0.75, font.size = 8,
                     do.flip = TRUE, x.angle = NULL, y.angle = 0, x.hjust = 1,y.hjust = 1,
                     axis.gap = FALSE, ylim = NULL, segments = NULL, tick_width = NULL, rel_heights = c(0.9,0,0.1)) {
   measure <- match.arg(measure)
   mode <- match.arg(mode)
-  oopts <- options(warn = -1)
-  object.names <- names(methods::slot(object, slot.name))
+  p.adjust.method <- match.arg(p.adjust.method, stats::p.adjust.methods)
+  old.options <- options(warn = -1)
+  on.exit(options(old.options), add = TRUE)
+  object1 <- methods::slot(object, slot.name)
+  object.names <- names(object1)
   if (measure == "weight") {
     ylabel = "Information flow"
   } else if (measure == "count") {
     ylabel = "Number of interactions"
   }
   if (mode == "single") {
-    object1 <- methods::slot(object, slot.name)
     prob = object1$prob
     prob[object1$pval > thresh] <- 0
     if (measure == "count") {
@@ -1072,12 +1081,8 @@ rankNet <- function(object, slot.name = "netP", measure = c("weight","count"), m
     pSum <- apply(prob, 3, sum)
     pSum.original <- pSum
     if (measure == "weight") {
-      pSum <- -1/log(pSum)
+      pSum <- log(1+pSum)
       pSum[is.na(pSum)] <- 0
-      idx1 <- which(is.infinite(pSum) | pSum < 0)
-      values.assign <- seq(max(pSum)*1.1, max(pSum)*1.5, length.out = length(idx1))
-      position <- sort(pSum.original[idx1], index.return = TRUE)$ix
-      pSum[idx1] <- values.assign[match(1:length(idx1), position)]
     } else if (measure == "count") {
       pSum <- pSum.original
     }
@@ -1088,12 +1093,7 @@ rankNet <- function(object, slot.name = "netP", measure = c("weight","count"), m
     idx <- with(df, order(df$contribution))
     df <- df[idx, ]
     df$name <- factor(df$name, levels = as.character(df$name))
-    for (i in 1:length(pair.name)) {
-      df.t <- df[df$name == pair.name[i], "contribution"]
-      if (sum(df.t) == 0) {
-        df <- df[-which(df$name == pair.name[i]), ]
-      }
-    }
+    df <- df[ave(df$contribution, df$name, FUN = sum) != 0, ]
 
     if (!is.null(signaling.type)) {
       LR <- subset(object@DB$interaction, annotation %in% signaling.type)
@@ -1116,47 +1116,52 @@ rankNet <- function(object, slot.name = "netP", measure = c("weight","count"), m
     }
 
     gg <- ggplot(df, aes(x=name, y=contribution.scaled)) + geom_bar(stat="identity",width = bar.w) +
-      theme_classic() + theme(axis.text=element_text(size=font.size),axis.text.x = element_blank(), axis.ticks.x = element_blank(), axis.title.y = element_text(size=10)) +
+      themeCellChatOr(theme_classic(), base_size = font.size) + theme(axis.text=element_text(size=font.size),axis.text.x = element_blank(), axis.ticks.x = element_blank(), axis.title.y = element_text(size=10)) +
       xlab("") + ylab(ylabel) + coord_flip()#+
     if (!is.null(title)) {
       gg <- gg + ggtitle(title)+ theme(plot.title = element_text(hjust = 0.5))
     }
 
   } else if (mode == "comparison") {
+    n.comparison <- length(comparison)
+    if (n.comparison < 2) {
+      stop("Please provide at least two datasets in `comparison`, or set `mode = 'single'`! ")
+    }
     prob.list <- list()
     pSum <- list()
     pSum.original <- list()
     pair.name <- list()
-    idx <- list()
-    pSum.original.all <- c()
     object.names.comparison <- c()
-    for (i in 1:length(comparison)) {
+    for (i in 1:n.comparison) {
       object.list <- methods::slot(object, slot.name)[[comparison[i]]]
       prob <- object.list$prob
       prob[object.list$pval > thresh] <- 0
       if (measure == "count") {
         prob <- 1*(prob > 0)
       }
+      # cell groups are matched per dataset, so that datasets with different cellular compositions are handled correctly
       if (!is.null(sources.use)) {
+        sources.use.i <- sources.use
         if (is.character(sources.use)) {
           if (all(sources.use %in% dimnames(prob)[[1]])) {
-            sources.use <- match(sources.use, dimnames(prob)[[1]])
+            sources.use.i <- match(sources.use, dimnames(prob)[[1]])
           } else {
             stop("The input `sources.use` should be cell group names or a numerical vector!")
           }
         }
-        idx.t <- setdiff(1:nrow(prob), sources.use)
+        idx.t <- setdiff(1:dim(prob)[1], sources.use.i)
         prob[idx.t, , ] <- 0
       }
       if (!is.null(targets.use)) {
+        targets.use.i <- targets.use
         if (is.character(targets.use)) {
-          if (all(targets.use %in% dimnames(prob)[[1]])) {
-            targets.use <- match(targets.use, dimnames(prob)[[2]])
+          if (all(targets.use %in% dimnames(prob)[[2]])) {
+            targets.use.i <- match(targets.use, dimnames(prob)[[2]])
           } else {
             stop("The input `targets.use` should be cell group names or a numerical vector!")
           }
         }
-        idx.t <- setdiff(1:nrow(prob), targets.use)
+        idx.t <- setdiff(1:dim(prob)[2], targets.use.i)
         prob[ ,idx.t, ] <- 0
       }
       if (sum(prob) == 0) {
@@ -1165,146 +1170,126 @@ rankNet <- function(object, slot.name = "netP", measure = c("weight","count"), m
       prob.list[[i]] <- prob
       pSum.original[[i]] <- apply(prob, 3, sum)
       if (measure == "weight") {
-        pSum[[i]] <- -1/log(pSum.original[[i]])
+        pSum[[i]] <- log(1+pSum.original[[i]])
         pSum[[i]][is.na(pSum[[i]])] <- 0
-        idx[[i]] <- which(is.infinite(pSum[[i]]) | pSum[[i]] < 0)
-        pSum.original.all <- c(pSum.original.all, pSum.original[[i]][idx[[i]]])
       } else if (measure == "count") {
-        pSum[[i]] <- pSum.original[[i]] # the prob is already binarized in line 1136
+        pSum[[i]] <- pSum.original[[i]] # the prob is already binarized above
       }
       pair.name[[i]] <- names(pSum.original[[i]])
       object.names.comparison <- c(object.names.comparison, object.names[comparison[i]])
     }
-    if (measure == "weight") {
-      values.assign <- seq(max(unlist(pSum))*1.1, max(unlist(pSum))*1.5, length.out = length(unlist(idx)))
-      position <- sort(pSum.original.all, index.return = TRUE)$ix
-      for (i in 1:length(comparison)) {
-        if (i == 1) {
-          pSum[[i]][idx[[i]]] <- values.assign[match(1:length(idx[[i]]), position)]
-        } else {
-          pSum[[i]][idx[[i]]] <- values.assign[match(length(unlist(idx[1:i-1]))+1:length(unlist(idx[1:i])), position)]
-        }
-      }
-    }
-
-
 
     pair.name.all <- as.character(unique(unlist(pair.name)))
-    df <- list()
-    for (i in 1:length(comparison)) {
-      df[[i]] <- data.frame(name = pair.name.all, contribution = 0, contribution.scaled = 0, group = object.names[comparison[i]], row.names = pair.name.all)
-      df[[i]][pair.name[[i]],3] <- pSum[[i]]
-      df[[i]][pair.name[[i]],2] <- pSum.original[[i]]
-    }
+    df <- lapply(seq_len(n.comparison), function(i) {
+      d <- data.frame(name = pair.name.all, contribution = 0, contribution.scaled = 0, group = object.names.comparison[i], row.names = pair.name.all)
+      d[pair.name[[i]], "contribution.scaled"] <- pSum[[i]]
+      d[pair.name[[i]], "contribution"] <- pSum.original[[i]]
+      d
+    })
 
-
-    # contribution.relative <- as.numeric(format(df[[length(comparison)]]$contribution/abs(df[[1]]$contribution), digits=1))
-    # #  contribution.relative <- as.numeric(format(df[[length(comparison)]]$contribution.scaled/abs(df[[1]]$contribution.scaled), digits=1))
-    # contribution.relative2 <- as.numeric(format(df[[length(comparison)-1]]$contribution/abs(df[[1]]$contribution), digits=1))
-    # contribution.relative[is.na(contribution.relative)] <- 0
-    # for (i in 1:length(comparison)) {
-    #   df[[i]]$contribution.relative <- contribution.relative
-    #   df[[i]]$contribution.relative2 <- contribution.relative2
-    # }
-    # df[[1]]$contribution.data2 <- df[[length(comparison)]]$contribution
-    # idx <- with(df[[1]], order(-contribution.relative,  -contribution.relative2, contribution, -contribution.data2))
-    #
+    # relative contribution of each dataset compared to the first one
     contribution.relative <- list()
-    for (i in 1:(length(comparison)-1)) {
-      contribution.relative[[i]] <- as.numeric(format(df[[length(comparison)-i+1]]$contribution/df[[1]]$contribution, digits=1))
+    for (i in 1:(n.comparison-1)) {
+      contribution.relative[[i]] <- as.numeric(format(df[[n.comparison-i+1]]$contribution/df[[1]]$contribution, digits=1))
       contribution.relative[[i]][is.na(contribution.relative[[i]])] <- 0
     }
     names(contribution.relative) <- paste0("contribution.relative.", 1:length(contribution.relative))
-    for (i in 1:length(comparison)) {
-      for (j in 1:length(contribution.relative)) {
-        df[[i]][[names(contribution.relative)[j]]] <- contribution.relative[[j]]
-      }
+    for (j in seq_along(contribution.relative)) {
+      df <- lapply(df, function(x) { x[[names(contribution.relative)[j]]] <- contribution.relative[[j]]; x })
     }
-    df[[1]]$contribution.data2 <- df[[length(comparison)]]$contribution
-    if (length(comparison) == 2) {
-      idx <- with(df[[1]], order(-contribution.relative.1, contribution, -contribution.data2))
-    } else if (length(comparison) == 3) {
-      idx <- with(df[[1]], order(-contribution.relative.1, -contribution.relative.2,contribution, -contribution.data2))
-    } else if (length(comparison) == 4) {
-      idx <- with(df[[1]], order(-contribution.relative.1, -contribution.relative.2, -contribution.relative.3, contribution, -contribution.data2))
+
+    # dataset with the highest information flow for each signaling and how specific it is
+    contribution.mat <- sapply(df, function(x) x$contribution)
+    contribution.mat <- matrix(contribution.mat, ncol = n.comparison)
+    dominant <- max.col(contribution.mat, ties.method = "first")
+    contribution.sorted <- t(apply(contribution.mat, 1, sort, decreasing = TRUE))
+    fold.change <- contribution.sorted[, 1]/contribution.sorted[, 2]
+    specificity <- contribution.sorted[, 1]/rowSums(contribution.mat)
+    specificity[is.na(specificity)] <- 0
+
+    if (n.comparison == 2) {
+      idx <- order(-df[[1]]$contribution.relative.1, df[[1]]$contribution, -df[[2]]$contribution)
     } else {
-      idx <- with(df[[1]], order(-contribution.relative.1, -contribution.relative.2, -contribution.relative.3, -contribution.relative.4, contribution, -contribution.data2))
+      # signalings are grouped by the dataset in which they are the strongest (first dataset on top after flipping);
+      # within each group, the most dataset-specific signalings are placed at the outer edges
+      idx <- order(-dominant, ifelse(dominant == 1, specificity, -specificity), rowSums(contribution.mat))
     }
-
-
-
-    for (i in 1:length(comparison)) {
+    for (i in 1:n.comparison) {
+      df[[i]]$dominant.dataset <- object.names.comparison[dominant]
+      df[[i]]$specificity <- specificity
       df[[i]] <- df[[i]][idx, ]
       df[[i]]$name <- factor(df[[i]]$name, levels = as.character(df[[i]]$name))
     }
-    df[[1]]$contribution.data2 <- NULL
 
     df <- do.call(rbind, df)
     df$group <- factor(df$group, levels = object.names.comparison)
 
     if (is.null(color.use)) {
-      color.use =  ggPalette(length(comparison))
+      color.use <- datasetPalette(n.comparison)
     }
+    if (length(color.use) < n.comparison) {
+      stop("The number of colors in `color.use` should be at least the number of compared datasets!")
+    }
+    color.use <- color.use[1:n.comparison]
+    if (is.null(names(color.use)) || !all(object.names.comparison %in% names(color.use))) {
+      names(color.use) <- object.names.comparison
+    }
+    color.use <- color.use[object.names.comparison]
 
-    # https://stackoverflow.com/questions/49448497/coord-flip-changes-ordering-of-bars-within-groups-in-grouped-bar-plot
-    df$group <- factor(df$group, levels = rev(levels(df$group)))
-    color.use <- rev(color.use)
-
-    # perform statistical analysis
-    # if (do.stat) {
-    #   pvalues <- c()
-    #   for (i in 1:length(pair.name.all)) {
-    #     df.prob <- data.frame()
-    #     for (j in 1:length(comparison)) {
-    #       if (pair.name.all[i] %in% pair.name[[j]]) {
-    #         df.prob <- rbind(df.prob, data.frame(prob = as.vector(prob.list[[j]][ , , pair.name.all[i]]), group = comparison[j]))
-    #       } else {
-    #         df.prob <- rbind(df.prob, data.frame(prob = as.vector(matrix(0, nrow = nrow(prob.list[[j]]), ncol = nrow(prob.list[[j]]))), group = comparison[j]))
-    #       }
-    #
-    #     }
-    #     df.prob$group <- factor(df.prob$group, levels = comparison)
-    #     if (length(comparison) == 2) {
-    #       pvalues[i] <- wilcox.test(prob ~ group, data = df.prob)$p.value
-    #     } else {
-    #       pvalues[i] <- kruskal.test(prob ~ group, data = df.prob)$p.value
-    #     }
-    #   }
-    #   df$pvalues <- pvalues
-    # }
-    if (do.stat & length(comparison) == 2) {
+    # perform statistical analysis: Wilcoxon test for two datasets; Friedman (paired) or Kruskal-Wallis test for more datasets
+    if (do.stat) {
+      cell.pairs.list <- lapply(prob.list, function(x) as.vector(outer(dimnames(x)[[1]], dimnames(x)[[2]], paste, sep = " -> ")))
+      if (paired.test && length(unique(lapply(cell.pairs.list, sort))) > 1) {
+        stop("Paired test is not applicable to datasets with different cellular compositions! Please set `do.stat = FALSE` or `paired.test = FALSE`! \n")
+      }
+      cell.pairs <- unique(unlist(cell.pairs.list))
+      pvalues.all <- rep(NA_real_, length(pair.name.all))
+      # signaling only detected in some datasets cannot be tested, but they are dataset-specific
+      is.specific <- rep(FALSE, length(pair.name.all))
       for (i in 1:length(pair.name.all)) {
-        if (nrow(prob.list[[j]]) != nrow(prob.list[[1]])) {
-          if (paired.test) {
-            stop("Paired test is not applicable to datasets with different cellular compositions! Please set `do.stat = FALSE` or `paired.test = FALSE`! \n")
-          }
-        }
-        prob.values <- matrix(0, nrow = nrow(prob.list[[1]]) * nrow(prob.list[[1]]), ncol = length(comparison))
-        for (j in 1:length(comparison)) {
+        prob.values <- matrix(0, nrow = length(cell.pairs), ncol = n.comparison, dimnames = list(cell.pairs, NULL))
+        for (j in 1:n.comparison) {
           if (pair.name.all[i] %in% pair.name[[j]]) {
-            prob.values[, j] <- as.vector(prob.list[[j]][ , , pair.name.all[i]])
+            prob.values[cell.pairs.list[[j]], j] <- as.vector(prob.list[[j]][ , , pair.name.all[i]])
           } else {
             prob.values[, j] <- NA
           }
         }
-        prob.values <- prob.values[rowSums(prob.values, na.rm = TRUE) != 0, , drop = FALSE]
-        if (nrow(prob.values) >3 & sum(is.na(prob.values)) == 0) {
-          pvalues <- wilcox.test(prob.values[ ,1], prob.values[ ,2], paired = paired.test)$p.value
-        } else {
-          pvalues <- 0
+        if (any(is.na(prob.values)) || any(colSums(prob.values) == 0)) {
+          is.specific[i] <- TRUE
+          next
         }
-        pvalues[is.na(pvalues)] <- 0
-        df$pvalues[df$name == pair.name.all[i]] <- pvalues
+        prob.values <- prob.values[rowSums(prob.values) != 0, , drop = FALSE]
+        # too few communicating cell pairs: no test (p-value = NA)
+        if (nrow(prob.values) > 3) {
+          if (n.comparison == 2) {
+            pvalues.all[i] <- wilcox.test(prob.values[ ,1], prob.values[ ,2], paired = paired.test)$p.value
+          } else if (paired.test) {
+            pvalues.all[i] <- friedman.test(prob.values)$p.value
+          } else {
+            pvalues.all[i] <- kruskal.test(lapply(1:n.comparison, function(j) prob.values[, j]))$p.value
+          }
+        }
       }
+      # correct for the number of tested signaling
+      pvalues.adj.all <- stats::p.adjust(pvalues.all, method = p.adjust.method)
+      idx.name <- match(as.character(df$name), pair.name.all)
+      df$pvalues <- pvalues.all[idx.name]
+      df$pvalues.adj <- pvalues.adj.all[idx.name]
+      df$specific <- is.specific[idx.name]
+      is.significant <- is.specific | (!is.na(pvalues.adj.all) & pvalues.adj.all < cutoff.pvalue)
     }
 
-    for (i in 1:length(pair.name.all)) {
-      df.t <- df[df$name == pair.name.all[i], "contribution"]
-      if (sum(df.t) == 0) {
-        df <- df[-which(df$name == pair.name.all[i]), ]
+    df <- df[ave(df$contribution, df$name, FUN = sum) != 0, ]
+
+    if (!is.null(signaling.type)) {
+      LR <- subset(object@DB$interaction, annotation %in% signaling.type)
+      if (slot.name == "netP") {
+        signaling <- unique(LR$pathway_name)
+      } else if (slot.name == "net") {
+        pairLR <- LR$interaction_name
       }
     }
-
     if ((slot.name == "netP") && (!is.null(signaling))) {
       df <- subset(df, name %in% signaling)
     } else if ((slot.name == "netP") &&(!is.null(pairLR))) {
@@ -1315,36 +1300,59 @@ rankNet <- function(object, slot.name = "netP", measure = c("weight","count"), m
     } else if ((slot.name == "net") && (!is.null(signaling))) {
       stop("You need to set `slot.name == 'netP'` if showing specific signaling pathways ")
     }
-
-    if (length(comparison) == 2) {
-      if (do.stat) {
-        colors.text <- ifelse((df$contribution.relative < 1-tol) & (df$pvalues < cutoff.pvalue), color.use[2], ifelse((df$contribution.relative > 1+tol) & (df$pvalues < cutoff.pvalue), color.use[1], "black"))
-      } else {
-        colors.text <- ifelse(df$contribution.relative < 1-tol, color.use[2], ifelse(df$contribution.relative > 1+tol, color.use[1], "black"))
-      }
-    } else {
-      message("The text on the y-axis will not be colored for the number of compared datasets larger than 2!")
-      colors.text = NULL
+    # remove the signaling that are similar between datasets
+    if (!is.null(min.fc)) {
+      df <- df[df$name %in% pair.name.all[!is.na(fold.change) & fold.change >= min.fc], , drop = FALSE]
     }
-    
+    if (signif.only) {
+      if (!do.stat) {
+        stop("Please set `do.stat = TRUE` when using `signif.only = TRUE`! ")
+      }
+      df <- df[df$name %in% pair.name.all[is.significant], , drop = FALSE]
+    }
+    if (nrow(df) == 0) {
+      stop("No inferred communications for the input!")
+    }
+    df$name <- droplevels(df$name)
+
+    # color the text on the y-axis according to the dataset showing the highest information flow
+    df.text <- df[df$group == object.names.comparison[1], , drop = FALSE]
+    df.text <- df.text[match(levels(df$name), df.text$name), , drop = FALSE]
+    idx.text <- match(df.text$name, pair.name.all)
+    if (n.comparison == 2) {
+      is.enriched <- (df.text$contribution.relative.1 < 1-tol) | (df.text$contribution.relative.1 > 1+tol)
+    } else {
+      is.enriched <- fold.change[idx.text] > 1+tol
+    }
+    is.enriched[is.na(is.enriched)] <- TRUE
+    if (do.stat) {
+      is.enriched <- is.enriched & is.significant[idx.text]
+    }
+    colors.text <- ifelse(is.enriched, color.use[dominant[idx.text]], "black")
+    colors.text <- unname(colors.text)
+
+    # https://stackoverflow.com/questions/49448497/coord-flip-changes-ordering-of-bars-within-groups-in-grouped-bar-plot
+    # reverse the levels so that the first dataset appears on top after flipping; colors are matched by names
+    if (do.flip) {
+      df$group <- factor(df$group, levels = rev(levels(df$group)))
+    }
+
     if (stacked) {
-      gg <- ggplot(df, aes(x=name, y=contribution, fill = group)) + geom_bar(stat="identity",width = bar.w, position ="fill") # +
-      # xlab("") + ylab("Relative information flow") #+ theme(axis.text.x = element_blank(),axis.ticks.x = element_blank())
-      #  scale_y_discrete(breaks=c("0","0.5","1")) +
+      gg <- ggplot(df, aes(x=name, y=contribution, fill = group)) + geom_bar(stat="identity",width = bar.w, position ="fill")
       if (measure == "weight") {
         gg <- gg + xlab("") + ylab("Relative information flow")
       } else if (measure == "count") {
         gg <- gg + xlab("") + ylab("Relative number of interactions")
       }
-
-      gg <- gg + geom_hline(yintercept = 0.5, linetype="dashed", color = "grey50", size=0.5)
+      # dashed line(s) showing an equal contribution of all datasets
+      gg <- gg + geom_hline(yintercept = seq_len(n.comparison-1)/n.comparison, linetype="dashed", color = "grey50", size = ifelse(usePublicationStyle(), 0.3, 0.5))
     } else {
       if (show.raw) {
         gg <- ggplot(df, aes(x=name, y=contribution, fill = group)) + geom_bar(stat="identity",width = bar.w, position = position_dodge(0.8)) +
-          xlab("") + ylab(ylabel) #+ coord_flip()#+ theme(axis.text.x = element_blank(),axis.ticks.x = element_blank())
+          xlab("") + ylab(ylabel)
       } else {
         gg <- ggplot(df, aes(x=name, y=contribution.scaled, fill = group)) + geom_bar(stat="identity",width = bar.w, position = position_dodge(0.8)) +
-          xlab("") + ylab(ylabel) #+ coord_flip()#+ theme(axis.text.x = element_blank(),axis.ticks.x = element_blank())
+          xlab("") + ylab(ylabel)
       }
 
       if (axis.gap) {
@@ -1356,7 +1364,11 @@ rankNet <- function(object, slot.name = "netP", measure = c("weight","count"), m
                        rel_heights = rel_heights)
       }
     }
-    gg <- gg +  CellChat_theme_opts() + theme_classic()
+    gg <- gg + themeCellChatOr(CellChat_theme_opts() + theme_classic(), base_size = font.size)
+    if (usePublicationStyle()) {
+      # bars start at the axis
+      gg <- gg + scale_y_continuous(expand = expansion(mult = c(0, ifelse(stacked, 0, 0.05))))
+    }
     if (do.flip) {
       gg <- gg + coord_flip() + theme(axis.text.y = element_text(colour = colors.text))
       if (is.null(x.angle)) {
@@ -1372,8 +1384,7 @@ rankNet <- function(object, slot.name = "netP", measure = c("weight","count"), m
     }
 
     gg <- gg + theme(axis.text=element_text(size=font.size), axis.title.y = element_text(size=font.size))
-    gg <- gg + scale_fill_manual(name = "", values = color.use)
-    gg <- gg + guides(fill = guide_legend(reverse = TRUE))
+    gg <- gg + scale_fill_manual(name = "", values = color.use, breaks = names(color.use))
     gg <- gg + theme(axis.text.x = element_text(angle = x.angle, hjust=x.hjust),
                      axis.text.y = element_text(angle = y.angle, hjust=y.hjust))
     if (!is.null(title)) {
@@ -1388,7 +1399,6 @@ rankNet <- function(object, slot.name = "netP", measure = c("weight","count"), m
   } else {
     return(gg)
   }
-  on.exit(options(oopts))
 }
 
 
@@ -1448,7 +1458,7 @@ compareInteractions <- function(object, measure = c("count", "weight"), color.us
   }
 
   if (is.null(color.use)) {
-    color.use <- ggPalette(length(unique(group)))
+    color.use <- datasetPalette(length(unique(group)))
   }
   #   theme_classic() #+ scale_x_discrete(limits = (levels(df$x)))
   if (!is.null(group.facet)) {
@@ -1471,8 +1481,11 @@ compareInteractions <- function(object, measure = c("count", "weight"), color.us
     gg <- ggplot(df, aes(x=dataset, y=count, fill = group)) +
       geom_bar(stat="identity", width=width, position=position_dodge())
   }
-  gg <- gg + geom_text(aes(label=count), vjust=-0.3, size=3, position = position_dodge(0.9))
-  gg <- gg + ylab(ylabel) + xlab(xlabel) + theme_classic() +
+  gg <- gg + geom_text(aes(label=count), vjust=-0.3, size = ifelse(usePublicationStyle(), (size.text - 1)/ggplot2::.pt, 3), position = position_dodge(0.9))
+  if (usePublicationStyle()) {
+    gg <- gg + scale_y_continuous(expand = expansion(mult = c(0, 0.1)))
+  }
+  gg <- gg + ylab(ylabel) + xlab(xlabel) + themeCellChatOr(theme_classic(), base_size = size.text) +
     labs(title = title.name) +  theme(plot.title = element_text(size = 10, face = "bold", hjust = 0.5)) +
     theme(text = element_text(size = size.text), axis.text = element_text(colour="black"))
   gg <- gg + scale_fill_manual(values = alpha(color.use, alpha = color.alpha), drop = FALSE)
@@ -1914,6 +1927,9 @@ mergeInteractions <- function(object, group.merged) {
 #' ligand.pct.2: threshold for the percent of expressed genes in the cells except for the defined 'positive' cell group
 #'
 #' @param receptor.pvalues,receptor.logFC,receptor.pct.1,receptor.pct.2 set threshold for receptor genes
+#' @param ligand.pvalues.adj,receptor.pvalues.adj thresholds for the adjusted p-values of ligand and receptor genes in the DEG analysis (see `p.adjust.method` in `identifyOverExpressedGenes`); recommended over `ligand.pvalues`/`receptor.pvalues`
+#' @param logFC.abs whether `ligand.logFC` and `receptor.logFC` are thresholds of the absolute logFC. Default = FALSE.
+#' When logFC.abs = TRUE, e.g., ligand.logFC = 0.25 keeps the ligands that are either up-regulated or down-regulated with |logFC| >= 0.25, which removes the genes that are only slightly different between conditions.
 #' @importFrom  dplyr select group_by summarize groups
 #' @importFrom stringr str_split
 #' @importFrom BiocGenerics as.data.frame
@@ -1947,7 +1963,8 @@ subsetCommunication <- function(object = NULL, net = NULL, slot.name = "net",
                                 pairLR.use = NULL,
                                 thresh = 0.05,
                                 datasets = NULL, ligand.pvalues = NULL, ligand.logFC = NULL, ligand.pct.1 = NULL, ligand.pct.2 = NULL,
-                                receptor.pvalues = NULL, receptor.logFC = NULL, receptor.pct.1 = NULL, receptor.pct.2 = NULL) {
+                                receptor.pvalues = NULL, receptor.logFC = NULL, receptor.pct.1 = NULL, receptor.pct.2 = NULL,
+                                ligand.pvalues.adj = NULL, receptor.pvalues.adj = NULL, logFC.abs = FALSE) {
   if (!is.null(pairLR.use)) {
     if (!is.data.frame(pairLR.use)) {
       stop("pairLR.use should be a data frame with a signle column named either 'interaction_name' or 'pathway_name' ")
@@ -1973,7 +1990,8 @@ subsetCommunication <- function(object = NULL, net = NULL, slot.name = "net",
                                            pairLR.use = pairLR.use,
                                            thresh = thresh,
                                            datasets = datasets, ligand.pvalues = ligand.pvalues, ligand.logFC = ligand.logFC, ligand.pct.1 = ligand.pct.1, ligand.pct.2 = ligand.pct.2,
-                                           receptor.pvalues = receptor.pvalues, receptor.logFC = receptor.logFC, receptor.pct.1 = receptor.pct.1, receptor.pct.2 =receptor.pct.2)
+                                           receptor.pvalues = receptor.pvalues, receptor.logFC = receptor.logFC, receptor.pct.1 = receptor.pct.1, receptor.pct.2 =receptor.pct.2,
+                                       ligand.pvalues.adj = ligand.pvalues.adj, receptor.pvalues.adj = receptor.pvalues.adj, logFC.abs = logFC.abs)
   } else if (object@options$mode == "merged") {
     if (is.null(net)) {
       net0 <- slot(object, "net")
@@ -1982,31 +2000,36 @@ subsetCommunication <- function(object = NULL, net = NULL, slot.name = "net",
         net <- net0[[i]]
         LR <- object@LR[[i]]$LRsig
         cells.level <- levels(object@idents[[i]])
-        df.net[[i]] <- tryCatch({
+
+        # a dataset without any interaction of interest should not prevent the comparison with the other datasets
+        df.net.i <- tryCatch({
           subsetCommunication_internal(net, LR, cells.level, slot.name = slot.name,
                                        sources.use = sources.use, targets.use = targets.use,
                                        signaling = signaling,
                                        pairLR.use = pairLR.use,
                                        thresh = thresh,
                                        datasets = datasets, ligand.pvalues = ligand.pvalues, ligand.logFC = ligand.logFC, ligand.pct.1 = ligand.pct.1, ligand.pct.2 = ligand.pct.2,
-                                       receptor.pvalues = receptor.pvalues, receptor.logFC = receptor.logFC, receptor.pct.1 = receptor.pct.1, receptor.pct.2 =receptor.pct.2)
+                                       receptor.pvalues = receptor.pvalues, receptor.logFC = receptor.logFC, receptor.pct.1 = receptor.pct.1, receptor.pct.2 =receptor.pct.2,
+                                       ligand.pvalues.adj = ligand.pvalues.adj, receptor.pvalues.adj = receptor.pvalues.adj, logFC.abs = logFC.abs)
         }, error = function(e) {
-          NULL
+          if (grepl("No significant signaling interactions", conditionMessage(e))) {
+            message("No significant signaling interactions are inferred in the dataset ", names(net0)[i], " based on the input!")
+            return(NULL)
+          }
+          stop(e)
         })
-      }
-      names(df.net) <- names(net0)
-      len <- sapply(df.net, length) > 0
-      idx <- which(sapply(df.net, length) > 0)
-      if (length(idx) == 0) {
-        stop(paste0("No significant signaling interactions are inferred in all conditions!"))
-      } else if (length(idx) < length(df.net)) {
-        for (i in setdiff(1:length(df.net), idx)) {
-          col.names <- colnames(df.net[[idx[1]]])
-          df.net[[i]] <- data.frame(matrix(nrow = 0, ncol = length(col.names)))
-          colnames(df.net[[i]]) <- col.names
-          warning(paste0("No significant signaling interactions are inferred in the condition ",names(net0)[i] ,"!"))
+        if (!is.null(df.net.i)) {
+          df.net[[i]] <- df.net.i
         }
       }
+      idx.empty <- which(sapply(df.net, is.null))
+      if (length(idx.empty) == length(df.net)) {
+        stop("No significant signaling interactions are inferred based on the input!")
+      }
+      for (i in idx.empty) {
+        df.net[[i]] <- df.net[[setdiff(seq_along(df.net), idx.empty)[1]]][0, , drop = FALSE]
+      }
+      names(df.net) <- names(net0)
 
     } else {
       LR <- data.frame()
@@ -2021,7 +2044,8 @@ subsetCommunication <- function(object = NULL, net = NULL, slot.name = "net",
                                              pairLR.use = pairLR.use,
                                              thresh = thresh,
                                              datasets = datasets, ligand.pvalues = ligand.pvalues, ligand.logFC = ligand.logFC, ligand.pct.1 = ligand.pct.1, ligand.pct.2 = ligand.pct.2,
-                                             receptor.pvalues = receptor.pvalues, receptor.logFC = receptor.logFC, receptor.pct.1 = receptor.pct.1, receptor.pct.2 =receptor.pct.2)
+                                             receptor.pvalues = receptor.pvalues, receptor.logFC = receptor.logFC, receptor.pct.1 = receptor.pct.1, receptor.pct.2 =receptor.pct.2,
+                                       ligand.pvalues.adj = ligand.pvalues.adj, receptor.pvalues.adj = receptor.pvalues.adj, logFC.abs = logFC.abs)
     }
 
   }
@@ -2053,6 +2077,9 @@ subsetCommunication <- function(object = NULL, net = NULL, slot.name = "net",
 #' ligand.pct.2: threshold for the percent of expressed genes in the cells except for the defined 'positive' cell group
 #'
 #' @param receptor.pvalues,receptor.logFC,receptor.pct.1,receptor.pct.2 set threshold for receptor genes
+#' @param ligand.pvalues.adj,receptor.pvalues.adj thresholds for the adjusted p-values of ligand and receptor genes in the DEG analysis (see `p.adjust.method` in `identifyOverExpressedGenes`); recommended over `ligand.pvalues`/`receptor.pvalues`
+#' @param logFC.abs whether `ligand.logFC` and `receptor.logFC` are thresholds of the absolute logFC. Default = FALSE.
+#' When logFC.abs = TRUE, e.g., ligand.logFC = 0.25 keeps the ligands that are either up-regulated or down-regulated with |logFC| >= 0.25, which removes the genes that are only slightly different between conditions.
 #' @importFrom  dplyr select group_by summarize groups
 #' @importFrom stringr str_split
 #' @importFrom BiocGenerics as.data.frame
@@ -2067,7 +2094,8 @@ subsetCommunication_internal <- function(net, LR, cells.level, slot.name = "net"
                                          pairLR.use = NULL,
                                          thresh = 0.05,
                                          datasets = NULL, ligand.pvalues = NULL, ligand.logFC = NULL, ligand.pct.1 = NULL, ligand.pct.2 = NULL,
-                                         receptor.pvalues = NULL, receptor.logFC = NULL, receptor.pct.1 = NULL, receptor.pct.2 = NULL) {
+                                         receptor.pvalues = NULL, receptor.logFC = NULL, receptor.pct.1 = NULL, receptor.pct.2 = NULL,
+                                         ligand.pvalues.adj = NULL, receptor.pvalues.adj = NULL, logFC.abs = FALSE) {
   if (!is.data.frame(net)) {
     prob <- net$prob
     pval <- net$pval
@@ -2114,11 +2142,25 @@ subsetCommunication_internal <- function(net, LR, cells.level, slot.name = "net"
     }
     net <- net[net$ligand.pvalues <= ligand.pvalues, , drop = FALSE]
   }
+  if (!is.null(ligand.pvalues.adj)){
+    if (!("ligand.pvalues.adj" %in% colnames(net))) {
+      stop("Please run `identifyOverExpressedGenes` and `netMappingDEG` before using the threshold 'ligand.pvalues.adj'")
+    }
+    net <- net[which(net$ligand.pvalues.adj <= ligand.pvalues.adj), , drop = FALSE]
+  }
+  if (!is.null(receptor.pvalues.adj)){
+    if (!("receptor.pvalues.adj" %in% colnames(net))) {
+      stop("Please run `identifyOverExpressedGenes` and `netMappingDEG` before using the threshold 'receptor.pvalues.adj'")
+    }
+    net <- net[which(net$receptor.pvalues.adj <= receptor.pvalues.adj), , drop = FALSE]
+  }
   if (!is.null(ligand.logFC)){
     if (!("ligand.logFC" %in% colnames(net))) {
       stop("Please run `identifyOverExpressedGenes` and `netMappingDEG` before using the threshold 'ligand.logFC'")
     }
-    if (ligand.logFC >= 0) {
+    if (logFC.abs) {
+      net <- net[which(abs(net$ligand.logFC) >= abs(ligand.logFC)), , drop = FALSE]
+    } else if (ligand.logFC >= 0) {
       net <- net[net$ligand.logFC >= ligand.logFC, , drop = FALSE]
     } else {
       net <- net[net$ligand.logFC <= ligand.logFC, , drop = FALSE]
@@ -2147,7 +2189,9 @@ subsetCommunication_internal <- function(net, LR, cells.level, slot.name = "net"
     if (!("receptor.logFC" %in% colnames(net))) {
       stop("Please run `identifyOverExpressedGenes` and `netMappingDEG` before using the threshold 'receptor.logFC'")
     }
-    if (receptor.logFC >= 0) {
+    if (logFC.abs) {
+      net <- net[which(abs(net$receptor.logFC) >= abs(receptor.logFC)), , drop = FALSE]
+    } else if (receptor.logFC >= 0) {
       net <- net[net$receptor.logFC >= receptor.logFC, , drop = FALSE]
     } else {
       net <- net[net$receptor.logFC <= receptor.logFC, , drop = FALSE]
@@ -2212,11 +2256,11 @@ subsetCommunication_internal <- function(net, LR, cells.level, slot.name = "net"
   if (slot.name == "net") {
     if (("ligand.logFC" %in% colnames(net)) & ("datasets" %in% colnames(net))) {
       col.use <- intersect(c("source", "target", "ligand", "receptor",  "prob", "pval", "interaction_name", "interaction_name_2", "pathway_name","annotation","evidence",
-                             "datasets","ligand.logFC", "ligand.pct.1", "ligand.pct.2", "ligand.pvalues",  "receptor.logFC", "receptor.pct.1", "receptor.pct.2", "receptor.pvalues"), colnames(net))
+                             "datasets","ligand.logFC", "ligand.pct.1", "ligand.pct.2", "ligand.pvalues", "ligand.pvalues.adj", "receptor.logFC", "receptor.pct.1", "receptor.pct.2", "receptor.pvalues", "receptor.pvalues.adj"), colnames(net))
       net <- net[,col.use]
     } else if ("ligand.logFC" %in% colnames(net)) {
       col.use <- intersect(c("source", "target", "ligand", "receptor",  "prob", "pval", "interaction_name", "interaction_name_2", "pathway_name","annotation","evidence",
-                             "ligand.logFC", "ligand.pct.1", "ligand.pct.2", "ligand.pvalues",  "receptor.logFC", "receptor.pct.1", "receptor.pct.2", "receptor.pvalues"), colnames(net))
+                             "ligand.logFC", "ligand.pct.1", "ligand.pct.2", "ligand.pvalues", "ligand.pvalues.adj", "receptor.logFC", "receptor.pct.1", "receptor.pct.2", "receptor.pvalues", "receptor.pvalues.adj"), colnames(net))
       net <- net[,col.use]
     } else {
       col.use <- intersect(c("source", "target", "ligand", "receptor",  "prob", "pval", "interaction_name", "interaction_name_2", "pathway_name","annotation","evidence"), colnames(net))
@@ -2487,6 +2531,7 @@ netAnalysis_diff_signalingRole_scatter <- function(object, color.use = NULL, com
     stop("This function cannot be applied to a single cellchat object from one dataset!")
   }
 
+  checkPairwiseComparison(comparison, length(object@net))
   dataset.name <- names(object@net)
   message(paste0("Visualizing differential outgoing and incoming signaling changes from ", dataset.name[comparison[1]], " to ", dataset.name[comparison[2]]))
   title <- paste0("Signaling changes ", " (", dataset.name[comparison[1]], " vs. ", dataset.name[comparison[2]], ")")
@@ -2568,7 +2613,7 @@ netAnalysis_diff_signalingRole_scatter <- function(object, color.use = NULL, com
       geom_point(aes(colour = labels, fill = labels), size = dot.size)
   }
 
-  gg <- gg + CellChat_theme_opts() + theme_linedraw() +theme(panel.grid = element_blank()) +
+  gg <- gg + themeCellChatOr(CellChat_theme_opts() + theme_linedraw() + theme(panel.grid = element_blank()), base_size = font.size, border = TRUE) +
     geom_hline(yintercept=0,linetype="dashed", color = "grey50", size = 0.25) + geom_vline(xintercept=0, linetype="dashed", color = "grey50",size = 0.25) +
     theme(text = element_text(size = font.size), legend.key.height = grid::unit(0.15, "in"))+
     # guides(colour = guide_legend(override.aes = list(size = 3)))+
@@ -2641,13 +2686,17 @@ netAnalysis_diff_signalingRole_scatter <- function(object, color.use = NULL, com
 #' @return ggplot object
 #' @export
 #'
-netAnalysis_signalingChanges_scatter <- function(object, idents.use, color.use = c("grey10", "#F8766D", "#00BFC4"), comparison = c(1,2), signaling = NULL, signaling.label = NULL, top.label = 1, signaling.exclude = NULL, xlims = NULL, ylims = NULL,slot.name = "netP", dot.size = 2.5, point.shape = c(21, 22, 24, 23), label.size = 3, dot.alpha = 0.6,
+netAnalysis_signalingChanges_scatter <- function(object, idents.use, color.use = NULL, comparison = c(1,2), signaling = NULL, signaling.label = NULL, top.label = 1, signaling.exclude = NULL, xlims = NULL, ylims = NULL,slot.name = "netP", dot.size = 2.5, point.shape = c(21, 22, 24, 23), label.size = 3, dot.alpha = 0.6,
                                                  x.measure = "outdeg", y.measure = "indeg", xlabel = "Differential outgoing interaction strength", ylabel = "Differential incoming interaction strength", title = NULL,
                                                  font.size = 10, font.size.title = 10, do.label = T, show.legend = T, show.axes = T) {
   if (is.list(object)) {
     object <- mergeCellChat(object, add.names = names(object))
   }
+  if (is.null(color.use)) {
+    color.use <- if (usePublicationStyle()) c("grey30", datasetPalette(2)) else c("grey10", "#F8766D", "#00BFC4")
+  }
   if (is.list(object@net[[1]])) {
+    checkPairwiseComparison(comparison, length(object@net))
     dataset.name <- names(object@net)
     message(paste0("Visualizing differential outgoing and incoming signaling changes from ", dataset.name[comparison[1]], " to ", dataset.name[comparison[2]]))
     title <- paste0("Signaling changes of ", idents.use, " (", dataset.name[comparison[1]], " vs. ", dataset.name[comparison[2]], ")")
@@ -2750,7 +2799,7 @@ netAnalysis_signalingChanges_scatter <- function(object, idents.use, color.use =
   df$labels <- rownames(df)
   gg <- ggplot(data = df, aes(outgoing, incoming)) +
     geom_point(aes(colour = specificity, fill = specificity, shape = specificity.out.in), size = dot.size)
-  gg <- gg + theme_linedraw() +theme(panel.grid = element_blank()) +
+  gg <- gg + themeCellChatOr(theme_linedraw() + theme(panel.grid = element_blank()), base_size = font.size, border = TRUE) +
     geom_hline(yintercept=0,linetype="dashed", color = "grey50", size = 0.25) + geom_vline(xintercept=0, linetype="dashed", color = "grey50",size = 0.25) +
     theme(text = element_text(size = font.size), legend.key.height = grid::unit(0.15, "in"))+
     # guides(colour = guide_legend(override.aes = list(size = 3)))+
@@ -2813,6 +2862,7 @@ netAnalysis_signalingChanges_scatter <- function(object, idents.use, color.use =
 #' @param font.size.title font size of the title
 #' @param cluster.rows whether cluster rows
 #' @param cluster.cols whether cluster columns
+#' @param as.ggplot whether to return a patchwork-compatible object (see `heatmapToGgplot`), e.g. to show the outgoing and incoming heatmaps side by side with `gg1 + gg2`
 #' @importFrom methods slot
 #' @importFrom grDevices colorRampPalette
 #' @importFrom RColorBrewer brewer.pal
@@ -2824,7 +2874,8 @@ netAnalysis_signalingChanges_scatter <- function(object, idents.use, color.use =
 #'
 netAnalysis_signalingRole_heatmap <- function(object, signaling = NULL, pattern = c("outgoing", "incoming","all"), slot.name = "netP",
                                               color.use = NULL, color.heatmap = "BuGn", title = NULL,
-                                              width = 10, height = 8, ylim.top = NULL, ylim.right = NULL, font.size = 8, font.size.title = 10, cluster.rows = FALSE, cluster.cols = FALSE){
+                                              width = 10, height = 8, ylim.top = NULL, ylim.right = NULL, font.size = 8, font.size.title = 10, cluster.rows = FALSE, cluster.cols = FALSE,
+                                              as.ggplot = FALSE){
   pattern <- match.arg(pattern)
   if (length(slot(object, slot.name)$centr) == 0) {
     stop("Please run `netAnalysis_computeCentrality` to compute the network centrality scores! ")
@@ -2873,10 +2924,14 @@ netAnalysis_signalingRole_heatmap <- function(object, signaling = NULL, pattern 
 
   df<- data.frame(group = colnames(mat)); rownames(df) <- colnames(mat)
   names(color.use) <- colnames(mat)
-  col_annotation <- HeatmapAnnotation(df = df, col = list(group = color.use),which = "column",
+  # unique names, so that the legends and annotations are not merged when heatmaps are concatenated with `+`
+  ht.name <- uniqueHeatmapName(title)
+  colnames(df) <- paste0(ht.name, "_group")
+  col.anno <- list(color.use); names(col.anno) <- colnames(df)
+  col_annotation <- HeatmapAnnotation(df = df, col = col.anno,which = "column",
                                       show_legend = FALSE, show_annotation_name = FALSE,
                                       simple_anno_size = grid::unit(0.2, "cm"))
-  ha2 = HeatmapAnnotation(Strength = anno_barplot(colSums(mat.ori), border = FALSE,gp = gpar(fill = color.use, col=color.use),add_numbers=FALSE,ylim = ylim.top), show_annotation_name = FALSE)
+  ha2 = do.call(HeatmapAnnotation, c(stats::setNames(list(anno_barplot(colSums(mat.ori), border = FALSE,gp = gpar(fill = color.use, col=color.use),add_numbers=FALSE,ylim = ylim.top)), paste0(ht.name, "_strength_columns")), list(show_annotation_name = FALSE)))
   pSum <- rowSums(mat.ori)
   pSum.original <- pSum
   pSum <- -1/log(pSum)
@@ -2888,24 +2943,27 @@ netAnalysis_signalingRole_heatmap <- function(object, signaling = NULL, pattern 
     pSum[idx1] <- values.assign[match(1:length(idx1), position)]
   }
 
-  ha1 = rowAnnotation(Strength = anno_barplot(pSum, border = FALSE, add_numbers=FALSE,ylim = ylim.right), show_annotation_name = FALSE)
+  ha1 = do.call(rowAnnotation, c(stats::setNames(list(anno_barplot(pSum, which = "row", border = FALSE, add_numbers=FALSE,ylim = ylim.right)), paste0(ht.name, "_strength_rows")), list(show_annotation_name = FALSE)))
 
   if (min(mat, na.rm = T) == max(mat, na.rm = T)) {
     legend.break <- max(mat, na.rm = T)
   } else {
     legend.break <- c(round(min(mat, na.rm = T), digits = 1), round(max(mat, na.rm = T), digits = 1))
   }
-  ht1 = Heatmap(mat, col = color.heatmap.use, na_col = "white", name = "Relative strength",
+  ht1 = Heatmap(mat, col = color.heatmap.use, na_col = "white", name = ht.name,
                 bottom_annotation = col_annotation, top_annotation = ha2, right_annotation = ha1,
-                cluster_rows = cluster.rows,cluster_columns = cluster.rows,
+                cluster_rows = cluster.rows,cluster_columns = cluster.cols,
                 row_names_side = "left",row_names_rot = 0,row_names_gp = gpar(fontsize = font.size),column_names_gp = gpar(fontsize = font.size),
                 width = unit(width, "cm"), height = unit(height, "cm"),
                 column_title = title,column_title_gp = gpar(fontsize = font.size.title),column_names_rot = 90,
-                heatmap_legend_param = list(title_gp = gpar(fontsize = 8, fontface = "plain"),title_position = "leftcenter-rot",
+                heatmap_legend_param = list(title = "Relative strength", title_gp = gpar(fontsize = 8, fontface = "plain"),title_position = "leftcenter-rot",
                                             border = NA, at = legend.break,
                                             legend_height = unit(20, "mm"),labels_gp = gpar(fontsize = 8),grid_width = unit(2, "mm"))
   )
   #  draw(ht1)
+  if (as.ggplot) {
+    return(heatmapToGgplot(ht1))
+  }
   return(ht1)
 }
 
@@ -2917,12 +2975,14 @@ netAnalysis_signalingRole_heatmap <- function(object, signaling = NULL, pattern 
 #'
 #' @param object CellChat object
 #' @param features.name a char name used for extracting the DEG in `object@var.features[[features.name]]`
-#' @param variable.all variable.all = TRUE will compute the c("pvalues", "logFC", "pct.1", "pct.2") for a ligand/receptor complex using the mean value of its all subunits, that is requiring all subunits of the complex are differential expressed;
-#' variable.all = FALSE will compute the minimum value of "pvalues" and maximum value of c("logFC", "pct.1", "pct.2") among the subunits, that is only requiring that any one of the subunits of the complex is differential expressed.
+#' @param variable.all variable.all = TRUE requires that all subunits of a ligand/receptor complex are differentially expressed (otherwise the DEG information of the complex is NA):
+#' c("logFC", "pct.1", "pct.2") are the mean values of its subunits and the p-values are the maximum p-values of its subunits (a valid p-value for testing that all subunits are differentially expressed);
+#' variable.all = FALSE only requires that any one of the subunits of the complex is differentially expressed: c("logFC", "pct.1", "pct.2") are the maximum values among the subunits and the p-values are the minimum p-values multiplied by the number of subunits (Bonferroni correction).
 #' @param thresh threshold of the p-value for determining significant interaction
 #' @importFrom  dplyr select
 #'
 #' @return a data frame of the inferred cell-cell communications, consisting of source, target, interaction_name, pathway_name, prob and other CellChatDB information as well as DEG information
+#' (ligand.pvalues, ligand.pvalues.adj, ligand.logFC, ligand.pct.1, ligand.pct.2 and the same columns for receptors)
 #'
 #' @export
 #'
@@ -2948,86 +3008,282 @@ netMappingDEG <- function(object, features.name, variable.all = TRUE, thresh = 0
   net$source.ligand <- paste0(net$source,".", net$ligand)
   net$target.receptor <- paste0(net$target,".", net$receptor)
 
-  DEG$clusters.features <- paste0(DEG$clusters,".", DEG$features)
+  if (is.null(DEG) || nrow(DEG) == 0) {
+    warning("No differentially expressed genes are stored in `object@var.features[['", features.name, "']]`: the DEG columns of the result are NA. ",
+            "Please relax the thresholds used in `identifyOverExpressedGenes` (e.g., `thresh.fc`, `thresh.p.adj`, `thresh.pc`, or `min.cells.replicate` with `group.replicate`).", call. = FALSE)
+    DEG <- data.frame(clusters = character(0), features = character(0), pvalues = numeric(0), logFC = numeric(0),
+                      pct.1 = numeric(0), pct.2 = numeric(0), pvalues.adj = numeric(0), stringsAsFactors = FALSE)
+  }
+  if (!all(c("clusters", "features", "pvalues", "logFC", "pct.1", "pct.2") %in% colnames(DEG))) {
+    stop("`object@var.features[['", features.name, "']]` does not contain the differential expression results. Please run `identifyOverExpressedGenes` with `do.DE = TRUE`.")
+  }
+  DEG$clusters.features <- paste0(DEG$clusters, rep(".", nrow(DEG)), DEG$features)
+  # one row per cell group and gene (the first one, i.e., the most significant one, is used)
+  DEG <- DEG[!duplicated(DEG$clusters.features), , drop = FALSE]
+  if (!("pvalues.adj" %in% colnames(DEG))) {
+    DEG$pvalues.adj <- NA
+  }
+  cols.DEG <- c("pvalues", "pvalues.adj", "logFC", "pct.1", "pct.2")
 
-  net <- cbind(net, data.frame(ligand.pvalues = NA, ligand.logFC = NA, ligand.pct.1 = NA, ligand.pct.2 = NA,
-                               receptor.pvalues = NA, receptor.logFC = NA, receptor.pct.1 = NA, receptor.pct.2 = NA))
-  # compute values for ligand
-  idx1.ligand <- net$ligand %in% geneInfo$Symbol
-  idx2.ligand <- which((net$ligand %in% geneInfo$Symbol) == "FALSE")
-  idx.pos <- match(net$source.ligand, DEG$clusters.features)
-  idx1.source.ligand <- which(!is.na(idx.pos))
-  idx1.clusters.features <- idx.pos[!is.na(idx.pos)]
-  idx2.source.ligand <- which(idx1.ligand & !(net$source.ligand %in% DEG$clusters.features))
-  net[idx1.source.ligand, c("ligand.pvalues", "ligand.logFC", "ligand.pct.1", "ligand.pct.2")] <- DEG[idx1.clusters.features, c("pvalues", "logFC", "pct.1", "pct.2")]
+  # DEG information of a ligand or a receptor (possibly a complex) in a given cell group
+  mapDEG <- function(genes, cells, prefix) {
+    res <- as.data.frame(matrix(NA_real_, nrow = length(genes), ncol = length(cols.DEG)))
+    colnames(res) <- paste0(prefix, ".", cols.DEG)
+    is.gene <- genes %in% geneInfo$Symbol
+    idx.pos <- match(paste0(cells, ".", genes), DEG$clusters.features)
+    idx.gene <- which(is.gene & !is.na(idx.pos))
+    res[idx.gene, ] <- DEG[idx.pos[idx.gene], cols.DEG]
 
-  if (length(idx2.ligand) > 0) {
-    net.temp.all <- data.frame()
-    for (i in 1:length(idx2.ligand)) {
-      complex <- net$ligand[idx2.ligand[i]]
-      complexsubunits <- dplyr::select(complex_input[match(complex, rownames(complex_input), nomatch=0),], starts_with("subunit"))
+    idx.complex <- which(!is.gene)
+    for (i in idx.complex) {
+      complexsubunits <- dplyr::select(complex_input[match(genes[i], rownames(complex_input), nomatch=0), , drop = FALSE], starts_with("subunit"))
       complexsubunitsV <- unlist(complexsubunits)
-      complexsubunitsV <- unique(complexsubunitsV[complexsubunitsV != ""])
-
-      source.ligand.complex <- paste0(net$source[idx2.ligand[i]],".", complexsubunitsV)
-      idx.pos <- match(source.ligand.complex, DEG$clusters.features)
-      idx1.clusters.features <- idx.pos[!is.na(idx.pos)]
-      if (length(idx1.clusters.features) > 0) {
-        net.temp <- DEG[idx1.clusters.features, c("pvalues", "logFC", "pct.1", "pct.2"), drop = FALSE]
-        if (variable.all == TRUE) {
-          net.temp <- colMeans(net.temp, na.rm = TRUE)
-        } else {
-          net.temp <- c(min(net.temp$pvalues), apply(net.temp[, 2:ncol(net.temp), drop = FALSE], 2, function(x) max(x, na.rm = TRUE)))
-          names(net.temp)[1] <- "pvalues"
-        }
-        net.temp <- as.data.frame(t(net.temp))
-        colnames(net.temp) <- c("ligand.pvalues", "ligand.logFC", "ligand.pct.1", "ligand.pct.2")
-      } else {
-        net.temp <- data.frame(ligand.pvalues = NA, ligand.logFC = NA, ligand.pct.1 = NA, ligand.pct.2 = NA)
+      complexsubunitsV <- unique(complexsubunitsV[!is.na(complexsubunitsV) & complexsubunitsV != ""])
+      if (length(complexsubunitsV) == 0) {
+        next
       }
-      net.temp.all <- rbind(net.temp.all, net.temp)
+      idx.pos <- match(paste0(cells[i], ".", complexsubunitsV), DEG$clusters.features)
+      if (variable.all == TRUE) {
+        # all the subunits should be differentially expressed;
+        # the maximum p-value is the valid p-value of this intersection-union test
+        if (any(is.na(idx.pos))) {
+          next
+        }
+        deg.i <- DEG[idx.pos, cols.DEG, drop = FALSE]
+        res[i, ] <- c(max(deg.i$pvalues), max(deg.i$pvalues.adj), colMeans(deg.i[, c("logFC", "pct.1", "pct.2"), drop = FALSE], na.rm = TRUE))
+      } else {
+        # any of the subunits should be differentially expressed;
+        # the minimum p-value is corrected for the number of subunits (Bonferroni)
+        idx.pos <- idx.pos[!is.na(idx.pos)]
+        if (length(idx.pos) == 0) {
+          next
+        }
+        deg.i <- DEG[idx.pos, cols.DEG, drop = FALSE]
+        n.subunits <- length(complexsubunitsV)
+        res[i, ] <- c(min(1, n.subunits * min(deg.i$pvalues)), min(1, n.subunits * min(deg.i$pvalues.adj)),
+                      apply(deg.i[, c("logFC", "pct.1", "pct.2"), drop = FALSE], 2, function(x) max(x, na.rm = TRUE)))
+      }
     }
-    net[idx2.ligand, c("ligand.pvalues", "ligand.logFC", "ligand.pct.1", "ligand.pct.2")] <- net.temp.all
+    res
   }
 
-  # compute values for receptor
-  idx1.receptor <- net$receptor %in% geneInfo$Symbol
-  idx2.receptor <- which((net$receptor %in% geneInfo$Symbol) == "FALSE")
-  idx.pos <- match(net$target.receptor, DEG$clusters.features)
-  idx1.target.receptor <- which(!is.na(idx.pos))
-  idx1.clusters.features <- idx.pos[!is.na(idx.pos)]
-  net[idx1.target.receptor, c("receptor.pvalues", "receptor.logFC", "receptor.pct.1", "receptor.pct.2")] <- DEG[idx1.clusters.features, c("pvalues", "logFC", "pct.1", "pct.2")]
-
-  if (length(idx2.receptor) > 0) {
-    net.temp.all <- data.frame()
-    for (i in 1:length(idx2.receptor)) {
-      complex <- net$receptor[idx2.receptor[i]]
-      complexsubunits <- dplyr::select(complex_input[match(complex, rownames(complex_input), nomatch=0),], starts_with("subunit"))
-      complexsubunitsV <- unlist(complexsubunits)
-      complexsubunitsV <- unique(complexsubunitsV[complexsubunitsV != ""])
-
-      target.receptor.complex <- paste0(net$target[idx2.receptor[i]],".", complexsubunitsV)
-      idx.pos <- match(target.receptor.complex, DEG$clusters.features)
-      idx1.clusters.features <- idx.pos[!is.na(idx.pos)]
-      if (length(idx1.clusters.features) > 0) {
-        net.temp <- DEG[idx1.clusters.features, c("pvalues", "logFC", "pct.1", "pct.2")]
-        if (variable.all == TRUE) {
-          net.temp <- colMeans(net.temp, na.rm = TRUE)
-        } else {
-          net.temp <- c(min(net.temp$pvalues, na.rm = TRUE), apply(net.temp[, 2:ncol(net.temp), drop = FALSE], 2, function(x) max(x, na.rm = TRUE)))
-          names(net.temp)[1] <- "pvalues"
-        }
-        net.temp <- as.data.frame(t(net.temp))
-        colnames(net.temp) <- c("receptor.pvalues", "receptor.logFC", "receptor.pct.1", "receptor.pct.2")
-      } else {
-        net.temp <- data.frame(receptor.pvalues = NA, receptor.logFC = NA, receptor.pct.1 = NA, receptor.pct.2 = NA)
-      }
-      net.temp.all <- rbind(net.temp.all, net.temp)
-    }
-    net[idx2.receptor, c("receptor.pvalues", "receptor.logFC", "receptor.pct.1", "receptor.pct.2")] <- net.temp.all
-  }
+  net <- cbind(net, mapDEG(net$ligand, net$source, "ligand"), mapDEG(net$receptor, net$target, "receptor"))
   # net <- dplyr::select[net, -c("source.ligand", "target.receptor")]
   return(net)
+}
+
+
+#' Diagnose why differentially expressed genes are found, or not, in the inferred cell-cell communications
+#'
+#' A gene can be differentially expressed between conditions without being part of any inferred communication. For each differentially expressed gene
+#' (as a ligand in its cell group as source, or as a receptor in its cell group as target), this function follows all its ligand-receptor pairs of CellChatDB
+#' through the steps of the inference and reports the first step where they are lost:
+#' \itemize{
+#'   \item "significant": at least one communication with p-value < `thresh` in one of the `datasets`;
+#'   \item "not significant": a communication probability > 0 but no p-value < `thresh` (the communication is not specific to these cell groups);
+#'   \item "expression too low": the pair was analyzed but its communication probability is 0 for all the partners: the gene or its partner is expressed by too few cells of the cell groups
+#'   for the average expression used by `computeCommunProb` (with type = "triMean", the default, a gene expressed by less than 25% of the cells of a cell group has an average expression of 0;
+#'   see type = "truncatedMean" with trim = 0.1 or 0.05, or a sub-clustering of the cell group into the responding cells); cell groups removed by `filterCommunication(min.cells)` also give a probability of 0;
+#'   \item "pair not selected": the partner is expressed but the pair was not used for the inference, because its ligand or receptor was not selected by `identifyOverExpressedGenes`/`identifyOverExpressedInteractions`
+#'   in each condition (strict thresholds at this step, e.g. `thresh.p.adj`/`thresh.fc`, remove many pairs);
+#'   \item "partner not expressed": the partner is expressed by less than `min.pct.partner` of the cells of every cell group: no communication can be inferred in this tissue.
+#' }
+#' This makes it possible to keep a valid differential expression analysis (e.g., the pseudobulk analysis with `group.replicate`) while reporting the communications that cannot be detected,
+#' instead of relaxing the statistical thresholds.
+#'
+#' @param object a merged CellChat object (or a single CellChat object) with the results of `identifyOverExpressedGenes` stored under `features.name`
+#' @param features.name the name used in `identifyOverExpressedGenes` for storing the differential expression results (`object@var.features[[paste0(features.name, ".info")]]`)
+#' @param datasets the datasets in which the communications are searched. Default: the two compared conditions when they can be identified from the differential expression results, otherwise all the datasets
+#' @param genes,clusters restrict the analysis to these genes and/or cell groups
+#' @param thresh threshold of the p-values of the communications
+#' @param min.pct.partner minimum fraction of expressing cells (in at least one cell group) for a partner to be considered as expressed; for a complex, the fraction of its least expressed subunit is used
+#' @param return.pairs whether to return the details of each ligand-receptor pair and dataset instead of one row per differentially expressed gene and cell group
+#'
+#' @return a data frame with one row per differentially expressed gene and cell group: the DEG information, `role` (ligand and/or receptor), `n.pairs` (number of pairs of CellChatDB),
+#' `status` (see above), `pct.<dataset>` (fraction of the cells of the cell group expressing the gene), `n.significant.<dataset>` (number of significant communications),
+#' `best.communication` (the significant communication with the highest probability, otherwise the pair whose partner is the most expressed) and `best.partner` (cell group and fraction of expressing cells of this partner).
+#' With `return.pairs = TRUE`, one row per gene, cell group, pair and dataset.
+#' @export
+#' @examples
+#' \dontrun{
+#' cellchat <- identifyOverExpressedGenes(cellchat, group.dataset = "datasets", pos.dataset = "TrtA", neg.dataset = "Ctrl",
+#'                                        group.replicate = "samples", only.pos = FALSE, thresh.p.adj = 0.05, thresh.fc = 0.25,
+#'                                        features.name = "TrtA.merged")
+#' diag <- diagnoseDEGCommunication(cellchat, features.name = "TrtA.merged")
+#' table(diag$clusters, diag$status)
+#' }
+diagnoseDEGCommunication <- function(object, features.name, datasets = NULL, genes = NULL, clusters = NULL,
+                                     thresh = 0.05, min.pct.partner = 0.1, return.pairs = FALSE) {
+  deg.name <- paste0(features.name, ".info")
+  DEG <- object@var.features[[deg.name]]
+  if (is.null(DEG)) {
+    available <- sub("\\.info$", "", grep("\\.info$", names(object@var.features), value = TRUE))
+    stop("`object@var.features[['", deg.name, "']]` does not exist. Please run `identifyOverExpressedGenes(..., features.name = '", features.name, "')` on this object first",
+         ifelse(length(available) > 0, paste0(" (available: ", toString(available), ")"), ""), ".", call. = FALSE)
+  }
+  if (!all(c("clusters", "features") %in% colnames(DEG))) {
+    stop("`object@var.features[['", deg.name, "']]` does not contain the differential expression results (columns 'clusters' and 'features'). Please run `identifyOverExpressedGenes` with `do.DE = TRUE`.", call. = FALSE)
+  }
+  DEG$clusters <- as.character(DEG$clusters)
+  DEG$features <- as.character(DEG$features)
+  if (!is.null(genes)) DEG <- DEG[DEG$features %in% genes, , drop = FALSE]
+  if (!is.null(clusters)) DEG <- DEG[DEG$clusters %in% clusters, , drop = FALSE]
+  DEG <- DEG[!duplicated(paste(DEG$clusters, DEG$features)), , drop = FALSE]
+  if (nrow(DEG) == 0) {
+    stop("No differentially expressed gene to diagnose (check `genes`, `clusters` and the thresholds used in `identifyOverExpressedGenes`).", call. = FALSE)
+  }
+
+  # communications and cells of each dataset
+  is.merged <- !is.null(object@options$mode) && object@options$mode == "merged"
+  if (is.merged) {
+    nets <- object@net
+    LRsig <- lapply(object@LR, function(x) x$LRsig)
+    labels <- object@idents$joint
+    cell.dataset <- as.character(object@meta$datasets)
+    if (length(cell.dataset) != length(labels)) {
+      stop("`object@meta$datasets` is missing: the object should be created by `mergeCellChat`.", call. = FALSE)
+    }
+    if (is.null(datasets)) {
+      if ("datasets" %in% colnames(DEG) && is.factor(DEG$datasets)) {
+        datasets <- intersect(unlist(strsplit(levels(DEG$datasets), ", ", fixed = TRUE)), names(nets))
+      }
+      if (length(datasets) == 0) datasets <- names(nets)
+    }
+  } else {
+    nets <- list(single = object@net)
+    LRsig <- list(single = object@LR$LRsig)
+    labels <- object@idents
+    cell.dataset <- rep("single", length(labels))
+    datasets <- "single"
+  }
+  if (!all(datasets %in% names(nets))) {
+    stop("Unknown dataset(s): ", toString(setdiff(datasets, names(nets))), ". Available: ", toString(names(nets)), call. = FALSE)
+  }
+  for (d in datasets) {
+    if (is.null(nets[[d]]$prob) || is.null(nets[[d]]$pval)) {
+      stop("No inferred communication in dataset ", d, ": please run `computeCommunProb` before merging.", call. = FALSE)
+    }
+  }
+
+  # fraction of expressing cells of each gene in each cell group and dataset
+  X <- object@data.signaling
+  pct <- lapply(datasets, function(d) {
+    keep <- which(cell.dataset == d)
+    grp <- droplevels(factor(labels[keep]))
+    G <- Matrix::sparseMatrix(i = seq_along(keep), j = as.integer(grp), x = 1, dims = c(length(keep), nlevels(grp)), dimnames = list(NULL, levels(grp)))
+    m <- as.matrix((X[, keep, drop = FALSE] > 0) %*% G)
+    sweep(m, 2, pmax(Matrix::colSums(G), 1), "/")
+  })
+  names(pct) <- datasets
+
+  DB <- object@DB
+  complex <- DB$complex
+  subunit.cols <- grep("^subunit", colnames(complex), value = TRUE)
+  genesOf <- function(x) {
+    if (x %in% rownames(complex)) {
+      v <- unlist(complex[x, subunit.cols], use.names = FALSE)
+      unique(v[!is.na(v) & v != ""])
+    } else {
+      x
+    }
+  }
+  interaction <- DB$interaction
+  L.genes <- lapply(interaction$ligand, genesOf)
+  R.genes <- lapply(interaction$receptor, genesOf)
+  # fraction of expressing cells of a ligand/receptor (least expressed subunit) in each cell group
+  pctLR <- function(gs, d) {
+    p <- pct[[d]]
+    m <- matrix(0, nrow = length(gs), ncol = ncol(p), dimnames = list(gs, colnames(p)))
+    in.data <- gs %in% rownames(p)
+    m[in.data, ] <- p[gs[in.data], , drop = FALSE]
+    apply(m, 2, min)
+  }
+
+  status.levels <- c("significant", "not significant", "expression too low", "pair not selected", "partner not expressed")
+  details <- list()
+  summary <- vector("list", nrow(DEG))
+  for (k in seq_len(nrow(DEG))) {
+    g <- DEG$features[k]; cl <- DEG$clusters[k]
+    isL <- which(vapply(L.genes, function(x) g %in% x, logical(1)))
+    isR <- which(vapply(R.genes, function(x) g %in% x, logical(1)))
+    pairs <- data.frame(idx = c(isL, isR), role = c(rep("ligand", length(isL)), rep("receptor", length(isR))), stringsAsFactors = FALSE)
+    row <- DEG[k, intersect(c("clusters", "features", "logFC", "pvalues", "pvalues.adj", "datasets"), colnames(DEG)), drop = FALSE]
+    row$role <- paste(unique(pairs$role), collapse = "+")
+    row$n.pairs <- nrow(pairs)
+    for (d in datasets) {
+      row[[paste0("pct.", d)]] <- if (g %in% rownames(pct[[d]]) && cl %in% colnames(pct[[d]])) round(pct[[d]][g, cl], 3) else NA
+    }
+    if (nrow(pairs) == 0) {
+      row$status <- "not in CellChatDB"
+      for (d in datasets) row[[paste0("n.significant.", d)]] <- 0
+      row$best.communication <- NA; row$best.partner <- NA
+      summary[[k]] <- row
+      next
+    }
+    res.k <- list()
+    for (i in seq_len(nrow(pairs))) {
+      lr <- rownames(interaction)[pairs$idx[i]]
+      partner <- if (pairs$role[i] == "ligand") interaction$receptor[pairs$idx[i]] else interaction$ligand[pairs$idx[i]]
+      partner.genes <- if (pairs$role[i] == "ligand") R.genes[[pairs$idx[i]]] else L.genes[[pairs$idx[i]]]
+      for (d in datasets) {
+        prob <- nets[[d]]$prob; pval <- nets[[d]]$pval
+        selected <- !is.null(LRsig[[d]]) && lr %in% rownames(LRsig[[d]]) && lr %in% dimnames(prob)[[3]] && cl %in% dimnames(prob)[[1]]
+        P <- V <- NULL
+        if (selected) {
+          P <- if (pairs$role[i] == "ligand") prob[cl, , lr] else prob[, cl, lr]
+          V <- if (pairs$role[i] == "ligand") pval[cl, , lr] else pval[, cl, lr]
+        }
+        p.partner <- pctLR(partner.genes, d)
+        sig <- if (selected) which(P > 0 & V < thresh) else integer(0)
+        best <- if (length(sig) > 0) sig[which.max(P[sig])] else if (selected && max(P) > 0) which.max(P) else NA
+        res.k[[length(res.k) + 1]] <- data.frame(
+          clusters = cl, features = g, interaction_name = lr, role = pairs$role[i], partner = partner, datasets = d,
+          selected = selected, n.significant = length(sig), prob.max = if (selected) max(P) else 0,
+          best.partner.cells = if (!is.na(best)) names(P)[best] else NA_character_,
+          best.pval = if (!is.na(best)) V[best] else NA_real_,
+          partner.pct.max = if (length(p.partner) > 0) max(p.partner) else 0,
+          partner.pct.group = if (length(p.partner) > 0) names(p.partner)[which.max(p.partner)] else NA_character_,
+          stringsAsFactors = FALSE)
+      }
+    }
+    res.k <- do.call(rbind, res.k)
+    # status of each pair across the datasets
+    pair.status <- sapply(split(res.k, res.k$interaction_name), function(x) {
+      if (any(x$n.significant > 0)) "significant"
+      else if (any(x$prob.max > 0)) "not significant"
+      else if (max(x$partner.pct.max) < min.pct.partner) "partner not expressed"
+      else if (any(x$selected)) "expression too low"
+      else "pair not selected"
+    })
+    res.k$status <- factor(pair.status[res.k$interaction_name], levels = status.levels)
+    details[[k]] <- res.k
+    row$status <- status.levels[min(as.integer(res.k$status))]
+    for (d in datasets) {
+      row[[paste0("n.significant.", d)]] <- sum(res.k$n.significant[res.k$datasets == d])
+    }
+    best.pairs <- res.k[as.integer(res.k$status) == min(as.integer(res.k$status)), , drop = FALSE]
+    if (row$status %in% c("significant", "not significant")) {
+      b <- best.pairs[which.max(best.pairs$prob.max), ]
+      arrow <- ifelse(b$role == "ligand", paste0(cl, " -> ", b$best.partner.cells), paste0(b$best.partner.cells, " -> ", cl))
+      row$best.communication <- paste0(b$interaction_name, " (", arrow, ", ", b$datasets, ", p = ", signif(b$best.pval, 2), ")")
+    } else {
+      b <- best.pairs[which.max(best.pairs$partner.pct.max), ]
+      row$best.communication <- b$interaction_name
+    }
+    row$best.partner <- paste0(b$partner, " (", b$partner.pct.group, ": ", round(100 * b$partner.pct.max), "%)")
+    summary[[k]] <- row
+  }
+  if (return.pairs) {
+    out <- do.call(rbind, details)
+  } else {
+    out <- do.call(dplyr::bind_rows, summary)
+    out$status <- factor(out$status, levels = c(status.levels, "not in CellChatDB"))
+    out <- out[order(out$clusters, out$status), , drop = FALSE]
+    message("Status of the ", nrow(out), " differentially expressed gene(s): ",
+            paste0(names(table(out$status))[table(out$status) > 0], " = ", table(out$status)[table(out$status) > 0], collapse = "; "))
+  }
+  rownames(out) <- NULL
+  out
 }
 
 

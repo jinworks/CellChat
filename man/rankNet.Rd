@@ -20,7 +20,10 @@ rankNet(
   do.stat = FALSE,
   paired.test = TRUE,
   cutoff.pvalue = 0.05,
+  p.adjust.method = "BH",
   tol = 0.05,
+  min.fc = NULL,
+  signif.only = FALSE,
   thresh = 0.05,
   show.raw = FALSE,
   return.data = FALSE,
@@ -49,9 +52,10 @@ rankNet(
 
 \item{mode}{"single","comparison"}
 
-\item{comparison}{a numerical vector giving the datasets for comparison; a single value means ranking for only one dataset and two values means ranking comparison for two datasets}
+\item{comparison}{a numerical vector giving the datasets for comparison; a single value means ranking for only one dataset and two or more values (e.g., comparison = c(1,2,3)) means ranking comparison for these datasets.
+When more than two datasets are compared, signaling are grouped by the dataset showing the highest information flow (first dataset on top) and the y-axis text is colored by this dataset.}
 
-\item{color.use}{defining the color for each cell group}
+\item{color.use}{defining the color for each dataset, in the order of `comparison` (or a vector named by the dataset names)}
 
 \item{stacked}{whether plot the stacked bar plot}
 
@@ -65,13 +69,23 @@ rankNet(
 
 \item{signaling.type}{a char giving the types of signaling from the three categories c("Secreted Signaling", "ECM-Receptor", "Cell-Cell Contact")}
 
-\item{do.stat}{whether do a Wilcoxon test to determine whether there is significant difference between two datasets. Default = FALSE}
+\item{do.stat}{whether do a statistical test to determine whether there is significant difference between datasets. Default = FALSE.
+A Wilcoxon test is used for two datasets; for more than two datasets, a Friedman test (paired.test = TRUE) or a Kruskal-Wallis test (paired.test = FALSE) is used.}
 
-\item{paired.test}{a logical indicating whether you want a paired test. Paired test is applicable to compare two datasets with the same cellular compositions.}
+\item{paired.test}{a logical indicating whether you want a paired test. Paired test is applicable to compare datasets with the same cellular compositions.}
 
-\item{cutoff.pvalue}{the cutoff of pvalue when doing Wilcoxon test; Default = 0.05}
+\item{cutoff.pvalue}{the cutoff of the adjusted p-values (see `p.adjust.method`) when doing statistical test; Default = 0.05}
 
-\item{tol}{a tolerance when considering the relative contribution being equal between two datasets. contribution.relative between 1-tol and 1+tol will be considered as equal contribution}
+\item{p.adjust.method}{the method used to correct the p-values for the number of tested signaling (see `stats::p.adjust`); Default = "BH". Set p.adjust.method = "none" to use the raw p-values as in the previous versions.
+The returned data contain the raw (`pvalues`) and adjusted (`pvalues.adj`) p-values; signaling detected in only some of the datasets (no communication in at least one dataset) cannot be tested (`pvalues` = NA, `specific` = TRUE) and are considered as different.
+NB: the tests compare the communication probabilities of the cell group pairs between datasets, i.e. cell group pairs are the observations, not biological replicates.}
+
+\item{tol}{a tolerance when considering the relative contribution being equal between datasets. contribution.relative between 1-tol and 1+tol will be considered as equal contribution.
+For more than two datasets, the y-axis text is colored only when the highest information flow is larger than (1+tol) times the second highest one.}
+
+\item{min.fc}{a minimum fold change of the information flow (highest vs. second highest dataset) used to remove the signaling that are similar between datasets, e.g., min.fc = 1.5. Default = NULL (all signaling are shown)}
+
+\item{signif.only}{whether to only show the signaling that are significantly different between datasets (requires do.stat = TRUE). Default = FALSE}
 
 \item{thresh}{threshold of the p-value for determining significant interaction}
 

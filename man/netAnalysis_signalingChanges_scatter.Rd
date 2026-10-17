@@ -7,7 +7,7 @@
 netAnalysis_signalingChanges_scatter(
   object,
   idents.use,
-  color.use = c("grey10", "#F8766D", "#00BFC4"),
+  color.use = NULL,
   comparison = c(1, 2),
   signaling = NULL,
   signaling.label = NULL,

@@ -37,7 +37,7 @@
 #'
 #' @param contact.dependent.forced Whether forcing to use the `contact-dependent` manner for inference signaling for all L-R pairs including secreted signaling. Users can set `contact.dependent.forced = TRUE` if also preferring interactions within a contact manner for `Secreted Signaling`.
 #'
-#' @param nboot Threshold of p-values
+#' @param nboot the number of permutations used to compute the p-values. The p-values are computed as (1 + number of permutations with a probability at least as large as the observed one)/(1 + nboot), so the smallest possible p-value is 1/(nboot + 1); increase nboot (e.g., nboot = 1000) for a finer resolution of the p-values, in particular when correcting for multiple testing
 #' @param seed.use Set a random seed. By default, set the seed to 1.
 #' @param Kh Parameter in Hill function
 #' @param n Parameter in Hill function
@@ -97,6 +97,14 @@ computeCommunProb <- function(object, type = c("triMean", "truncatedMean","thres
   ptm = Sys.time()
 
   pairLRsig <- pairLR.use
+  if (is.null(pairLRsig) || nrow(pairLRsig) == 0) {
+    n.genes <- length(object@var.features[["features"]])
+    stop("No ligand-receptor pairs are available for the inference (`object@LR$LRsig` is empty; ", n.genes,
+         " over-expressed signaling genes were identified by `identifyOverExpressedGenes`). ",
+         "The thresholds of `identifyOverExpressedGenes` (e.g., `thresh.fc`, `thresh.p.adj`) are probably too strict for this step, ",
+         "which only selects the signaling genes expressed by each cell group: the default thresholds are recommended here. ",
+         "Then run `identifyOverExpressedInteractions` again.", call. = FALSE)
+  }
   group <- object@idents
   geneL <- as.character(pairLRsig$ligand)
   geneR <- as.character(pairLRsig$receptor)
@@ -300,8 +308,10 @@ computeCommunProb <- function(object, type = c("triMean", "truncatedMean","thres
         }
       )
       Pboot <- matrix(unlist(Pboot), nrow=length(Pnull), ncol = nboot, byrow = FALSE)
-      nReject <- rowSums(Pboot - Pnull > 0)
-      p = nReject/nboot
+      # permutation p-value (Phipson & Smyth, 2010): the observed value is counted as one of the permutations,
+      # so that the p-value is never 0, and ties are counted as at least as extreme as the observed value
+      nReject <- rowSums(Pboot - Pnull >= 0)
+      p = (nReject + 1)/(nboot + 1)
       Pval[, , i] <- matrix(p, nrow = numCluster, ncol = numCluster, byrow = FALSE)
     }
     setTxtProgressBar(pb = pb, value = i)
@@ -421,7 +431,7 @@ aggregateNet <- function(object, sources.use = NULL, targets.use = NULL, signali
     df.net2 <- df.net %>% group_by(source_target) %>% summarize(count = n(), .groups = 'drop')
     df.net3 <- df.net %>% group_by(source_target) %>% summarize(prob = sum(prob), .groups = 'drop')
     df.net2$prob <- df.net3$prob
-    a <- stringr::str_split(df.net2$source_target, "|", simplify = T)
+    a <- stringr::str_split(df.net2$source_target, stringr::fixed("|"), simplify = T)
     df.net2$source <- as.character(a[, 1])
     df.net2$target <- as.character(a[, 2])
     cells.level <- levels(object@idents)
@@ -530,7 +540,7 @@ computeExpr_complex <- function(complex_input, data.use, complex) {
     no = future.apply::future_sapply
   )
   data.complex = my.sapply(
-    X = 1:nrow(Rsubunits),
+    X = seq_len(nrow(Rsubunits)),
     FUN = function(x) {
       RsubunitsV <- unlist(Rsubunits[x,], use.names = F)
       RsubunitsV <- RsubunitsV[RsubunitsV != ""]
@@ -561,7 +571,7 @@ computeExpr_complex <- function(complex_input, data.use, complex) {
     no = future.apply::future_sapply
   )
   data.complex = my.sapply(
-    X = 1:nrow(Rsubunits),
+    X = seq_len(nrow(Rsubunits)),
     FUN = function(x) {
       RsubunitsV <- unlist(Rsubunits[x,], use.names = F)
       RsubunitsV <- RsubunitsV[RsubunitsV != ""]
@@ -597,7 +607,7 @@ computeExpr_LR <- function(geneLR, data.use, complex_input){
   dataL1avg <- data.use[geneLR[index.singleL],]
   dataLavg <- matrix(nrow = nLR, ncol = numCluster)
   dataLavg[index.singleL,] <- dataL1avg
-  index.complexL <- setdiff(1:nLR, index.singleL)
+  index.complexL <- setdiff(seq_len(nLR), index.singleL)
   if (length(index.complexL) > 0) {
     complex <- geneLR[index.complexL]
     data.complex <- computeExpr_complex(complex_input, data.use, complex)

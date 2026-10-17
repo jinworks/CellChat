@@ -22,6 +22,7 @@ netVisual_bubble(
   remove.isolate = FALSE,
   max.dataset = NULL,
   min.dataset = NULL,
+  min.fc = NULL,
   min.quantile = 0,
   max.quantile = 1,
   line.on = TRUE,
@@ -72,6 +73,9 @@ netVisual_bubble(
 \item{max.dataset}{a scale, keeping the communications with highest probability in max.dataset (i.e., certrain condition)}
 
 \item{min.dataset}{a scale, keeping the communications with lowest probability in min.dataset (i.e., certrain condition)}
+
+\item{min.fc}{a minimum fold change of the communication probability between the datasets (highest vs. second highest one) when doing comparison analysis, e.g., min.fc = 1.5.
+The communications that are similar between datasets are removed, as well as the L-R pairs without any remaining communication. Default = NULL (no filtering)}
 
 \item{min.quantile, max.quantile}{minimum and maximum quantile cutoff values for the colorbar, may specify quantile in [0,1]}
 

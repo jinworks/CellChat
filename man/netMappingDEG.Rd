@@ -11,13 +11,15 @@ netMappingDEG(object, features.name, variable.all = TRUE, thresh = 0.05)
 
 \item{features.name}{a char name used for extracting the DEG in `object@var.features[[features.name]]`}
 
-\item{variable.all}{variable.all = TRUE will compute the c("pvalues", "logFC", "pct.1", "pct.2") for a ligand/receptor complex using the mean value of its all subunits, that is requiring all subunits of the complex are differential expressed;
-variable.all = FALSE will compute the minimum value of "pvalues" and maximum value of c("logFC", "pct.1", "pct.2") among the subunits, that is only requiring that any one of the subunits of the complex is differential expressed.}
+\item{variable.all}{variable.all = TRUE requires that all subunits of a ligand/receptor complex are differentially expressed (otherwise the DEG information of the complex is NA):
+c("logFC", "pct.1", "pct.2") are the mean values of its subunits and the p-values are the maximum p-values of its subunits (a valid p-value for testing that all subunits are differentially expressed);
+variable.all = FALSE only requires that any one of the subunits of the complex is differentially expressed: c("logFC", "pct.1", "pct.2") are the maximum values among the subunits and the p-values are the minimum p-values multiplied by the number of subunits (Bonferroni correction).}
 
 \item{thresh}{threshold of the p-value for determining significant interaction}
 }
 \value{
 a data frame of the inferred cell-cell communications, consisting of source, target, interaction_name, pathway_name, prob and other CellChatDB information as well as DEG information
+(ligand.pvalues, ligand.pvalues.adj, ligand.logFC, ligand.pct.1, ligand.pct.2 and the same columns for receptors)
 }
 \description{
 This function returns a data frame consisting of all the inferred cell-cell communications with mapped DEG information

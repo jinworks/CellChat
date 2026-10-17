@@ -19,7 +19,8 @@ netAnalysis_signalingRole_heatmap(
   font.size = 8,
   font.size.title = 10,
   cluster.rows = FALSE,
-  cluster.cols = FALSE
+  cluster.cols = FALSE,
+  as.ggplot = FALSE
 )
 }
 \arguments{
@@ -52,6 +53,8 @@ netAnalysis_signalingRole_heatmap(
 \item{cluster.rows}{whether cluster rows}
 
 \item{cluster.cols}{whether cluster columns}
+
+\item{as.ggplot}{whether to return a patchwork-compatible object (see `heatmapToGgplot`), e.g. to show the outgoing and incoming heatmaps side by side with `gg1 + gg2`}
 }
 \description{
 In this heatmap, colobar represents the relative signaling strength of a signaling pathway across cell groups (NB: values are row-scaled).

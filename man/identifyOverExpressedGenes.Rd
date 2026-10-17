@@ -12,6 +12,7 @@ identifyOverExpressedGenes(
   invert = FALSE,
   group.dataset = NULL,
   pos.dataset = NULL,
+  neg.dataset = NULL,
   group.DE.combined = FALSE,
   features.name = "features",
   only.pos = TRUE,
@@ -20,6 +21,14 @@ identifyOverExpressedGenes(
   thresh.pc = 0,
   thresh.fc = 0,
   thresh.p = 0.05,
+  thresh.p.adj = NULL,
+  p.adjust.method = "BH",
+  group.replicate = NULL,
+  replicate.method = c("limma", "t.test"),
+  paired.replicate = FALSE,
+  min.cells.replicate = 10,
+  min.pct.test = NULL,
+  covariates = NULL,
   do.DE = TRUE,
   do.fast = TRUE,
   min.cells = 10
@@ -40,6 +49,9 @@ identifyOverExpressedGenes(
 
 \item{pos.dataset}{the dataset name used for identifying highly enriched genes in this dataset for each cell group}
 
+\item{neg.dataset}{the dataset name(s) compared to `pos.dataset`. Default = NULL: all the other datasets are pooled together.
+When analyzing three or more conditions, setting e.g. pos.dataset = "TrtA" and neg.dataset = "Ctrl" performs the comparison TrtA vs. Ctrl only, ignoring the cells from the other conditions.}
+
 \item{group.DE.combined}{Whether to perform differential expression between conditions by ignoring cell group information. By default, group.DE.combined = FALSE, which will perform differential expression analysis between two biological conditions for each cell group;
 When group.DE.combined = TRUE, it will perform DE analysis by combining all cell groups together.}
 
@@ -53,9 +65,36 @@ When group.DE.combined = TRUE, it will perform DE analysis by combining all cell
 
 \item{thresh.pc}{Threshold of the fraction of cells expressed in one cluster, i.e., thresh.pc = 0.1}
 
-\item{thresh.fc}{Threshold of Log Fold Change, i.e., thresh.pc = 0.1}
+\item{thresh.fc}{Threshold of Log Fold Change, i.e., thresh.fc = 0.1. Increase it (e.g., thresh.fc = 0.25) to remove the genes that are only slightly different between groups or conditions}
 
-\item{thresh.p}{Threshold of p-values, i.e., thresh.pc = 0.05}
+\item{thresh.p}{Threshold of p-values, i.e., thresh.p = 0.05. NB: this threshold is applied to the raw (non-adjusted) p-values; see `thresh.p.adj`}
+
+\item{thresh.p.adj}{Threshold of the p-values adjusted for multiple testing (column `pvalues.adj`), i.e., thresh.p.adj = 0.05. Default = NULL (no filtering on adjusted p-values, as in the previous versions).
+Using thresh.p.adj is recommended: with thousands of genes tested in each cell group, filtering on raw p-values only keeps many false positives.}
+
+\item{p.adjust.method}{the method used to adjust the p-values for multiple testing within each cell group (see `stats::p.adjust`); Default = "BH" (false discovery rate).
+NB: when comparing conditions, cells are considered as independent observations (no biological replicates), which makes the p-values over-optimistic; effect size thresholds (`thresh.fc`, `thresh.pc`) are therefore important.}
+
+\item{group.replicate}{the column name of `object@meta` giving the biological replicates (samples), e.g., the sample column of the Seurat metadata such as "orig.ident".
+When set together with `group.dataset`, the differential expression between conditions is performed at the level of the replicates (pseudobulk) instead of the cells:
+for each cell group, the expression of each replicate is the log of the average normalized expression of its cells (see `min.cells.replicate`), and the replicates are compared between conditions.
+This takes into account the biological variability between replicates and avoids the over-optimistic p-values of the cell-level tests. At least two replicates per condition are required for each cell group.
+logFC is the difference of the mean pseudobulk expression between conditions (natural log), and pct.1/pct.2 are the fractions of expressing cells in `pos.dataset` and in the other condition(s).}
+
+\item{replicate.method}{the test used with `group.replicate`: "limma" (moderated t-test from the limma package; recommended for few replicates) or "t.test" (Welch t-test, or paired t-test when `paired.replicate = TRUE`)}
+
+\item{paired.replicate}{whether the replicate labels identify the same individuals/donors in the different conditions (paired design, e.g. before/after treatment). Default = FALSE: replicates are considered as different samples in each condition, even if they share the same label (e.g., "rep1" in each condition).}
+
+\item{min.cells.replicate}{the minimum number of cells of a replicate in a cell group for this replicate to be used in the pseudobulk analysis of this cell group. Default = 10}
+
+\item{min.pct.test}{with `group.replicate`: the genes expressed in less than this fraction of the cells of a cell group (all the compared cells pooled, whatever their condition) are not tested in this cell group
+and are not counted in the multiple-testing adjustment, e.g., min.pct.test = 0.05. This independent filtering (Bourgon et al., PNAS 2010) does not use the condition labels, hence it keeps the control of the false discovery rate
+while increasing the power: the adjustment no longer pays for the genes that are hardly expressed in a cell group, which cannot be detected as differentially expressed and can hardly be involved in an inferred communication.
+Default = NULL: all the genes are counted in the adjustment (conservative). NB: `thresh.pc` uses the fraction of expressing cells within each condition and the genes it removes are still counted in the adjustment.}
+
+\item{covariates}{column names of `object@meta` used as covariates in the pseudobulk analysis (requires `group.replicate` and replicate.method = "limma"), e.g., covariates = "sex".
+The covariates should be constant within each replicate. The model is then `~ covariates + condition`: the conditions are compared within each level of the covariates (e.g., males with males and females with females),
+which removes the variability due to the covariates, and logFC is the effect of the condition adjusted for the covariates.}
 
 \item{do.DE}{Whether to perform differential expression analysis. By default do.DE = TRUE; When do.DE = FALSE, selecting over-expressed genes that are expressed in more than `min.cells` cells.}
 
@@ -70,5 +109,5 @@ A CellChat object or a data frame. If returning a CellChat object, two new eleme
 }
 \description{
 USERS can use customized gene set as over-expressed signaling genes by setting `object@var.features[[features.name]] <- features.sig`
-The Bonferroni corrected/adjusted p value can be obtained via `object@var.features[[paste0(features.name, ".info")]]`. Note that by default `features.name = "features"`
+The adjusted p value (see `p.adjust.method`) can be obtained via `object@var.features[[paste0(features.name, ".info")]]`. Note that by default `features.name = "features"`
 }

@@ -22,7 +22,10 @@ subsetCommunication_internal(
   receptor.pvalues = NULL,
   receptor.logFC = NULL,
   receptor.pct.1 = NULL,
-  receptor.pct.2 = NULL
+  receptor.pct.2 = NULL,
+  ligand.pvalues.adj = NULL,
+  receptor.pvalues.adj = NULL,
+  logFC.abs = FALSE
 )
 }
 \arguments{
@@ -53,6 +56,11 @@ ligand.pct.1: threshold for the percent of expressed genes in the defined 'posit
 ligand.pct.2: threshold for the percent of expressed genes in the cells except for the defined 'positive' cell group}
 
 \item{receptor.pvalues, receptor.logFC, receptor.pct.1, receptor.pct.2}{set threshold for receptor genes}
+
+\item{ligand.pvalues.adj, receptor.pvalues.adj}{thresholds for the adjusted p-values of ligand and receptor genes in the DEG analysis (see `p.adjust.method` in `identifyOverExpressedGenes`); recommended over `ligand.pvalues`/`receptor.pvalues`}
+
+\item{logFC.abs}{whether `ligand.logFC` and `receptor.logFC` are thresholds of the absolute logFC. Default = FALSE.
+When logFC.abs = TRUE, e.g., ligand.logFC = 0.25 keeps the ligands that are either up-regulated or down-regulated with |logFC| >= 0.25, which removes the genes that are only slightly different between conditions.}
 }
 \value{
 A data frame of the inferred cell-cell communications of interest, consisting of source, target, interaction_name, pathway_name, prob and other information

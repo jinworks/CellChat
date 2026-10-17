@@ -1,3 +1,42 @@
+# Fork updates (adrdufour/CellChat)
+## Bug fixes
+- `netVisual_bubble`: fix the error `object 'pval_categorie' not found` when plotting a single CellChat object; fix the error when a compared dataset has no interaction; the dashed lines separating cell pairs are now correct when some datasets are missing.
+- `rankNet`: dataset *i* gets the color *i* of `color.use` again (bars and y-axis text were inverted); the colored y-axis text is now aligned with the displayed signaling when some signaling are filtered out; `sources.use`/`targets.use` given as names are matched in each dataset; `signaling.type` is now used in comparison mode; the global `options(warn)` is restored on exit; the statistical test no longer fails for datasets with different cellular compositions when `paired.test = FALSE`.
+- `netVisual_chord_gene`: fix the cluster group visualization (undefined `custom_colors`, duplicated sectors, link colors not matching their source, ignored arguments, lost title, no returned `recordedplot`) and the check of `pairLR.use`, which rejected any valid input. It is controlled by the new argument `merge.genes` (TRUE by default; FALSE gives the original behavior).
+
+## Improved support of three or more conditions
+- `rankNet(comparison = c(1,2,3))`: signaling are grouped by the condition with the highest information flow, the y-axis text is colored by this condition, `do.stat = TRUE` uses a Friedman (paired) or Kruskal-Wallis test, and the stacked bar plot shows the equal-contribution lines (1/3, 2/3). The returned data contain `dominant.dataset` and `specificity`.
+- `subsetCommunication`/`netVisual_bubble` on a merged object no longer fail when one condition has no interaction of interest (e.g., a pathway absent in one condition).
+- Pairwise functions (`netVisual_diffInteraction`, `netVisual_heatmap`, `netVisual_barplot`, `netAnalysis_signalingChanges_scatter`, `netAnalysis_diff_signalingRole_scatter`) now raise an explicit error listing the pairs to run instead of silently ignoring the third condition.
+
+## Filtering the weakly differentially expressed genes
+- `identifyOverExpressedGenes`: new `thresh.p.adj` (threshold on the adjusted p-values, recommended) and `p.adjust.method` (default "BH", now used by both `do.fast = TRUE/FALSE`); new `neg.dataset` to compare two conditions only (e.g., TrtA vs. Ctrl) when analyzing three or more conditions. Use `thresh.fc` (e.g., 0.25) together with `thresh.p.adj = 0.05` to remove the genes that are only slightly different between conditions.
+- `netMappingDEG` now also returns `ligand.pvalues.adj` and `receptor.pvalues.adj`; `subsetCommunication` gains `ligand.pvalues.adj`, `receptor.pvalues.adj` and `logFC.abs` (threshold on |logFC|, keeping the genes strongly up- or down-regulated).
+- `rankNet`: new `min.fc` (remove signaling with a fold change of the information flow below `min.fc` between conditions) and `signif.only` (with `do.stat = TRUE`); `netVisual_bubble`: new `min.fc` in comparison mode.
+
+## Biological replicates
+- `identifyOverExpressedGenes(group.replicate = "orig.ident")`: differential expression between conditions at the level of the biological replicates (pseudobulk per replicate and cell group), using limma (`replicate.method = "limma"`, recommended) or a Welch t-test; `paired.replicate = TRUE` for paired designs (same donors in the conditions); `min.cells.replicate` sets the minimum number of cells of a replicate in a cell group. The output is compatible with `netMappingDEG`/`subsetCommunication`.
+
+- `identifyOverExpressedGenes(covariates = "sexe")`: sample-level covariates in the pseudobulk analysis (limma model `~ covariates + condition`), e.g. to compare conditions within each sex when samples of both sexes are pooled.
+- `identifyOverExpressedGenes(min.pct.test = 0.05)`: independent filtering in the pseudobulk analysis (Bourgon et al., PNAS 2010). The genes expressed by less than this fraction of the cells of a cell group (conditions pooled) are neither tested nor counted in the multiple-testing adjustment. The filter does not use the condition labels, so the FDR stays controlled while the power increases (in simulations with 4 vs. 4 replicates: power doubled, FDR 4% at the nominal 5%).
+
+## Differentially expressed genes without communication
+- New `diagnoseDEGCommunication()`: for each differentially expressed gene, follows its ligand-receptor pairs through the inference and reports where they are lost: "significant", "not significant" (probability > 0 but not specific), "expression too low" (the gene or its partner is expressed by too few cells of the cell group for `computeCommunProb(type = "triMean")`), "pair not selected" (removed by `identifyOverExpressedGenes`/`identifyOverExpressedInteractions` in each condition) or "partner not expressed" (no communication possible in the tissue). This makes it possible to keep a strict differential expression analysis while reporting why a gene is absent from the communications.
+
+## Heatmaps
+- `netVisual_heatmap` and `netAnalysis_signalingRole_heatmap`: `cluster.cols` was ignored (the columns followed `cluster.rows`); each heatmap now has a unique name, which fixes the merged legends and the error "Viewport 'Relative values_heatmap_body_1_1' was not found" when displaying `gg1 + gg2` (e.g., in Jupyter).
+- New `as.ggplot = TRUE` (and `heatmapToGgplot()`): returns a patchwork-compatible object, so that `gg1 + gg2` shows independent heatmaps (own clustering and legend) and can be saved with `ggsave`.
+
+## Publication-ready figures
+- New `theme_cellchat()` (black text, thin axes, compact legends) and colorblind-friendly `datasetPalette()` (Okabe-Ito), used by default by `rankNet`, `compareInteractions`, `netVisual_bubble` (viridis color scale), `netAnalysis_signalingRole_scatter`, `netAnalysis_diff_signalingRole_scatter`, `netAnalysis_signalingChanges_scatter`, `rankSimilarity`, `netVisual_barplot` and the embedding plots.
+- `options(CellChat.publication = FALSE)` restores the original style (identical rendering).
+
+## Statistical validity
+- `identifyOverExpressedGenes` (presto, default `do.fast = TRUE`) with `group.dataset`: each gene was reported twice per cell group, and with `only.pos = TRUE` the genes up-regulated in the *other* condition were kept with a positive logFC. Only `pos.dataset` vs. the other condition(s) is now reported.
+- `netMappingDEG`: the p-value of a complex was the mean of the p-values of its subunits, which is not a valid p-value. It is now the maximum p-value (`variable.all = TRUE`, which also requires all the subunits to be differentially expressed) or the Bonferroni-corrected minimum p-value (`variable.all = FALSE`).
+- `computeCommunProb`: the permutation p-values are now (1 + #permutations >= observed)/(1 + nboot); they could previously be exactly 0, which is not a valid p-value. **The communications need to be re-computed to use the corrected p-values.**
+- `rankNet(do.stat = TRUE)`: the p-values are now corrected for the number of tested signaling (`p.adjust.method = "BH"`); signaling that could not be tested are no longer given a p-value of 0 (NA, with `specific = TRUE` when the signaling is absent from a condition).
+
 # Version 2.1.2 (2024-2-6)
 - Update `filterCommunication` to allow identifying consistent cell-cell communication across samples when mutiple samples/replicates/batches are merged as an input for CellChat analysis.
 - Update `computeCommunProb` where the ECM-receptor signaling is now assumed as diffusible signaling when analyzing spatial transcrptomics.

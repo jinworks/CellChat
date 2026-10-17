@@ -71,7 +71,7 @@ For 10X visium, contact.knn.k = 6. For other spatial technologies, this value ma
 
 \item{do.symmetric}{Whether converting the adjacent matrix into symmetric one when determining spatially proximal cell groups. Default is TRUE, indicating that if adj(i,j) or adj(j,i) is zero, then both are zeros.}
 
-\item{nboot}{Threshold of p-values}
+\item{nboot}{the number of permutations used to compute the p-values. The p-values are computed as (1 + number of permutations with a probability at least as large as the observed one)/(1 + nboot), so the smallest possible p-value is 1/(nboot + 1); increase nboot (e.g., nboot = 1000) for a finer resolution of the p-values, in particular when correcting for multiple testing}
 
 \item{seed.use}{Set a random seed. By default, set the seed to 1.}
 

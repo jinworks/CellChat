@@ -25,7 +25,8 @@ netVisual_heatmap(
   targets.use = NULL,
   remove.isolate = FALSE,
   row.show = NULL,
-  col.show = NULL
+  col.show = NULL,
+  as.ggplot = FALSE
 )
 }
 \arguments{
@@ -69,6 +70,10 @@ By default, color.heatmap = c('#2166ac','#b2182b') when taking a merged CellChat
 \item{remove.isolate}{whether remove the isolate nodes in the communication network}
 
 \item{row.show, col.show}{a vector giving the index or the name of row or columns to show in the heatmap}
+
+\item{as.ggplot}{whether to return a patchwork-compatible object (see `heatmapToGgplot`) instead of a ComplexHeatmap object.
+With as.ggplot = TRUE, `gg1 + gg2` shows two independent heatmaps side by side (each one with its own clustering and legend) and the result can be saved with `ggplot2::ggsave`;
+with the default ComplexHeatmap object, `ht1 + ht2` concatenates the heatmaps, the rows of the second one following the first one.}
 }
 \value{
 an object of ComplexHeatmap
